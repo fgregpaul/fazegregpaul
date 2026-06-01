@@ -2,6 +2,6 @@ body {
   background-color: red;
 }
 .title {
-  font-size: 20vw;
+  font-size: min(12vw, 120px);
   color: white;
 }
