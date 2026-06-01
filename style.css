@@ -1,6 +1,7 @@
 body {
   background-color: red;
 }
-h1 {
-  font-size: 40vw;
+.title {
+  font-size: 20vw;
+  color: red;
 }
