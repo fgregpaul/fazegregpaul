@@ -1,8 +1,12 @@
 body {
-  background-color: red;
+  background-color: rgb(255, 225, 159);
 }
 .title {
   font-size: min(12vw, 120px);
   color: white;
   font-family: 'Asset', sans-serif;
+}
+.sub {
+  font-size: min(3vw, 6vw);
+  color: rgb(0, 107, 75);
 }
