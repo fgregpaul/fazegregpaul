@@ -45,7 +45,7 @@
 </head>
 <body>
 <header>
-  <div><h1>CPU Platformer Quiz</h1><div class="sub">Learn the CPU, pipelining, and parallelism by jumping your way through it.</div></div>
+  <div><h1>CPU Platformer Quiz</h1><div class="sub">Learn CPU architecture, pipelining, and parallelism by jumping through the levels.</div></div>
   <div class="hud"><span class="pill">⭐ Score: <b id="score">0</b></span><span class="pill">🧠 Correct: <b id="correctCount">0</b></span><span class="pill">📚 <b id="progress">0</b>/50 terms</span><span class="pill">🗺️ Level <b id="level">1</b>/10</span></div>
 </header>
 <main>
@@ -83,64 +83,66 @@
     <span><strong>R</strong> restarts</span>
   </div>
   <div class="below">
-    <section class="card"><h3>How to play</h3><p>Move along the platforms. Each time you try to jump, you get a new question from the CPU vocabulary list. Correct answers launch your jump. Missed answers show the right definition, then let you try again. You can also use the on-screen buttons on touch devices.</p><div style="display:flex;gap:10px;margin-top:12px"><button id="leftBtn" aria-label="Move left">◀ Left</button><button id="jumpBtn" class="primary">Quiz + Jump ⤴</button><button id="rightBtn" aria-label="Move right">Right ▶</button></div></section>
+    <section class="card"><h3>How to play</h3><p>Move along the platforms. Each time you try to jump, you get a question from the CPU vocabulary list. Correct answers launch your jump. Missed answers show feedback and let you try again. You can also use the on-screen buttons on touch devices.</p><div style="display:flex;gap:10px;margin-top:12px"><button id="leftBtn" aria-label="Move left">◀ Left</button><button id="jumpBtn" class="primary">Quiz + Jump ⤴</button><button id="rightBtn" aria-label="Move right">Right ▶</button></div></section>
     <section class="card"><h3>Quick review</h3><div id="review">Answer questions to build your review list.</div></section>
   </div>
 </main>
 <script>
 (() => {
+// Question format: [Term, QuestionText, Option0, Option1, Option2, Option3, CorrectIndex]
 const questions = [
-["CPU","What is the CPU?","The part of the computer that runs instructions","A type of long-term storage","A cable that connects the monitor","A program used to browse the web",0],
-["ALU","What does the ALU do?","Stores files permanently","Performs arithmetic and logic operations","Chooses which apps can access the internet","Displays graphics on the monitor",1],
-["Control unit","What is the control unit responsible for?","Only storing numbers","Cooling the processor","Coordinating instruction execution and controlling signals","Saving files after shutdown",2],
-["RAM","What is RAM mainly used for?","Temporary working memory for data and programs in use","Permanent storage even when power is off","Carrying addresses between components","Doing arithmetic",0],
-["Register","What is a CPU register?","A folder on the hard drive","A very fast, small storage location inside the CPU","A kind of computer network","A type of graphics card",1],
-["Accumulator","In a simple accumulator-based CPU, what is the accumulator used for?","Holding the next instruction's address","Separating instruction and data caches","Holding an ALU input and commonly its result","Controlling the monitor's brightness",2],
-["PC","What does the PC register hold?","The address of the next instruction","The current arithmetic result only","The data read from RAM","The computer's password",0],
-["IR","What does the IR hold?","The address of a file on disk","The current instruction","The CPU temperature","The result of every comparison",1],
-["MAR","What does the MAR hold?","The data that was just loaded","The current instruction's operation code","The memory address being accessed","The ALU's result",2],
-["MDR","What does the MDR hold?","Data being read from or written to memory","The address of the next instruction","The branch prediction table","The clock speed",0],
-["General-purpose register","Why does a CPU have general-purpose registers?","To replace the operating system","To keep values close to the CPU instead of repeatedly accessing RAM","To make the screen higher resolution","To store only instructions permanently",1],
-["Cache","What is CPU cache?","A slow external backup drive","A register that always stores the next instruction","Fast memory that keeps likely-to-be-needed data or instructions nearby","A program that deletes unused files",2],
-["Flag","What is a CPU flag?","A one-bit status value describing an operation's result","A physical switch on the computer case","A file containing the operating system","A signal sent only to a printer",0],
-["Z","When is the zero flag (Z) set?","When the result is negative","When the computed result is zero","When RAM is full","Whenever an instruction is fetched",1],
-["N","What does the negative flag (N) indicate?","The result was exactly zero","The CPU has no available registers","The result's sign bit indicates a negative value","The program has ended",2],
-["C","What does the carry flag (C) commonly record?","A carry out in an unsigned arithmetic operation","That a value was stored in cache","That a branch was always taken","That a number is a floating-point value",0],
-["V","What does the overflow flag (V) indicate?","The computer has run out of storage","A signed arithmetic result cannot be represented correctly in the available bits","The CPU is overheating","A memory address was fetched",1],
-["Bus","What is a bus in computer architecture?","A kind of CPU core","A storage chip","A set of wires or pathways that carry signals between components","A program's source code",2],
-["Control bus","What does the control bus carry?","Control signals such as memory read or write","Only the data being stored","Only memory addresses","Audio from the computer",0],
-["Address bus","What travels on the address bus?","The contents of a register","The address of the memory location being accessed","The CPU's final result","Instructions for drawing pixels",1],
-["Data bus","What travels on the data bus?","Only control signals","Only addresses","Data moving between the CPU and memory","The operating system's settings",2],
-["Fetch/decode/execute cycle","What are the three phases of the basic instruction cycle?","Fetch, decode, execute","Load, save, print","Start, pause, stop","Read, compile, install",0],
-["Fetch","What happens during fetch?","The instruction is carried out","The next instruction is loaded from memory","The CPU is switched off","The result is written to the screen",1],
-["Decode","What happens during decode?","The CPU saves all files","The ALU performs every calculation","The instruction is interpreted to identify its operation and arguments","The computer downloads the program",2],
-["Execute","What happens during execute?","The instruction's operation is carried out","The CPU only reads the next instruction","The instruction is renamed","The computer shuts down",0],
-["Op code","What does an op code specify?","Where the computer is located","Which operation an instruction should perform, such as ADD or LOAD","How much RAM is installed","The user's login name",1],
-["Immediate value","What is an immediate value?","A value always fetched from a hard drive","A memory address only","A value written directly into the instruction","A signal that pauses a pipeline",2],
-["Jump instruction","What does a jump instruction do?","Changes the program counter so execution continues at another address","Always adds two numbers","Copies a file to RAM","Clears every CPU register",0],
-["Pipelining","What is pipelining?","Making one instruction take longer","Overlapping stages of repeated work to improve throughput","Adding more storage to a computer","Running every program on a separate computer",1],
-["Pipeline stage","What is a pipeline stage?","A type of RAM","The whole computer's power supply","One step in a pipeline, working on an item while other stages handle others","A command to restart the CPU",2],
-["Five-stage pipeline","Which list gives the classic five instruction pipeline stages?","IF, ID, EX, MEM, WB","CPU, RAM, GPU, SSD, USB","Fetch, save, print, close, quit","Input, compile, link, install, run",0],
-["IF","What does the IF stage do?","Writes results to registers","Fetches an instruction","Performs the ALU calculation","Reads or writes data memory",1],
-["ID","What does the ID stage do?","Writes the result back","Fetches an instruction","Decodes the instruction","Predicts the computer's temperature",2],
-["EX","What does the EX stage usually do?","Performs the instruction's ALU operation","Fetches the next instruction only","Writes all data to a hard drive","Displays the program window",0],
-["MEM","What does the MEM stage handle?","Instruction decoding","Memory reads or writes required by an instruction","Choosing a font","Changing the CPU's clock",1],
-["WB","What does the WB stage do?","Predicts branches","Loads the instruction from memory","Writes a result back to a CPU register when needed","Deletes old cache entries",2],
-["Split cache","What is a split cache?","Separate instruction and data caches","One cache shared by all computers on the internet","A cache that stores only photos","A memory chip divided between two users",0],
-["Branch","In CPU instructions, what is a branch?","A type of data bus","A jump to a different instruction address","A kind of RAM module","A calculation that always produces zero",1],
-["Pipeline stall","What is a pipeline stall?","A CPU running twice as fast","A new type of instruction cache","A pause where a pipeline stage must wait, reducing throughput","A program installing an update",2],
-["Branch prediction","What is branch prediction?","Guessing which path a branch will take so the CPU can fetch ahead","Making every branch wait until the program ends","Removing the program counter","Saving every instruction to disk",0],
-["Parallelism","What does parallelism mean?","Doing tasks one after another only","Doing multiple pieces of work at the same time","Making a task's result less accurate","Using only one CPU instruction",1],
-["Throughput","What does throughput measure?","How long one task takes from start to finish","How many errors a CPU makes","How much work is completed per unit of time","How many bits are in an address",2],
-["Latency","What does latency measure?","How long one task or operation takes","How many tasks finish in an hour","How many CPU cores are installed","How much memory is available",0],
-["Coordination cost","What is coordination cost in parallel work?","The electricity price of a computer","Time spent organizing work and waiting for other workers or processors","The amount of cache in the CPU","The cost of writing source code",1],
-["Amdahl's Law","What does Amdahl's Law show?","That adding cores always gives unlimited speedup","That all programs can be fully parallelized","That the serial portion of a program limits the speedup parallelism can achieve","That cache is slower than RAM",2],
-["Multi-core CPU","What is a multi-core CPU?","A processor containing multiple cores that can execute instructions independently","A CPU with no registers","A computer with multiple monitors","A CPU that only runs one instruction per day",0],
-["Memory controller","What does a memory controller manage?","The display resolution","Accesses between CPU cores and memory","The order of keyboard keys","The sound output",1],
-["Task switching","How can a single-core operating system make several tasks seem to run at once?","By creating more physical cores in software","By making RAM permanent","By rapidly switching the CPU between tasks","By executing every task in the same register",2],
-["GPU","Why are GPUs good at graphics and other parallel workloads?","They have many processing units that can apply similar operations to lots of data","They have no memory","They only run one calculation at a time","They replace every part of the CPU",0],
-["Streaming multiprocessor","What is a streaming multiprocessor (SM) in a GPU?","A program that streams movies","A GPU unit containing processing resources that execute work across many data elements","A type of CPU memory address","A device for connecting computers to Wi-Fi",1]
+  ["CPU", "What is the CPU?", "The central processing unit that executes program instructions and controls other system hardware", "A magnetic secondary storage disk for holding files when powered down", "A high-speed expansion bus for connecting peripheral graphics devices", "A compiler utility that translates high-level code into executable binaries", 0],
+  ["ALU", "What does the ALU do?", "Manages network packets and protocol handshakes", "Performs arithmetic and logical operations", "Stores long-term files in non-volatile flash memory", "Generates clock pulses to synchronize system components", 1],
+  ["Control unit", "What is the control unit responsible for?", "Executing complex floating-point multiplications directly in memory", "Storing system firmware and microcode permanently", "Coordinating instruction execution, decoding, and generating control signals", "Managing peripheral display refreshes and audio outputs", 2],
+  ["RAM", "What is RAM mainly used for?", "Volatile primary storage for data and program instructions currently in use", "Non-volatile backup storage for system recovery points", "Direct interconnection between core registers and bus lines", "Performing hardware-accelerated matrix operations", 0],
+  ["Register", "What is a CPU register?", "A secondary storage sector on a solid-state drive", "A high-speed, small storage location directly inside the CPU core", "A memory controller interface connecting system buses", "An operating system lookup table for process IDs", 1],
+  ["Accumulator", "In a simple accumulator-based CPU architecture, what is the accumulator used for?", "Storing the current memory page table offset", "Routing external interrupt signals to the control bus", "Holding an ALU input operand and storing the result of ALU operations", "Holding the target address for branch predictor logic", 2],
+  ["PC", "What does the Program Counter (PC) hold?", "The memory address of the next instruction to be fetched and executed", "The raw numerical binary output of the previous ALU calculation", "The current stack pointer frame offset in main memory", "The hardware interrupt priority mask value", 0],
+  ["IR", "What does the Instruction Register (IR) hold?", "The memory address of the operating system kernel page", "The instruction currently being decoded or executed", "The address of the next data value to write back to RAM", "The branch condition status flag byte", 1],
+  ["MAR", "What does the Memory Address Register (MAR) hold?", "The instruction op code currently being executed by the ALU", "The value returned from the floating-point functional unit", "The memory address where data is to be read from or written to", "The register file destination index for write-back operations", 2],
+  ["MDR", "What does the Memory Data Register (MDR / MBR) hold?", "The actual data value read from or to be written to memory", "The hardware serial code of the motherboard chipset", "The jump target offset calculated during execution", "The pipeline stage status byte for hazard detection", 0],
+  ["General-purpose register", "Why does a CPU feature general-purpose registers?", "To host the operating system scheduler and execution threads", "To store temporary variables and data close to the CPU, minimizing slower RAM accesses", "To bypass the ALU during arithmetic calculations", "To manage power distribution across multiple processor cores", 1],
+  ["Cache", "What is CPU cache?", "A slow backup hard disk partition reserved for page swapping", "A stack frame structure allocated inside main system RAM", "Fast SRAM located near or on the CPU core that stores frequently accessed data and instructions", "A dedicated serial bus interface connecting graphics memory", 2],
+  ["Flag", "What is a CPU flag register / status flag?", "A bit in the status register that indicates conditions resulting from an ALU operation or processor state", "A software trigger set by the compiler to mark loop iterations", "A signal line on the system bus indicating memory read completion", "A marker in RAM denoting the end of an executable binary block", 0],
+  ["Z", "When is the Zero Flag (Z) set?", "When an instruction attempts to divide a register value by zero", "When the result of an arithmetic or logical operation equals zero", "When no memory cache misses occur during an instruction fetch", "When the CPU clock cycle count resets back to zero", 1],
+  ["N", "What does the Negative/Sign Flag (N or S) indicate?", "The calculation resulted in a value less than the instruction length", "The processor encountered an invalid op code bit pattern", "The most significant bit (sign bit) of the result is set, indicating a negative signed result", "The program counter jumped backward to a lower memory address", 2],
+  ["C", "What does the Carry Flag (C) record?", "An unsigned arithmetic overflow/carry out from the most significant bit", "A cache write error during memory store execution", "An invalid jump operation beyond address bus limits", "A hardware collision on the parallel system bus", 0],
+  ["V", "What does the Overflow Flag (V) indicate?", "A bus transfer exceeded the maximum bandwidth allowance", "A signed arithmetic operation produced a result exceeding the register capacity", "A stack pointer exceeded allocated physical memory space", "A cache line replacement evicted dirty data back to RAM", 1],
+  ["Bus", "What is a bus in computer architecture?", "A physical socket connecting CPU cores to cooling fans", "A thread management unit inside the operating system core", "A set of parallel electrical lines or communication pathways that transfer data or signals between components", "A firmware microcode sequence for decoding instructions", 2],
+  ["Control bus", "What does the control bus carry?", "Control and timing signals such as read/write commands and interrupt requests", "Only memory address lines pointing to physical RAM sectors", "Only raw floating-point calculation operands", "Dedicated video output signals routed to external displays", 0],
+  ["Address bus", "What travels on the address bus?", "The execution status flags from the control unit", "Memory addresses specifying where data needs to be read or written", "Raw binary machine instructions undergoing execution", "Power distribution signals for onboard register files", 1],
+  ["Data bus", "What travels on the data bus?", "Only memory read and write timing strobe signals", "Target branch addresses generated by the Program Counter", "Actual data and instruction bytes being transferred between components", "Direct clock synchronization pulses across cores", 2],
+  ["Fetch/decode/execute cycle", "What are the three fundamental phases of the instruction cycle?", "Fetch, Decode, Execute", "Compile, Link, Load", "Cache, Write, Flush", "Branch, Stall, Commit", 0],
+  ["Fetch", "What happens during the Fetch phase?", "The ALU processes the arithmetic operation specified in the instruction", "The CPU retrieves the instruction from memory at the address stored in the PC", "The control unit parses the op code and register identifiers", "The result is stored back into the general-purpose register file", 1],
+  ["Decode", "What happens during the Decode phase?", "The result of the operation is written back to main memory", "The next instruction address is calculated and written to the MAR", "The control unit interprets the op code and operands to determine the required operations and signals", "The CPU halts execution to wait for a timer interrupt signal", 2],
+  ["Execute", "What happens during the Execute phase?", "The CPU carries out the specified operation using components like the ALU or memory", "The instruction byte is read from main memory into the IR", "The Program Counter is incremented before any decoding begins", "The compiler reorganizes instructions to avoid pipeline hazards", 0],
+  ["Op code", "What does an op code (operation code) specify?", "The memory bus width allocated for the program thread", "The specific machine instruction or operation to perform, such as ADD, SUB, or LOAD", "The hardware serial number of the target processor core", "The number of clock cycles required to clear the pipeline", 1],
+  ["Immediate value", "What is an immediate value in assembly/machine code?", "A pointer address referencing an entry in the interrupt vector table", "A dynamic variable stored inside the system L3 cache", "A constant data operand embedded directly within the instruction itself", "A register value computed by the prior instruction in the pipeline", 2],
+  ["Jump instruction", "What does a jump/branch instruction do?", "Modifies the Program Counter (PC) to alter the sequential execution flow", "Flushes the data bus and resets all general-purpose registers to zero", "Forces an immediate cache synchronization with secondary storage", "Switches the execution mode from 64-bit to 32-bit compatibility", 0],
+  ["Pipelining", "What is instruction pipelining?", "Executing every program instruction sequentially in a single long clock cycle", "Overlapping the execution of multiple instructions across different pipeline stages to increase throughput", "Using multiple physical CPUs to execute separate independent user processes", "Compressing machine code in memory to reduce fetch time", 1],
+  ["Pipeline stage", "What is a pipeline stage?", "A thermal throttle level enforced by system power management", "An operating system thread priority level", "A distinct hardware subunit responsible for completing one specific step of an instruction's execution per clock cycle", "A hardware bus line used to communicate memory fault codes", 2],
+  ["Five-stage pipeline", "Which sequence lists the classic RISC 5-stage instruction pipeline?", "IF, ID, EX, MEM, WB", "FETCH, LOAD, ALU, STORE, RET", "INIT, READ, COMPUTE, WRITE, EXIT", "IR, PC, MAR, MDR, ALU", 0],
+  ["IF", "What does the Instruction Fetch (IF) stage do?", "Decodes operands and reads register source indices", "Fetches the instruction from instruction memory/cache using the PC", "Executes arithmetic calculations inside the main ALU", "Writes the final computed result into the destination register", 1],
+  ["ID", "What does the Instruction Decode (ID) stage do?", "Accesses data memory to load data into the MDR", "Writes computation results back into the register file", "Decodes the fetched instruction and reads operand values from register files", "Updates the Zero and Carry flags in the status register", 2],
+  ["EX", "What does the Execute (EX) stage perform?", "Performs ALU calculations, effective memory address evaluation, or branch comparison", "Fetches instruction bytes from secondary storage drives", "Writes register values to main system memory caches", "Increments the system process counter for multithreading", 0],
+  ["MEM", "What does the Memory Access (MEM) stage handle?", "Instruction decoding and register file read operations", "Reads from or writes to data memory for load and store instructions", "Branch target instruction fetching from Level 2 cache", "ALU calculation for register-to-register arithmetic operations", 1],
+  ["WB", "What does the Write-Back (WB) stage do?", "Clears pipeline hazard stalls caused by branch mispredictions", "Fetches the next instruction into the Instruction Register", "Writes the computation or loaded memory result back into the register file", "Flushes invalid lines from the primary instruction cache", 2],
+  ["Split cache", "What is a split cache design (Harvard architecture layout)?", "Separate, dedicated Level 1 caches for instructions (I-cache) and data (D-cache)", "A single unified cache partition shared between CPU and GPU", "A memory layout where cache line size is halved for low-power operation", "A system where cache is shared equally across two physical CPU sockets", 0],
+  ["Branch", "In CPU instruction sets, what is a branch?", "A physical bus trace branching off to an I/O device controller", "An instruction that conditionally or unconditionally changes the execution flow to a non-sequential address", "A parallel execution path generated by multi-threading software", "A hardware circuit that divides the main clock signal into sub-frequencies", 1],
+  ["Pipeline stall", "What is a pipeline stall (bubble)?", "A permanent hardware failure inside an execution unit core", "A spike in operating temperature causing processor clock throttling", "A delay introduced into the pipeline execution to resolve data or control hazards", "A state where the CPU waits for user keyboard input", 2],
+  ["Branch prediction", "What is branch prediction?", "A technique where the CPU guesses the direction of conditional branches to avoid pipeline stalls", "A compiler method that eliminates all jump instructions from binary code", "A hardware sensor predicting when processor thermal limits will be exceeded", "An OS feature that forecasts which process will be launched next", 0],
+  ["Parallelism", "What is hardware parallelism?", "Executing instructions purely in serial order without overlapping", "Executing multiple operations or processing multiple data streams simultaneously", "Running instructions at higher clock frequencies using liquid cooling", "Storing program instructions across multiple memory channels sequentially", 1],
+  ["Throughput", "What does throughput measure in computer performance?", "The total time elapsed from the start to the completion of one instruction", "The total electrical energy consumed per calculation cycle", "The total number of tasks or instructions completed per unit of time", "The physical distance signals travel along the system bus per second", 2],
+  ["Latency", "What does latency measure?", "The total time elapsed from the initiation to the completion of a single task or instruction", "The number of instruction stages completed per clock cycle across all cores", "The capacity of a data bus in terms of parallel signal traces", "The ratio of cache hits versus cache misses in primary memory", 0],
+  ["Coordination cost", "What is coordination cost / overhead in parallel computing?", "The price of purchasing multiple multi-core server processors", "Time and resource overhead spent on communication, synchronization, and workload distribution", "The electrical power lost as heat across multiple bus interconnects", "The extra compiler memory required to generate parallel binary files", 1],
+  ["Amdahl's Law", "What does Amdahl's Law state?", "Parallel processing speedup increases linearly with an infinite number of cores regardless of program structure", "Cache hit rate determines the maximum theoretical clock frequency of a multi-core processor", "The theoretical speedup of a program on parallel hardware is strictly limited by its serial (non-parallelizable) portion", "Energy consumption scales quadratically with processor clock speed", 2],
+  ["Multi-core CPU", "What is a multi-core CPU?", "A single physical integrated circuit containing two or more independent processor cores", "A CPU connected to multiple separate motherboard sockets via system buses", "A single execution core running multiple software threads sequentially", "A system using multiple external GPU accelerators for general processing", 0],
+  ["Memory controller", "What does a memory controller do?", "Regulates voltage supply to CPU core logic circuits", "Manages the flow of data reading from and writing to system main memory (RAM)", "Schedules instruction execution order inside the ALU", "Generates video timing signals for connected display monitors", 1],
+  ["Task switching", "How does a single-core CPU run multiple tasks concurrently (time-slicing)?", "By physically splitting its single core into sub-execution units", "By converting scalar assembly instructions into vector operations", "By context-switching rapidly between tasks driven by timer interrupts", "By storing all active process data inside general-purpose registers simultaneously", 2],
+  ["GPU", "Why are GPUs highly efficient at parallel graphics and tensor workloads?", "They feature thousands of small, specialized ALU cores optimized for SIMD/data-parallel execution", "They have larger single-core clock speeds and deeper pipeline depths than CPUs", "They execute instructions sequentially without requiring memory buses", "They eliminate the need for primary system RAM by using registers exclusively", 0],
+  ["Streaming multiprocessor", "What is a Streaming Multiprocessor (SM) in GPU architecture?", "A dedicated hardware encoder for streaming display signals over network lines", "A GPU hardware block containing execution units, register files, and warp schedulers for executing groups of threads", "A system cache controller that streams instruction blocks directly from disk", "An interface bus standard for connecting multiple graphics cards in parallel", 1]
 ];
+
 const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 const W = canvas.width, H = canvas.height;
@@ -158,100 +160,160 @@ const player = {x:45,y:397,w:30,h:42,vx:0,vy:0,onGround:false};
 const keys = {};
 let started=false, quizOpen=false, answered=false, canJump=false, finished=false;
 let score=0, correctCount=0, asked=0, qIndex=0, current=null, review=[], lastTime=0;
-let worldX=0;
 const gravity=0.55;
+
 function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
+
 function draw(){
   ctx.clearRect(0,0,W,H);
   const palette=levelPalettes[(level-1)%levelPalettes.length];
   const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,palette[0]); sky.addColorStop(1,'#e6f8ff'); ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
-  // clouds
+  // Clouds
   ctx.fillStyle='#ffffffa8';
   [[100,70],[320,105],[610,65],[800,115]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,22,0,Math.PI*2);ctx.arc(x+23,y-8,28,0,Math.PI*2);ctx.arc(x+48,y,20,0,Math.PI*2);ctx.fill();});
-  // distant hills
+  // Distant hills
   ctx.fillStyle='#6bbd9a';ctx.beginPath();ctx.moveTo(0,390);for(let x=0;x<=W;x+=80)ctx.lineTo(x,330+Math.sin(x*.013)*28);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();
-  platforms.forEach((p,i)=>{ctx.fillStyle='#8b5e3c';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle=palette[1];ctx.fillRect(p.x,p.y,p.w,7);ctx.fillStyle='#b67b4d';for(let x=p.x+10;x<p.x+p.w;x+=26)ctx.fillRect(x,p.y+12,9,4);});
-  // finish flag
+  // Platforms
+  platforms.forEach((p)=>{ctx.fillStyle='#8b5e3c';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle=palette[1];ctx.fillRect(p.x,p.y,p.w,7);ctx.fillStyle='#b67b4d';for(let x=p.x+10;x<p.x+p.w;x+=26)ctx.fillRect(x,p.y+12,9,4);});
+  // Finish flag
   ctx.fillStyle='#43536b';ctx.fillRect(916,152,5,54);ctx.fillStyle='#ffcb58';ctx.beginPath();ctx.moveTo(921,153);ctx.lineTo(952,164);ctx.lineTo(921,177);ctx.fill();
-  // player
+  // Player sprite
   ctx.fillStyle='#223b5d';ctx.fillRect(player.x,player.y+7,player.w,player.h-7);
   ctx.fillStyle='#ffd166';ctx.fillRect(player.x+4,player.y,player.w-8,player.h-8);
   ctx.fillStyle='#172438';ctx.fillRect(player.x+7,player.y+10,4,5);ctx.fillRect(player.x+19,player.y+10,4,5);
   ctx.fillStyle='#223b5d';ctx.fillRect(player.x+10,player.y+23,11,3);
-  // HUD in canvas
+  // In-canvas level HUD
   ctx.fillStyle='#17334a';ctx.font='bold 15px system-ui';ctx.fillText('Level '+level+' • Find the flag!',20,28);
   ctx.font='13px system-ui';ctx.fillText('Correct answers this level: '+levelCorrect+'/'+levelQuestions,20,49);
 }
-function updateHud(){ $('score').textContent=score; $('correctCount').textContent=correctCount; $('progress').textContent=Math.min(asked,50); $('level').textContent=level; }
+
+function updateHud(){ 
+  $('score').textContent=score; 
+  $('correctCount').textContent=correctCount; 
+  $('progress').textContent=Math.min(asked,50); 
+  $('level').textContent=level; 
+}
+
 function nextQuestion(){
-  // Cycle through the full list in shuffled order, avoiding immediate repeats.
   if(qIndex===0) window.questionOrder=shuffle([...questions]);
   if(qIndex>=window.questionOrder.length){window.questionOrder=shuffle([...questions]);qIndex=0;}
   current=window.questionOrder[qIndex++];
   asked++;
+  
+  const correctOptionText = current[2 + current[6]];
+  
   $('qLabel').textContent=`Jump quiz • Question ${Math.min(asked,50)} of 50`;
   $('question').textContent=current[1];
-  $('answers').innerHTML='';$('feedback').textContent='Choose an answer to unlock your jump.';
-  $('continueBtn').classList.add('hidden');answered=false;canJump=false;
-  let choices=[current[2],current[3],current[4],current[5]].map(t=>({text:t,correct:t===current[2]}));
+  $('answers').innerHTML='';
+  $('feedback').textContent='Choose an answer to unlock your jump.';
+  $('continueBtn').classList.add('hidden');
+  answered=false;
+  canJump=false;
+
+  let choices=[
+    {text:current[2], correct: current[6]===0},
+    {text:current[3], correct: current[6]===1},
+    {text:current[4], correct: current[6]===2},
+    {text:current[5], correct: current[6]===3}
+  ];
   choices=shuffle(choices);
-  choices.forEach(c=>{const b=document.createElement('button');b.className='answer-btn';b.textContent=c.text;b.onclick=()=>choose(b,c,choices);$('answers').appendChild(b);});
-  $('quizOverlay').classList.remove('hidden');quizOpen=true;
+
+  choices.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='answer-btn';
+    b.textContent=c.text;
+    b.onclick=()=>choose(b, c, correctOptionText);
+    $('answers').appendChild(b);
+  });
+
+  $('quizOverlay').classList.remove('hidden');
+  quizOpen=true;
 }
-function choose(button,choice){
-  if(answered)return;
+
+function choose(button, choice, correctOptionText){
+  if(answered) return;
   if(choice.correct){
-    answered=true;canJump=true;correctCount++;levelCorrect++;score+=100;
+    answered=true;
+    canJump=true;
+    correctCount++;
+    levelCorrect++;
+    score+=100;
     button.classList.add('correct');
     [...$('answers').children].forEach(b=>b.disabled=true);
-    $('feedback').textContent='Correct! '+current[2]+'. Press Jump to launch.';
+    $('feedback').textContent='Correct! '+correctOptionText+'. Press Jump to launch.';
     $('continueBtn').classList.remove('hidden');
-    review.unshift({term:current[0],def:current[2],ok:true});
+    review.unshift({term:current[0], def:correctOptionText, ok:true});
   } else {
-    score=Math.max(0,score-10);button.classList.add('wrong');
-    $('feedback').textContent='Not quite. That choice does not match the concept. Try another answer. Read each option carefully and think about what the term is used for.';
+    score=Math.max(0,score-10);
+    button.classList.add('wrong');
+    $('feedback').textContent='Not quite. Read options carefully and try another answer.';
     button.disabled=true;
-    review.unshift({term:current[0],def:current[2],ok:false});
+    review.unshift({term:current[0], def:correctOptionText, ok:false});
   }
-  renderReview();updateHud();
+  renderReview();
+  updateHud();
 }
+
 function renderReview(){
   $('review').innerHTML=review.slice(0,8).map(r=>`<div class="review-item"><b>${r.term}:</b> ${r.def}</div>`).join('');
 }
+
 function requestJump(){ if(!started||finished||quizOpen)return; nextQuestion(); }
+
 function doJump(){
   if(!canJump)return;
-  quizOpen=false;$('quizOverlay').classList.add('hidden');
-  player.vy=-12.5;player.onGround=false;player.vx=Math.max(player.vx,2.8);score+=25;canJump=false;
+  quizOpen=false;
+  $('quizOverlay').classList.add('hidden');
+  player.vy=-12.5;
+  player.onGround=false;
+  player.vx=Math.max(player.vx,2.8);
+  score+=25;
+  canJump=false;
 }
+
 function reset(){
   player.x=45;player.y=397;player.vx=0;player.vy=0;score=0;correctCount=0;asked=0;qIndex=0;review=[];level=1;levelCorrect=0;started=true;finished=false;quizOpen=false;
   window.questionOrder=shuffle([...questions]);
   setupLevel();
-  $('startOverlay').classList.add('hidden');$('finishOverlay').classList.add('hidden');$('quizOverlay').classList.add('hidden');updateHud();renderReview();draw();
+  $('startOverlay').classList.add('hidden');$('finishOverlay').classList.add('hidden');$('quizOverlay').classList.add('hidden');
+  updateHud();renderReview();draw();
 }
+
 function setupLevel(){
   const shift=(level-1)%5;
   platforms=basePlatforms.map((p,i)=>({...p, y: i===0 ? 445 : Math.max(190,Math.min(390,p.y + ((i%2===0?1:-1)*shift*5)))}));
   player.x=45;player.y=397;player.vx=0;player.vy=0;player.onGround=false;
-  levelCorrect=0;updateHud();
+  levelCorrect=0;
+  updateHud();
 }
+
 function advanceLevel(){
-  finished=false;$('finishOverlay').classList.add('hidden');
+  finished=false;
+  $('finishOverlay').classList.add('hidden');
   if(level>=10){
     $('finishHeading').textContent='You beat all 10 levels! 🏆';
     $('finishText').textContent=`Final score: ${score}. Correct answers: ${correctCount}/50. You made it through the entire CPU vocabulary course!`;
-    $('restartBtn').textContent='Play again ↻';finished=true;$('finishOverlay').classList.remove('hidden');return;
+    $('restartBtn').textContent='Play again ↻';
+    finished=true;
+    $('finishOverlay').classList.remove('hidden');
+    return;
   }
-  level++;setupLevel();updateHud();draw();
+  level++;
+  setupLevel();
+  updateHud();
+  draw();
 }
+
 $('startBtn').onclick=()=>reset();
 $('restartBtn').onclick=()=>{if(level>=10)reset();else advanceLevel();};
 $('continueBtn').onclick=()=>doJump();
 $('jumpBtn').onclick=()=>{if(canJump)doJump();else requestJump();};
-$('leftBtn').onpointerdown=()=>keys.ArrowLeft=true;$('leftBtn').onpointerup=$('leftBtn').onpointerleave=()=>keys.ArrowLeft=false;
-$('rightBtn').onpointerdown=()=>keys.ArrowRight=true;$('rightBtn').onpointerup=$('rightBtn').onpointerleave=()=>keys.ArrowRight=false;
+$('leftBtn').onpointerdown=()=>keys.ArrowLeft=true;
+$('leftBtn').onpointerup=$('leftBtn').onpointerleave=()=>keys.ArrowLeft=false;
+$('rightBtn').onpointerdown=()=>keys.ArrowRight=true;
+$('rightBtn').onpointerup=$('rightBtn').onpointerleave=()=>keys.ArrowRight=false;
 $('jumpBtn').onpointerdown=e=>e.preventDefault();
+
 window.addEventListener('keydown',e=>{
   if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();
   keys[e.code]=true;
@@ -259,8 +321,10 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyR')reset();
 });
 window.addEventListener('keyup',e=>keys[e.code]=false);
+
 function loop(t){
-  const dt=Math.min((t-lastTime)/16.67||1,2);lastTime=t;
+  const dt=Math.min((t-lastTime)/16.67||1,2);
+  lastTime=t;
   if(started&&!quizOpen&&!finished){
     if(keys.ArrowLeft||keys.KeyA)player.vx-=0.45*dt;
     if(keys.ArrowRight||keys.KeyD)player.vx+=0.45*dt;
@@ -273,11 +337,23 @@ function loop(t){
       }
     });
     if(player.y>H+50){player.x=45;player.y=397;player.vy=0;player.vx=0;}
-    if(player.x>900&&player.y+player.h<220&&levelCorrect>=levelQuestions){finished=true;$('finishHeading').textContent=level>=10?'You beat all 10 levels! 🏆':`Level ${level} complete! 🏁`;$('finishText').textContent=level>=10?`Final score: ${score}. Correct answers: ${correctCount}/50. You made it through the entire CPU vocabulary course!`:`Great work! You answered ${levelCorrect} questions correctly this level. Score: ${score}. Ready for the next course?`;$('restartBtn').textContent=level>=10?'Play again ↻':'Next level →';$('finishOverlay').classList.remove('hidden');}
+    if(player.x>900&&player.y+player.h<220&&levelCorrect>=levelQuestions){
+      finished=true;
+      $('finishHeading').textContent=level>=10?'You beat all 10 levels! 🏆':`Level ${level} complete! 🏁`;
+      $('finishText').textContent=level>=10?`Final score: ${score}. Correct answers: ${correctCount}/50. You made it through the entire CPU vocabulary course!`:`Great work! You answered ${levelCorrect} questions correctly this level. Score: ${score}. Ready for the next course?`;
+      $('restartBtn').textContent=level>=10?'Play again ↻':'Next level →';
+      $('finishOverlay').classList.remove('hidden');
+    }
   }
-  draw();requestAnimationFrame(loop);
+  draw();
+  requestAnimationFrame(loop);
 }
-window.questionOrder=shuffle([...questions]);setupLevel();updateHud();draw();requestAnimationFrame(loop);
+
+window.questionOrder=shuffle([...questions]);
+setupLevel();
+updateHud();
+draw();
+requestAnimationFrame(loop);
 })();
 </script>
 </body>
