@@ -46,7 +46,7 @@
 <body>
 <header>
   <div><h1>CPU Platformer Quiz</h1><div class="sub">Learn the CPU, pipelining, and parallelism by jumping your way through it.</div></div>
-  <div class="hud"><span class="pill">⭐ Score: <b id="score">0</b></span><span class="pill">🧠 Correct: <b id="correctCount">0</b></span><span class="pill">📚 <b id="progress">0</b>/50 terms</span></div>
+  <div class="hud"><span class="pill">⭐ Score: <b id="score">0</b></span><span class="pill">🧠 Correct: <b id="correctCount">0</b></span><span class="pill">📚 <b id="progress">0</b>/50 terms</span><span class="pill">🗺️ Level <b id="level">1</b>/10</span></div>
 </header>
 <main>
   <div class="game-wrap">
@@ -71,9 +71,9 @@
     <div class="overlay hidden" id="finishOverlay">
       <div class="modal">
         <div class="eyebrow">Course complete</div>
-        <h2>You made it to the flag! 🏁</h2>
+        <h2 id="finishHeading">Level complete! 🏁</h2>
         <p id="finishText" style="color:var(--muted);line-height:1.5"></p>
-        <div class="modal-actions"><button class="primary" id="restartBtn">Play again ↻</button></div>
+        <div class="modal-actions"><button class="primary" id="restartBtn">Next level →</button></div>
       </div>
     </div>
   </div>
@@ -144,10 +144,16 @@ const questions = [
 const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 const W = canvas.width, H = canvas.height;
-const platforms = [
+const basePlatforms = [
   {x:0,y:445,w:960,h:55},{x:150,y:365,w:135,h:18},{x:340,y:300,w:135,h:18},
   {x:535,y:350,w:120,h:18},{x:700,y:270,w:125,h:18},{x:845,y:205,w:115,h:18}
 ];
+let platforms = basePlatforms.map(p=>({...p}));
+const levelPalettes = [
+  ['#8bd7f0','#36a66c'],['#f7c6a3','#d77a47'],['#b7b8ff','#7466c9'],['#a9e6c3','#328c77'],['#f4d58d','#bd7b36'],
+  ['#b5d8ff','#4d88c7'],['#f5b7d2','#b54d82'],['#c9e6a3','#6d9d42'],['#c7b5a8','#806c60'],['#b5f0ee','#258f91']
+];
+let level = 1, levelCorrect = 0, levelQuestions = 5;
 const player = {x:45,y:397,w:30,h:42,vx:0,vy:0,onGround:false};
 const keys = {};
 let started=false, quizOpen=false, answered=false, canJump=false, finished=false;
@@ -157,13 +163,14 @@ const gravity=0.55;
 function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
 function draw(){
   ctx.clearRect(0,0,W,H);
-  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#8bd7f0'); sky.addColorStop(1,'#e6f8ff'); ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  const palette=levelPalettes[(level-1)%levelPalettes.length];
+  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,palette[0]); sky.addColorStop(1,'#e6f8ff'); ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
   // clouds
   ctx.fillStyle='#ffffffa8';
   [[100,70],[320,105],[610,65],[800,115]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,22,0,Math.PI*2);ctx.arc(x+23,y-8,28,0,Math.PI*2);ctx.arc(x+48,y,20,0,Math.PI*2);ctx.fill();});
   // distant hills
   ctx.fillStyle='#6bbd9a';ctx.beginPath();ctx.moveTo(0,390);for(let x=0;x<=W;x+=80)ctx.lineTo(x,330+Math.sin(x*.013)*28);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();
-  platforms.forEach((p,i)=>{ctx.fillStyle='#8b5e3c';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle='#36a66c';ctx.fillRect(p.x,p.y,p.w,7);ctx.fillStyle='#b67b4d';for(let x=p.x+10;x<p.x+p.w;x+=26)ctx.fillRect(x,p.y+12,9,4);});
+  platforms.forEach((p,i)=>{ctx.fillStyle='#8b5e3c';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle=palette[1];ctx.fillRect(p.x,p.y,p.w,7);ctx.fillStyle='#b67b4d';for(let x=p.x+10;x<p.x+p.w;x+=26)ctx.fillRect(x,p.y+12,9,4);});
   // finish flag
   ctx.fillStyle='#43536b';ctx.fillRect(916,152,5,54);ctx.fillStyle='#ffcb58';ctx.beginPath();ctx.moveTo(921,153);ctx.lineTo(952,164);ctx.lineTo(921,177);ctx.fill();
   // player
@@ -172,10 +179,10 @@ function draw(){
   ctx.fillStyle='#172438';ctx.fillRect(player.x+7,player.y+10,4,5);ctx.fillRect(player.x+19,player.y+10,4,5);
   ctx.fillStyle='#223b5d';ctx.fillRect(player.x+10,player.y+23,11,3);
   // HUD in canvas
-  ctx.fillStyle='#17334a';ctx.font='bold 15px system-ui';ctx.fillText('Find the flag!',20,28);
-  ctx.font='13px system-ui';ctx.fillText('Move with ← →  •  Jump = quiz',20,49);
+  ctx.fillStyle='#17334a';ctx.font='bold 15px system-ui';ctx.fillText('Level '+level+' • Find the flag!',20,28);
+  ctx.font='13px system-ui';ctx.fillText('Correct answers this level: '+levelCorrect+'/'+levelQuestions,20,49);
 }
-function updateHud(){ $('score').textContent=score; $('correctCount').textContent=correctCount; $('progress').textContent=Math.min(asked,50); }
+function updateHud(){ $('score').textContent=score; $('correctCount').textContent=correctCount; $('progress').textContent=Math.min(asked,50); $('level').textContent=level; }
 function nextQuestion(){
   // Cycle through the full list in shuffled order, avoiding immediate repeats.
   if(qIndex===0) window.questionOrder=shuffle([...questions]);
@@ -186,7 +193,7 @@ function nextQuestion(){
   $('question').textContent=current[1];
   $('answers').innerHTML='';$('feedback').textContent='Choose an answer to unlock your jump.';
   $('continueBtn').classList.add('hidden');answered=false;canJump=false;
-  let choices=[current[2],current[3],current[4],current[5]].map((t,i)=>({text:t,correct:i===current[6]}));
+  let choices=[current[2],current[3],current[4],current[5]].map(t=>({text:t,correct:t===current[2]}));
   choices=shuffle(choices);
   choices.forEach(c=>{const b=document.createElement('button');b.className='answer-btn';b.textContent=c.text;b.onclick=()=>choose(b,c,choices);$('answers').appendChild(b);});
   $('quizOverlay').classList.remove('hidden');quizOpen=true;
@@ -194,7 +201,7 @@ function nextQuestion(){
 function choose(button,choice){
   if(answered)return;
   if(choice.correct){
-    answered=true;canJump=true;correctCount++;score+=100;
+    answered=true;canJump=true;correctCount++;levelCorrect++;score+=100;
     button.classList.add('correct');
     [...$('answers').children].forEach(b=>b.disabled=true);
     $('feedback').textContent='Correct! '+current[2]+'. Press Jump to launch.';
@@ -218,11 +225,28 @@ function doJump(){
   player.vy=-12.5;player.onGround=false;player.vx=Math.max(player.vx,2.8);score+=25;canJump=false;
 }
 function reset(){
-  player.x=45;player.y=397;player.vx=0;player.vy=0;score=0;correctCount=0;asked=0;qIndex=0;review=[];started=true;finished=false;quizOpen=false;
+  player.x=45;player.y=397;player.vx=0;player.vy=0;score=0;correctCount=0;asked=0;qIndex=0;review=[];level=1;levelCorrect=0;started=true;finished=false;quizOpen=false;
+  window.questionOrder=shuffle([...questions]);
+  setupLevel();
   $('startOverlay').classList.add('hidden');$('finishOverlay').classList.add('hidden');$('quizOverlay').classList.add('hidden');updateHud();renderReview();draw();
 }
+function setupLevel(){
+  const shift=(level-1)%5;
+  platforms=basePlatforms.map((p,i)=>({...p, y: i===0 ? 445 : Math.max(190,Math.min(390,p.y + ((i%2===0?1:-1)*shift*5)))}));
+  player.x=45;player.y=397;player.vx=0;player.vy=0;player.onGround=false;
+  levelCorrect=0;updateHud();
+}
+function advanceLevel(){
+  finished=false;$('finishOverlay').classList.add('hidden');
+  if(level>=10){
+    $('finishHeading').textContent='You beat all 10 levels! 🏆';
+    $('finishText').textContent=`Final score: ${score}. Correct answers: ${correctCount}/50. You made it through the entire CPU vocabulary course!`;
+    $('restartBtn').textContent='Play again ↻';finished=true;$('finishOverlay').classList.remove('hidden');return;
+  }
+  level++;setupLevel();updateHud();draw();
+}
 $('startBtn').onclick=()=>reset();
-$('restartBtn').onclick=()=>reset();
+$('restartBtn').onclick=()=>{if(level>=10)reset();else advanceLevel();};
 $('continueBtn').onclick=()=>doJump();
 $('jumpBtn').onclick=()=>{if(canJump)doJump();else requestJump();};
 $('leftBtn').onpointerdown=()=>keys.ArrowLeft=true;$('leftBtn').onpointerup=$('leftBtn').onpointerleave=()=>keys.ArrowLeft=false;
@@ -249,11 +273,11 @@ function loop(t){
       }
     });
     if(player.y>H+50){player.x=45;player.y=397;player.vy=0;player.vx=0;}
-    if(player.x>900&&player.y+player.h<220){finished=true;$('finishText').textContent=`Score: ${score}. Correct answers: ${correctCount}. You completed the course. Restart to play through the vocabulary again.`;$('finishOverlay').classList.remove('hidden');}
+    if(player.x>900&&player.y+player.h<220&&levelCorrect>=levelQuestions){finished=true;$('finishHeading').textContent=level>=10?'You beat all 10 levels! 🏆':`Level ${level} complete! 🏁`;$('finishText').textContent=level>=10?`Final score: ${score}. Correct answers: ${correctCount}/50. You made it through the entire CPU vocabulary course!`:`Great work! You answered ${levelCorrect} questions correctly this level. Score: ${score}. Ready for the next course?`;$('restartBtn').textContent=level>=10?'Play again ↻':'Next level →';$('finishOverlay').classList.remove('hidden');}
   }
   draw();requestAnimationFrame(loop);
 }
-window.questionOrder=shuffle([...questions]);updateHud();draw();requestAnimationFrame(loop);
+window.questionOrder=shuffle([...questions]);setupLevel();updateHud();draw();requestAnimationFrame(loop);
 })();
 </script>
 </body>
