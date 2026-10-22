@@ -209,7 +209,7 @@ function choose(button,choice){
     review.unshift({term:current[0],def:current[2],ok:true});
   } else {
     score=Math.max(0,score-10);button.classList.add('wrong');
-    $('feedback').textContent='Not quite. Try another choice. Hint: '+current[2]+'.';
+    $('feedback').textContent='Not quite. That choice does not match the concept. Try another answer. Read each option carefully and think about what the term is used for.';
     button.disabled=true;
     review.unshift({term:current[0],def:current[2],ok:false});
   }
