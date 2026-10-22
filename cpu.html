@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CPU Platformer Quiz</title>
+<style>
+  :root { color-scheme: dark; --bg:#101827; --panel:#182438; --ink:#eef5ff; --muted:#a9bad2; --accent:#71e3bb; --gold:#ffd166; }
+  * { box-sizing:border-box }
+  body { margin:0; font-family:system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:16px 20px 10px; display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  h1 { font-size:clamp(1.25rem,3vw,1.8rem); margin:0 }
+  .sub { color:var(--muted); font-size:.9rem; margin-top:3px }
+  .hud { display:flex; gap:8px; flex-wrap:wrap }
+  .pill { background:#24334a; border:1px solid #344863; padding:7px 11px; border-radius:999px; font-size:.9rem }
+  main { max-width:1050px; margin:auto; padding:8px 16px 24px }
+  .game-wrap { position:relative; border:1px solid #344863; border-radius:16px; overflow:hidden; box-shadow:0 16px 40px #0005; }
+  canvas { display:block; width:100%; height:auto; background:#9adcf2; image-rendering:pixelated; }
+  .overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; background:#08111bd9; }
+  .hidden { display:none !important }
+  .modal { width:min(620px,100%); background:var(--panel); border:1px solid #405570; border-radius:18px; padding:22px; box-shadow:0 18px 50px #0008; }
+  .eyebrow { color:var(--accent); font-size:.78rem; text-transform:uppercase; letter-spacing:.12em; font-weight:800 }
+  .modal h2 { font-size:clamp(1.2rem,3vw,1.65rem); line-height:1.25; margin:8px 0 16px }
+  .answers { display:grid; gap:9px }
+  button { font:inherit; cursor:pointer; color:var(--ink); border:1px solid #455b78; background:#24344c; padding:11px 13px; border-radius:10px; text-align:left; transition:transform .08s,background .15s,border-color .15s; }
+  button:hover { background:#304762; border-color:#81a4cf }
+  button:active { transform:scale(.99) }
+  button:focus-visible { outline:3px solid var(--gold); outline-offset:2px }
+  .answer-btn.correct { border-color:var(--accent); background:#17483e }
+  .answer-btn.wrong { border-color:#ff8f8f; background:#542c37 }
+  .feedback { margin-top:13px; min-height:24px; color:var(--muted); line-height:1.45 }
+  .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap }
+  .primary { background:var(--accent); color:#10231f; border-color:var(--accent); font-weight:800; text-align:center }
+  .primary:hover { background:#9af2d1 }
+  .instructions { display:flex; gap:10px 18px; flex-wrap:wrap; color:var(--muted); font-size:.9rem; padding:12px 2px 0; }
+  .instructions strong { color:var(--ink) }
+  .below { display:grid; grid-template-columns:1.2fr 1fr; gap:12px; margin-top:14px }
+  .card { background:var(--panel); border:1px solid #344863; border-radius:14px; padding:15px 16px }
+  .card h3 { margin:0 0 8px; font-size:1rem }
+  .card p { margin:0; color:var(--muted); font-size:.9rem; line-height:1.5 }
+  #review { max-height:190px; overflow:auto; display:grid; gap:7px; font-size:.86rem; color:var(--muted) }
+  .review-item b { color:var(--ink) }
+  @media(max-width:650px) { .below { grid-template-columns:1fr } .modal { padding:17px } }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>CPU Platformer Quiz</h1><div class="sub">Learn the CPU, pipelining, and parallelism by jumping your way through it.</div></div>
+  <div class="hud"><span class="pill">⭐ Score: <b id="score">0</b></span><span class="pill">🧠 Correct: <b id="correctCount">0</b></span><span class="pill">📚 <b id="progress">0</b>/50 terms</span></div>
+</header>
+<main>
+  <div class="game-wrap">
+    <canvas id="game" width="960" height="500" aria-label="Platformer game"></canvas>
+    <div class="overlay" id="startOverlay">
+      <div class="modal">
+        <div class="eyebrow">Ready, player one?</div>
+        <h2>Every jump starts with a question.</h2>
+        <p style="color:var(--muted);line-height:1.5">Answer a multiple-choice question to jump. Get it right and you leap forward. Get it wrong and you can try again. Reach the flag to finish the course.</p>
+        <div class="modal-actions"><button class="primary" id="startBtn">Start game →</button></div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="quizOverlay">
+      <div class="modal">
+        <div class="eyebrow" id="qLabel">Jump quiz</div>
+        <h2 id="question">Question goes here</h2>
+        <div class="answers" id="answers"></div>
+        <div class="feedback" id="feedback" aria-live="polite"></div>
+        <div class="modal-actions"><button id="continueBtn" class="primary hidden">Jump! →</button></div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="finishOverlay">
+      <div class="modal">
+        <div class="eyebrow">Course complete</div>
+        <h2>You made it to the flag! 🏁</h2>
+        <p id="finishText" style="color:var(--muted);line-height:1.5"></p>
+        <div class="modal-actions"><button class="primary" id="restartBtn">Play again ↻</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="instructions">
+    <span><strong>← / →</strong> or <strong>A / D</strong> move</span>
+    <span><strong>Space / ↑ / W</strong> asks a question and jumps after a correct answer</span>
+    <span><strong>R</strong> restarts</span>
+  </div>
+  <div class="below">
+    <section class="card"><h3>How to play</h3><p>Move along the platforms. Each time you try to jump, you get a new question from the CPU vocabulary list. Correct answers launch your jump. Missed answers show the right definition, then let you try again. You can also use the on-screen buttons on touch devices.</p><div style="display:flex;gap:10px;margin-top:12px"><button id="leftBtn" aria-label="Move left">◀ Left</button><button id="jumpBtn" class="primary">Quiz + Jump ⤴</button><button id="rightBtn" aria-label="Move right">Right ▶</button></div></section>
+    <section class="card"><h3>Quick review</h3><div id="review">Answer questions to build your review list.</div></section>
+  </div>
+</main>
+<script>
+(() => {
+const questions = [
+["CPU","What is the CPU?","The part of the computer that runs instructions","A type of long-term storage","A cable that connects the monitor","A program used to browse the web",0],
+["ALU","What does the ALU do?","Stores files permanently","Performs arithmetic and logic operations","Chooses which apps can access the internet","Displays graphics on the monitor",1],
+["Control unit","What is the control unit responsible for?","Only storing numbers","Cooling the processor","Coordinating instruction execution and controlling signals","Saving files after shutdown",2],
+["RAM","What is RAM mainly used for?","Temporary working memory for data and programs in use","Permanent storage even when power is off","Carrying addresses between components","Doing arithmetic",0],
+["Register","What is a CPU register?","A folder on the hard drive","A very fast, small storage location inside the CPU","A kind of computer network","A type of graphics card",1],
+["Accumulator","In a simple accumulator-based CPU, what is the accumulator used for?","Holding the next instruction's address","Separating instruction and data caches","Holding an ALU input and commonly its result","Controlling the monitor's brightness",2],
+["PC","What does the PC register hold?","The address of the next instruction","The current arithmetic result only","The data read from RAM","The computer's password",0],
+["IR","What does the IR hold?","The address of a file on disk","The current instruction","The CPU temperature","The result of every comparison",1],
+["MAR","What does the MAR hold?","The data that was just loaded","The current instruction's operation code","The memory address being accessed","The ALU's result",2],
+["MDR","What does the MDR hold?","Data being read from or written to memory","The address of the next instruction","The branch prediction table","The clock speed",0],
+["General-purpose register","Why does a CPU have general-purpose registers?","To replace the operating system","To keep values close to the CPU instead of repeatedly accessing RAM","To make the screen higher resolution","To store only instructions permanently",1],
+["Cache","What is CPU cache?","A slow external backup drive","A register that always stores the next instruction","Fast memory that keeps likely-to-be-needed data or instructions nearby","A program that deletes unused files",2],
+["Flag","What is a CPU flag?","A one-bit status value describing an operation's result","A physical switch on the computer case","A file containing the operating system","A signal sent only to a printer",0],
+["Z","When is the zero flag (Z) set?","When the result is negative","When the computed result is zero","When RAM is full","Whenever an instruction is fetched",1],
+["N","What does the negative flag (N) indicate?","The result was exactly zero","The CPU has no available registers","The result's sign bit indicates a negative value","The program has ended",2],
+["C","What does the carry flag (C) commonly record?","A carry out in an unsigned arithmetic operation","That a value was stored in cache","That a branch was always taken","That a number is a floating-point value",0],
+["V","What does the overflow flag (V) indicate?","The computer has run out of storage","A signed arithmetic result cannot be represented correctly in the available bits","The CPU is overheating","A memory address was fetched",1],
+["Bus","What is a bus in computer architecture?","A kind of CPU core","A storage chip","A set of wires or pathways that carry signals between components","A program's source code",2],
+["Control bus","What does the control bus carry?","Control signals such as memory read or write","Only the data being stored","Only memory addresses","Audio from the computer",0],
+["Address bus","What travels on the address bus?","The contents of a register","The address of the memory location being accessed","The CPU's final result","Instructions for drawing pixels",1],
+["Data bus","What travels on the data bus?","Only control signals","Only addresses","Data moving between the CPU and memory","The operating system's settings",2],
+["Fetch/decode/execute cycle","What are the three phases of the basic instruction cycle?","Fetch, decode, execute","Load, save, print","Start, pause, stop","Read, compile, install",0],
+["Fetch","What happens during fetch?","The instruction is carried out","The next instruction is loaded from memory","The CPU is switched off","The result is written to the screen",1],
+["Decode","What happens during decode?","The CPU saves all files","The ALU performs every calculation","The instruction is interpreted to identify its operation and arguments","The computer downloads the program",2],
+["Execute","What happens during execute?","The instruction's operation is carried out","The CPU only reads the next instruction","The instruction is renamed","The computer shuts down",0],
+["Op code","What does an op code specify?","Where the computer is located","Which operation an instruction should perform, such as ADD or LOAD","How much RAM is installed","The user's login name",1],
+["Immediate value","What is an immediate value?","A value always fetched from a hard drive","A memory address only","A value written directly into the instruction","A signal that pauses a pipeline",2],
+["Jump instruction","What does a jump instruction do?","Changes the program counter so execution continues at another address","Always adds two numbers","Copies a file to RAM","Clears every CPU register",0],
+["Pipelining","What is pipelining?","Making one instruction take longer","Overlapping stages of repeated work to improve throughput","Adding more storage to a computer","Running every program on a separate computer",1],
+["Pipeline stage","What is a pipeline stage?","A type of RAM","The whole computer's power supply","One step in a pipeline, working on an item while other stages handle others","A command to restart the CPU",2],
+["Five-stage pipeline","Which list gives the classic five instruction pipeline stages?","IF, ID, EX, MEM, WB","CPU, RAM, GPU, SSD, USB","Fetch, save, print, close, quit","Input, compile, link, install, run",0],
+["IF","What does the IF stage do?","Writes results to registers","Fetches an instruction","Performs the ALU calculation","Reads or writes data memory",1],
+["ID","What does the ID stage do?","Writes the result back","Fetches an instruction","Decodes the instruction","Predicts the computer's temperature",2],
+["EX","What does the EX stage usually do?","Performs the instruction's ALU operation","Fetches the next instruction only","Writes all data to a hard drive","Displays the program window",0],
+["MEM","What does the MEM stage handle?","Instruction decoding","Memory reads or writes required by an instruction","Choosing a font","Changing the CPU's clock",1],
+["WB","What does the WB stage do?","Predicts branches","Loads the instruction from memory","Writes a result back to a CPU register when needed","Deletes old cache entries",2],
+["Split cache","What is a split cache?","Separate instruction and data caches","One cache shared by all computers on the internet","A cache that stores only photos","A memory chip divided between two users",0],
+["Branch","In CPU instructions, what is a branch?","A type of data bus","A jump to a different instruction address","A kind of RAM module","A calculation that always produces zero",1],
+["Pipeline stall","What is a pipeline stall?","A CPU running twice as fast","A new type of instruction cache","A pause where a pipeline stage must wait, reducing throughput","A program installing an update",2],
+["Branch prediction","What is branch prediction?","Guessing which path a branch will take so the CPU can fetch ahead","Making every branch wait until the program ends","Removing the program counter","Saving every instruction to disk",0],
+["Parallelism","What does parallelism mean?","Doing tasks one after another only","Doing multiple pieces of work at the same time","Making a task's result less accurate","Using only one CPU instruction",1],
+["Throughput","What does throughput measure?","How long one task takes from start to finish","How many errors a CPU makes","How much work is completed per unit of time","How many bits are in an address",2],
+["Latency","What does latency measure?","How long one task or operation takes","How many tasks finish in an hour","How many CPU cores are installed","How much memory is available",0],
+["Coordination cost","What is coordination cost in parallel work?","The electricity price of a computer","Time spent organizing work and waiting for other workers or processors","The amount of cache in the CPU","The cost of writing source code",1],
+["Amdahl's Law","What does Amdahl's Law show?","That adding cores always gives unlimited speedup","That all programs can be fully parallelized","That the serial portion of a program limits the speedup parallelism can achieve","That cache is slower than RAM",2],
+["Multi-core CPU","What is a multi-core CPU?","A processor containing multiple cores that can execute instructions independently","A CPU with no registers","A computer with multiple monitors","A CPU that only runs one instruction per day",0],
+["Memory controller","What does a memory controller manage?","The display resolution","Accesses between CPU cores and memory","The order of keyboard keys","The sound output",1],
+["Task switching","How can a single-core operating system make several tasks seem to run at once?","By creating more physical cores in software","By making RAM permanent","By rapidly switching the CPU between tasks","By executing every task in the same register",2],
+["GPU","Why are GPUs good at graphics and other parallel workloads?","They have many processing units that can apply similar operations to lots of data","They have no memory","They only run one calculation at a time","They replace every part of the CPU",0],
+["Streaming multiprocessor","What is a streaming multiprocessor (SM) in a GPU?","A program that streams movies","A GPU unit containing processing resources that execute work across many data elements","A type of CPU memory address","A device for connecting computers to Wi-Fi",1]
+];
+const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
+const $ = id => document.getElementById(id);
+const W = canvas.width, H = canvas.height;
+const platforms = [
+  {x:0,y:445,w:960,h:55},{x:150,y:365,w:135,h:18},{x:340,y:300,w:135,h:18},
+  {x:535,y:350,w:120,h:18},{x:700,y:270,w:125,h:18},{x:845,y:205,w:115,h:18}
+];
+const player = {x:45,y:397,w:30,h:42,vx:0,vy:0,onGround:false};
+const keys = {};
+let started=false, quizOpen=false, answered=false, canJump=false, finished=false;
+let score=0, correctCount=0, asked=0, qIndex=0, current=null, review=[], lastTime=0;
+let worldX=0;
+const gravity=0.55;
+function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const sky=ctx.createLinearGradient(0,0,0,H); sky.addColorStop(0,'#8bd7f0'); sky.addColorStop(1,'#e6f8ff'); ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // clouds
+  ctx.fillStyle='#ffffffa8';
+  [[100,70],[320,105],[610,65],[800,115]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,22,0,Math.PI*2);ctx.arc(x+23,y-8,28,0,Math.PI*2);ctx.arc(x+48,y,20,0,Math.PI*2);ctx.fill();});
+  // distant hills
+  ctx.fillStyle='#6bbd9a';ctx.beginPath();ctx.moveTo(0,390);for(let x=0;x<=W;x+=80)ctx.lineTo(x,330+Math.sin(x*.013)*28);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill();
+  platforms.forEach((p,i)=>{ctx.fillStyle='#8b5e3c';ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle='#36a66c';ctx.fillRect(p.x,p.y,p.w,7);ctx.fillStyle='#b67b4d';for(let x=p.x+10;x<p.x+p.w;x+=26)ctx.fillRect(x,p.y+12,9,4);});
+  // finish flag
+  ctx.fillStyle='#43536b';ctx.fillRect(916,152,5,54);ctx.fillStyle='#ffcb58';ctx.beginPath();ctx.moveTo(921,153);ctx.lineTo(952,164);ctx.lineTo(921,177);ctx.fill();
+  // player
+  ctx.fillStyle='#223b5d';ctx.fillRect(player.x,player.y+7,player.w,player.h-7);
+  ctx.fillStyle='#ffd166';ctx.fillRect(player.x+4,player.y,player.w-8,player.h-8);
+  ctx.fillStyle='#172438';ctx.fillRect(player.x+7,player.y+10,4,5);ctx.fillRect(player.x+19,player.y+10,4,5);
+  ctx.fillStyle='#223b5d';ctx.fillRect(player.x+10,player.y+23,11,3);
+  // HUD in canvas
+  ctx.fillStyle='#17334a';ctx.font='bold 15px system-ui';ctx.fillText('Find the flag!',20,28);
+  ctx.font='13px system-ui';ctx.fillText('Move with ← →  •  Jump = quiz',20,49);
+}
+function updateHud(){ $('score').textContent=score; $('correctCount').textContent=correctCount; $('progress').textContent=Math.min(asked,50); }
+function nextQuestion(){
+  // Cycle through the full list in shuffled order, avoiding immediate repeats.
+  if(qIndex===0) window.questionOrder=shuffle([...questions]);
+  if(qIndex>=window.questionOrder.length){window.questionOrder=shuffle([...questions]);qIndex=0;}
+  current=window.questionOrder[qIndex++];
+  asked++;
+  $('qLabel').textContent=`Jump quiz • Question ${Math.min(asked,50)} of 50`;
+  $('question').textContent=current[1];
+  $('answers').innerHTML='';$('feedback').textContent='Choose an answer to unlock your jump.';
+  $('continueBtn').classList.add('hidden');answered=false;canJump=false;
+  let choices=[current[2],current[3],current[4],current[5]].map((t,i)=>({text:t,correct:i===current[6]}));
+  choices=shuffle(choices);
+  choices.forEach(c=>{const b=document.createElement('button');b.className='answer-btn';b.textContent=c.text;b.onclick=()=>choose(b,c,choices);$('answers').appendChild(b);});
+  $('quizOverlay').classList.remove('hidden');quizOpen=true;
+}
+function choose(button,choice){
+  if(answered)return;
+  if(choice.correct){
+    answered=true;canJump=true;correctCount++;score+=100;
+    button.classList.add('correct');
+    [...$('answers').children].forEach(b=>b.disabled=true);
+    $('feedback').textContent='Correct! '+current[2]+'. Press Jump to launch.';
+    $('continueBtn').classList.remove('hidden');
+    review.unshift({term:current[0],def:current[2],ok:true});
+  } else {
+    score=Math.max(0,score-10);button.classList.add('wrong');
+    $('feedback').textContent='Not quite. Try another choice. Hint: '+current[2]+'.';
+    button.disabled=true;
+    review.unshift({term:current[0],def:current[2],ok:false});
+  }
+  renderReview();updateHud();
+}
+function renderReview(){
+  $('review').innerHTML=review.slice(0,8).map(r=>`<div class="review-item"><b>${r.term}:</b> ${r.def}</div>`).join('');
+}
+function requestJump(){ if(!started||finished||quizOpen)return; nextQuestion(); }
+function doJump(){
+  if(!canJump)return;
+  quizOpen=false;$('quizOverlay').classList.add('hidden');
+  player.vy=-12.5;player.onGround=false;player.vx=Math.max(player.vx,2.8);score+=25;canJump=false;
+}
+function reset(){
+  player.x=45;player.y=397;player.vx=0;player.vy=0;score=0;correctCount=0;asked=0;qIndex=0;review=[];started=true;finished=false;quizOpen=false;
+  $('startOverlay').classList.add('hidden');$('finishOverlay').classList.add('hidden');$('quizOverlay').classList.add('hidden');updateHud();renderReview();draw();
+}
+$('startBtn').onclick=()=>reset();
+$('restartBtn').onclick=()=>reset();
+$('continueBtn').onclick=()=>doJump();
+$('jumpBtn').onclick=()=>{if(canJump)doJump();else requestJump();};
+$('leftBtn').onpointerdown=()=>keys.ArrowLeft=true;$('leftBtn').onpointerup=$('leftBtn').onpointerleave=()=>keys.ArrowLeft=false;
+$('rightBtn').onpointerdown=()=>keys.ArrowRight=true;$('rightBtn').onpointerup=$('rightBtn').onpointerleave=()=>keys.ArrowRight=false;
+$('jumpBtn').onpointerdown=e=>e.preventDefault();
+window.addEventListener('keydown',e=>{
+  if(['ArrowLeft','ArrowRight','ArrowUp','Space'].includes(e.code))e.preventDefault();
+  keys[e.code]=true;
+  if(['Space','ArrowUp','KeyW'].includes(e.code)&&!e.repeat){if(canJump)doJump();else requestJump();}
+  if(e.code==='KeyR')reset();
+});
+window.addEventListener('keyup',e=>keys[e.code]=false);
+function loop(t){
+  const dt=Math.min((t-lastTime)/16.67||1,2);lastTime=t;
+  if(started&&!quizOpen&&!finished){
+    if(keys.ArrowLeft||keys.KeyA)player.vx-=0.45*dt;
+    if(keys.ArrowRight||keys.KeyD)player.vx+=0.45*dt;
+    player.vx*=Math.pow(.82,dt);player.vx=Math.max(-4,Math.min(4,player.vx));
+    const oldY=player.y;player.x+=player.vx*dt;player.x=Math.max(0,Math.min(W-player.w,player.x));
+    player.vy+=gravity*dt;player.y+=player.vy*dt;player.onGround=false;
+    platforms.forEach(p=>{
+      if(player.vy>=0&&oldY+player.h<=p.y+4&&player.y+player.h>=p.y&&player.x+player.w>p.x&&player.x<p.x+p.w){
+        player.y=p.y-player.h;player.vy=0;player.onGround=true;
+      }
+    });
+    if(player.y>H+50){player.x=45;player.y=397;player.vy=0;player.vx=0;}
+    if(player.x>900&&player.y+player.h<220){finished=true;$('finishText').textContent=`Score: ${score}. Correct answers: ${correctCount}. You completed the course. Restart to play through the vocabulary again.`;$('finishOverlay').classList.remove('hidden');}
+  }
+  draw();requestAnimationFrame(loop);
+}
+window.questionOrder=shuffle([...questions]);updateHud();draw();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
