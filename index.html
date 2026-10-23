@@ -59,7 +59,6 @@ body{
   box-shadow:0 0 0 7px var(--bezel),0 30px 80px rgba(0,0,0,.6);
 }
 @media (max-width:520px){.phone{border-radius:22px}}
-.gp{position:absolute;left:0;right:0;bottom:1px;z-index:12;text-align:center;font:500 9px/12px var(--mono);letter-spacing:.06em;color:rgba(255,255,255,.42);text-shadow:0 0 3px rgba(0,0,0,.55);pointer-events:none;user-select:none}
 
 .top{
   position:absolute;top:0;left:0;right:0;height:58px;z-index:5;
@@ -209,7 +208,6 @@ body{
     <button type="button" class="galchip" id="galchip" aria-label="Open Galaxy Crate"><span id="galIcon"></span><span id="galn">0</span><span class="plus">+</span></button>
   </div>
   <div class="feed" id="feed" tabindex="0" aria-label="GregSnap game feed"></div>
-  <div class="gp">a Greg Paul production</div>
   <div class="scrim" id="scrim" hidden></div>
   <section class="sheet" id="sheet" aria-label="Comments">
     <header><span id="sheetTitle">Comments</span><button type="button" data-closeall>Close</button></header>
@@ -5376,7 +5374,7 @@ body{
   /* ===== stage 5f: boost ball (car soccer), hot time (time-stop shooter) ===== */
 
   function makeBoostBall(sk) {
-    const GOALH = 118, GAP = 46, BR = 17;
+    const GOALH = 110, BR = 17;
     const mkCar = (x, face, ai) => ({ x, y: 0, vx: 0, vy: 0, a: face > 0 ? 0 : Math.PI, face, on: true, boost: 60, jumps: 2, ai, cool: 0, flip: 0, inp: { l: false, r: false, j: false, b: false }, jp: false });
     return Object.assign({
       sk, hold: true, title: 'Boost Ball', how: 'Drive, jump and boost to knock the ball into the right goal. Jump again in the air to flip. In the air, left/right tilt the car.',
@@ -5416,7 +5414,7 @@ body{
         if (this.demo) this.ai(me, B, op, 1); else { me.inp.l = this.held('l'); me.inp.r = this.held('r'); me.inp.j = this.held('j'); me.inp.b = this.held('b'); } this.ai(op, B, me, -1);
         const steps = 3, h2 = dt / steps; for (let s = 0; s < steps; s++) { this.stepCar(me, h2); this.stepCar(op, h2);
           B.vy += 520 * h2; B.x += B.vx * h2; B.y += B.vy * h2; B.vx *= 1 - 0.1 * h2; if (B.y > fy - BR) { B.y = fy - BR; B.vy = -Math.abs(B.vy) * 0.72; B.vx *= 0.985; if (Math.abs(B.vy) < 30) B.vy = 0; } if (B.y < this.top + BR) { B.y = this.top + BR; B.vy = Math.abs(B.vy) * 0.8; }
-          const mt = fy - GAP - GOALH, mb = fy - GAP, inGoalY = B.y > mt + 10 && B.y < mb - 6; if (!inGoalY) { if (B.x < BR) { B.x = BR; B.vx = Math.abs(B.vx) * 0.8; } if (B.x > w - BR) { B.x = w - BR; B.vx = -Math.abs(B.vx) * 0.8; } } else { if (B.x < -4) { this.goal(false); return; } if (B.x > w + 4) { this.goal(true); return; } }
+          const inGoalY = B.y > fy - GOALH; if (!inGoalY) { if (B.x < BR) { B.x = BR; B.vx = Math.abs(B.vx) * 0.8; } if (B.x > w - BR) { B.x = w - BR; B.vx = -Math.abs(B.vx) * 0.8; } } else { if (B.y < fy - GOALH + BR && (B.x < BR || B.x > w - BR)) { B.y = fy - GOALH + BR; B.vy = Math.abs(B.vy) * 0.6; } if (B.x < -4) { this.goal(false); return; } if (B.x > w + 4) { this.goal(true); return; } }
           [me, op].forEach(c => { this.carCircles(c).forEach(q => { const dx = B.x - q[0], dy = B.y - q[1], d = Math.hypot(dx, dy), R = BR + 11; if (d < R && d > 0.01) { const nx = dx / d, ny = dy / d; B.x = q[0] + nx * R; B.y = q[1] + ny * R; const rv = (B.vx - c.vx) * nx + (B.vy - c.vy) * ny; if (rv < 0) { const e = 0.85; B.vx -= (1 + e) * rv * nx; B.vy -= (1 + e) * rv * ny; B.vx += c.vx * 0.25; B.vy += c.vy * 0.25 - 20; if (c.flip > 0) { B.vx += nx * 160; B.vy += ny * 160; } sfx(160 + Math.min(300, -rv), 0.08, 0.05, 'sine'); this.shake = Math.max(this.shake, Math.min(0.3, -rv / 900)); } } }); });
           const sp = Math.hypot(B.vx, B.vy); if (sp > 900) { B.vx *= 900 / sp; B.vy *= 900 / sp; } }
         if (this.left <= 0 && this.cel <= 0) { this.cel = 0.8; this.floats.push({ t: 'Time!', x: w / 2, y: this.h * 0.4, age: 0, c: 'good' }); }
@@ -5428,7 +5426,7 @@ body{
         const c = this.ctx, w = this.w, h = this.h, sk = SK, fy = this.fy; drawBg(c, w, h);
         c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(0, this.top, w, fy - this.top); c.fillStyle = sk.panel; c.fillRect(0, fy, w, h - fy); c.fillStyle = sk.line; c.fillRect(0, fy, w, 3);
         c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(w / 2 - 1, this.top, 2, fy - this.top); c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2; c.beginPath(); c.arc(w / 2, fy, 50, Math.PI, 0); c.stroke();
-        [[0, sk.pal[3]], [w - 16, sk.pal[0]]].forEach(g => { const gx = g[0], mt = fy - GAP - GOALH; c.fillStyle = g[1]; c.globalAlpha = 0.3; c.fillRect(gx, mt, 16, GOALH); c.globalAlpha = 0.5; c.strokeStyle = g[1]; c.lineWidth = 1; for (let k = 0; k <= GOALH; k += 10) { c.beginPath(); c.moveTo(gx, mt + k); c.lineTo(gx + 16, mt + k); c.stroke(); } for (let k = 0; k <= 16; k += 8) { c.beginPath(); c.moveTo(gx + k, mt); c.lineTo(gx + k, mt + GOALH); c.stroke(); } c.globalAlpha = 1; c.fillStyle = g[1]; c.fillRect(gx, mt - 4, 20, 5); c.fillRect(gx, mt + GOALH - 1, 20, 5); });
+        c.fillStyle = sk.pal[3]; c.globalAlpha = 0.35; c.fillRect(0, fy - GOALH, 14, GOALH); c.globalAlpha = 1; c.fillStyle = sk.pal[0]; c.globalAlpha = 0.35; c.fillRect(w - 14, fy - GOALH, 14, GOALH); c.globalAlpha = 1; c.fillStyle = sk.pal[3]; c.fillRect(0, fy - GOALH - 3, 14, 3); c.fillStyle = sk.pal[0]; c.fillRect(w - 14, fy - GOALH - 3, 14, 3);
         this.pads.forEach(p => { c.fillStyle = p.t > 0 ? 'rgba(255,255,255,.15)' : sk.pal[1]; c.fillRect(p.x - (p.big ? 18 : 10), fy - 3, p.big ? 36 : 20, 5); });
         this.parts.forEach(p => { c.globalAlpha = clamp(p.l * 3, 0, 1); dot(c, p.x, p.y, 3, sk.pal[1], { lw: 0 }); c.globalAlpha = 1; });
         this.drawCar(this.op, sk.pal[0]); this.drawCar(this.me, sk.pal[3]); const B = this.ball; c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(B.x, fy, BR * 0.9, 4, 0, 0, TAU); c.fill(); dot(c, B.x, B.y, BR, '#f5f5f5', { lw: 2 }); c.strokeStyle = '#555'; c.lineWidth = 1.5; c.beginPath(); c.arc(B.x, B.y, BR * 0.5, 0, TAU); c.stroke();
