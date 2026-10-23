@@ -1385,6 +1385,7 @@ body{
     road: ['the close calls are so satisfying', 'the trucks are so hard to dodge', 'i hit a car at 400 m', 'it gets so fast', 'got 1200 and then crashed'],
     type: ['my typing speed is cooked', 'typing class flashbacks', 'the long words get me every time', 'i can only hit around 30 wpm', 'it locks onto the word so fast'],
     pairs: ['i am so bad at memory games', 'found all of them in 14 moves', 'the shapes look so similar', 'my brain hurts', 'relaxing ngl'],
+    chess: ['the computer just took my queen', 'i did not know en passant was real', 'castled and felt like a genius', 'chess on gregsnap is crazy', 'got checkmated in 12 moves', 'the knight forks get me every time'],
     sling: ['angry birds who', 'why does the target move', 'the aim line helps a lot', 'i keep overshooting']
   };
   const jit = t => {
@@ -3045,7 +3046,7 @@ body{
         const c = this.ctx, w = this.w, sk = SK, t = this.t, gx = this.gx, gy = this.gy;
         drawBg(c, w, this.h);
         txt(c, 'GREGLE', w / 2, 26, 26, sk.fg, 'center'); txt(c, 'SCORE ' + this.score, 14, 46, 11, sk.dim, 'left', MONO);
-        const colFor = v => v === 2 ? sk.good : v === 1 ? sk.pal[3] : sk.dim;
+        const colFor = v => v === 2 ? '#2f9e44' : v === 1 ? '#d9a406' : sk.dim;
         for (let r = 0; r < 6; r++) {
           const row = this.rows[r], isCur = r === this.rows.length && this.state === 'run', sh = isCur && this.rowShake > 0 ? Math.sin(this.rowShake * 60) * 6 : 0;
           for (let i = 0; i < 5; i++) {
@@ -4041,6 +4042,165 @@ body{
     mk(makePairs(SKINS.ocean), 'Pairs', SKINS.ocean, 'Flip two cards at a time and find all ten matching pairs.', '#memory #cards #chill', 2.8e9, 530e6, 96e6, 'pairs')
   );
 
+  /* ===== stage 4e: chess ===== */
+  function makeChess(sk) {
+    const VAL = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 0 };
+    const other = c => c === 'w' ? 'b' : 'w';
+    const start = () => {
+      const b = []; for (let r = 0; r < 8; r++) b.push(new Array(8).fill(null));
+      const back = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']; for (let c = 0; c < 8; c++) { b[0][c] = 'b' + back[c]; b[1][c] = 'bP'; b[6][c] = 'wP'; b[7][c] = 'w' + back[c]; }
+      return { b, turn: 'w', cr: { wK: 1, wQ: 1, bK: 1, bQ: 1 }, ep: null };
+    };
+    const attacked = (pos, r, c, by) => {
+      const b = pos.b, inb = (y, x) => y >= 0 && y < 8 && x >= 0 && x < 8;
+      const pr = by === 'w' ? r + 1 : r - 1; for (const dc of [-1, 1]) if (inb(pr, c + dc) && b[pr][c + dc] === by + 'P') return true;
+      for (const d of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) { const y = r + d[0], x = c + d[1]; if (inb(y, x) && b[y][x] === by + 'N') return true; }
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dy && !dx) continue; const y = r + dy, x = c + dx; if (inb(y, x) && b[y][x] === by + 'K') return true; }
+      for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        let y = r + d[0], x = c + d[1]; const diag = d[0] && d[1];
+        while (inb(y, x)) { const p = b[y][x]; if (p) { if (p[0] === by && (p[1] === 'Q' || (diag ? p[1] === 'B' : p[1] === 'R'))) return true; break; } y += d[0]; x += d[1]; }
+      }
+      return false;
+    };
+    const findK = (pos, col) => { for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (pos.b[r][c] === col + 'K') return [r, c]; return null; };
+    const inCheck = (pos, col) => { const k = findK(pos, col); return k ? attacked(pos, k[0], k[1], other(col)) : false; };
+    const pseudo = (pos, col, capsOnly) => {
+      const b = pos.b, out = [], inb = (y, x) => y >= 0 && y < 8 && x >= 0 && x < 8, add = (r, c, y, x, extra) => { const m = { fr: r, fc: c, tr: y, tc: x }; if (extra) Object.assign(m, extra); out.push(m); };
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+        const p = b[r][c]; if (!p || p[0] !== col) continue; const t = p[1];
+        if (t === 'P') {
+          const dir = col === 'w' ? -1 : 1, st = col === 'w' ? 6 : 1, pr = col === 'w' ? 0 : 7, y = r + dir;
+          if (!capsOnly && inb(y, c) && !b[y][c]) { add(r, c, y, c, y === pr ? { promo: 'Q' } : null); if (r === st && !b[y + dir][c]) add(r, c, y + dir, c); }
+          for (const dc of [-1, 1]) { const x = c + dc; if (!inb(y, x)) continue; if (b[y][x] && b[y][x][0] !== col) add(r, c, y, x, y === pr ? { promo: 'Q' } : null); else if (pos.ep && pos.ep[0] === y && pos.ep[1] === x) add(r, c, y, x, { ep: true }); }
+        } else if (t === 'N') { for (const d of [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]]) { const y = r + d[0], x = c + d[1]; if (inb(y, x) && (!b[y][x] || b[y][x][0] !== col) && (!capsOnly || b[y][x])) add(r, c, y, x); } }
+        else if (t === 'K') {
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dy && !dx) continue; const y = r + dy, x = c + dx; if (inb(y, x) && (!b[y][x] || b[y][x][0] !== col) && (!capsOnly || b[y][x])) add(r, c, y, x); }
+          if (!capsOnly) { const hr = col === 'w' ? 7 : 0, en = other(col);
+            if (r === hr && c === 4 && !attacked(pos, hr, 4, en)) {
+              if (pos.cr[col + 'K'] && !b[hr][5] && !b[hr][6] && b[hr][7] === col + 'R' && !attacked(pos, hr, 5, en)) add(r, c, hr, 6, { castle: 'K' });
+              if (pos.cr[col + 'Q'] && !b[hr][3] && !b[hr][2] && !b[hr][1] && b[hr][0] === col + 'R' && !attacked(pos, hr, 3, en)) add(r, c, hr, 2, { castle: 'Q' });
+            } }
+        } else {
+          const dirs = t === 'R' ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : t === 'B' ? [[1, 1], [1, -1], [-1, 1], [-1, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+          for (const d of dirs) { let y = r + d[0], x = c + d[1]; while (inb(y, x)) { if (b[y][x]) { if (b[y][x][0] !== col) add(r, c, y, x); break; } if (!capsOnly) add(r, c, y, x); y += d[0]; x += d[1]; } }
+        }
+      }
+      return out;
+    };
+    const make = (pos, m) => {
+      const b = pos.b, p = b[m.fr][m.fc], cap = b[m.tr][m.tc], u = { p, cap, cr: Object.assign({}, pos.cr), ep: pos.ep, epcap: null };
+      b[m.tr][m.tc] = m.promo ? p[0] + m.promo : p; b[m.fr][m.fc] = null;
+      if (m.ep) { u.epcap = b[m.fr][m.tc]; b[m.fr][m.tc] = null; }
+      if (m.castle === 'K') { b[m.tr][5] = b[m.tr][7]; b[m.tr][7] = null; } else if (m.castle === 'Q') { b[m.tr][3] = b[m.tr][0]; b[m.tr][0] = null; }
+      if (p[1] === 'K') { pos.cr[p[0] + 'K'] = 0; pos.cr[p[0] + 'Q'] = 0; }
+      const sq = (r, c) => { if (r === 7 && c === 0) pos.cr.wQ = 0; if (r === 7 && c === 7) pos.cr.wK = 0; if (r === 0 && c === 0) pos.cr.bQ = 0; if (r === 0 && c === 7) pos.cr.bK = 0; };
+      sq(m.fr, m.fc); sq(m.tr, m.tc);
+      pos.ep = p[1] === 'P' && Math.abs(m.tr - m.fr) === 2 ? [(m.fr + m.tr) / 2, m.fc] : null; pos.turn = other(pos.turn); return u;
+    };
+    const unmake = (pos, m, u) => {
+      const b = pos.b; b[m.fr][m.fc] = u.p; b[m.tr][m.tc] = u.cap;
+      if (m.ep) b[m.fr][m.tc] = u.epcap; if (m.castle === 'K') { b[m.tr][7] = b[m.tr][5]; b[m.tr][5] = null; } else if (m.castle === 'Q') { b[m.tr][0] = b[m.tr][3]; b[m.tr][3] = null; }
+      pos.cr = u.cr; pos.ep = u.ep; pos.turn = other(pos.turn);
+    };
+    const legal = (pos, col) => { const out = []; pseudo(pos, col).forEach(m => { const u = make(pos, m); if (!inCheck(pos, col)) out.push(m); unmake(pos, m, u); }); return out; };
+    const PST = (t, r, c, col) => {
+      const rr = col === 'w' ? r : 7 - r, cd = Math.abs(3.5 - c) + Math.abs(3.5 - rr);
+      if (t === 'P') return (6 - rr) * 6 + (c > 1 && c < 6 ? 4 : 0) + (rr === 3 || rr === 4 ? 6 : 0); if (t === 'N') return 28 - cd * 7; if (t === 'B') return 14 - cd * 3; if (t === 'R') return rr === 1 ? 10 : 0; if (t === 'Q') return 6 - cd; if (t === 'K') return rr >= 6 ? 12 : -rr * 4; return 0;
+    };
+    const evalW = pos => { let s = 0; for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = pos.b[r][c]; if (!p) continue; const v = VAL[p[1]] + PST(p[1], r, c, p[0]); s += p[0] === 'w' ? v : -v; } return s; };
+    const order = (pos, ms) => ms.map(m => { const t = pos.b[m.tr][m.tc]; return [m, (t ? 10 * VAL[t[1]] - VAL[pos.b[m.fr][m.fc][1]] : 0) + (m.promo ? 800 : 0)]; }).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    let nodes = 0;
+    const quiesce = (pos, alpha, beta, col, d) => {
+      nodes++; const sp = evalW(pos) * (col === 'w' ? 1 : -1); if (d <= 0) return sp; if (sp >= beta) return sp; if (sp > alpha) alpha = sp;
+      for (const m of order(pos, pseudo(pos, col, true))) { const u = make(pos, m); if (inCheck(pos, col)) { unmake(pos, m, u); continue; } const s = -quiesce(pos, -beta, -alpha, other(col), d - 1); unmake(pos, m, u); if (s >= beta) return s; if (s > alpha) alpha = s; }
+      return alpha;
+    };
+    const nega = (pos, depth, alpha, beta, col, ply) => {
+      nodes++; if (depth <= 0) return quiesce(pos, alpha, beta, col, 3);
+      const ms = order(pos, legal(pos, col)); if (!ms.length) return inCheck(pos, col) ? -100000 + ply : 0;
+      let best = -1e9; for (const m of ms) { const u = make(pos, m); const s = -nega(pos, depth - 1, -beta, -alpha, other(col), ply + 1); unmake(pos, m, u); if (s > best) best = s; if (s > alpha) alpha = s; if (alpha >= beta) break; }
+      return best;
+    };
+    const pickMove = (pos, col, depth) => {
+      const ms = order(pos, legal(pos, col)); let best = null, bs = -1e9; nodes = 0;
+      for (const m of ms) { const u = make(pos, m); const s = -nega(pos, depth - 1, -1e9, 1e9, other(col), 1) + rand(0, 8); unmake(pos, m, u); if (s > bs) { bs = s; best = m; } }
+      return best;
+    };
+    const piece = (c, t, x, y, s, white) => {
+      const fill = white ? '#fbf8ec' : '#2b231b', line = white ? '#2a2118' : '#0d0a07', hi = white ? 'rgba(0,0,0,.12)' : 'rgba(255,255,255,.2)';
+      c.save(); c.translate(x, y); c.scale(s, s); c.lineWidth = 0.055; c.lineJoin = 'round'; c.fillStyle = fill; c.strokeStyle = line;
+      const base = () => { c.beginPath(); c.moveTo(-0.34, 0.4); c.lineTo(-0.3, 0.3); c.lineTo(0.3, 0.3); c.lineTo(0.34, 0.4); c.closePath(); c.fill(); c.stroke(); };
+      const ball = (bx, by, br) => { c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fill(); c.stroke(); };
+      if (t === 'P') { c.beginPath(); c.moveTo(-0.26, 0.3); c.quadraticCurveTo(-0.2, -0.02, -0.07, -0.08); c.lineTo(0.07, -0.08); c.quadraticCurveTo(0.2, -0.02, 0.26, 0.3); c.closePath(); c.fill(); c.stroke(); ball(0, -0.2, 0.15); base(); }
+      else if (t === 'R') { c.beginPath(); c.moveTo(-0.22, 0.3); c.lineTo(-0.17, -0.18); c.lineTo(-0.27, -0.18); c.lineTo(-0.27, -0.38); c.lineTo(-0.14, -0.38); c.lineTo(-0.14, -0.3); c.lineTo(-0.05, -0.3); c.lineTo(-0.05, -0.38); c.lineTo(0.05, -0.38); c.lineTo(0.05, -0.3); c.lineTo(0.14, -0.3); c.lineTo(0.14, -0.38); c.lineTo(0.27, -0.38); c.lineTo(0.27, -0.18); c.lineTo(0.17, -0.18); c.lineTo(0.22, 0.3); c.closePath(); c.fill(); c.stroke(); base(); }
+      else if (t === 'N') { c.beginPath(); c.moveTo(-0.28, 0.3); c.quadraticCurveTo(-0.22, -0.05, -0.02, -0.14); c.lineTo(-0.3, -0.12); c.lineTo(-0.22, -0.3); c.lineTo(-0.1, -0.36); c.lineTo(-0.02, -0.46); c.lineTo(0.06, -0.36); c.quadraticCurveTo(0.3, -0.28, 0.3, 0.08); c.lineTo(0.26, 0.3); c.closePath(); c.fill(); c.stroke(); c.fillStyle = line; c.beginPath(); c.arc(0.0, -0.22, 0.04, 0, TAU); c.fill(); base(); }
+      else if (t === 'B') { c.beginPath(); c.moveTo(-0.25, 0.3); c.quadraticCurveTo(-0.28, 0.02, -0.12, -0.12); c.lineTo(0.12, -0.12); c.quadraticCurveTo(0.28, 0.02, 0.25, 0.3); c.closePath(); c.fill(); c.stroke(); c.beginPath(); c.ellipse(0, -0.24, 0.14, 0.2, 0, 0, TAU); c.fill(); c.stroke(); ball(0, -0.47, 0.06); c.beginPath(); c.moveTo(-0.05, -0.28); c.lineTo(0.05, -0.2); c.stroke(); base(); }
+      else if (t === 'Q') { c.beginPath(); c.moveTo(-0.27, 0.3); c.lineTo(-0.36, -0.28); c.lineTo(-0.17, -0.08); c.lineTo(-0.09, -0.36); c.lineTo(0, -0.1); c.lineTo(0.09, -0.36); c.lineTo(0.17, -0.08); c.lineTo(0.36, -0.28); c.lineTo(0.27, 0.3); c.closePath(); c.fill(); c.stroke(); [[-0.36, -0.3], [-0.09, -0.38], [0.09, -0.38], [0.36, -0.3]].forEach(q => ball(q[0], q[1], 0.05)); ball(0, -0.4, 0.05); base(); }
+      else if (t === 'K') { c.beginPath(); c.moveTo(-0.26, 0.3); c.quadraticCurveTo(-0.34, -0.1, -0.2, -0.2); c.lineTo(0.2, -0.2); c.quadraticCurveTo(0.34, -0.1, 0.26, 0.3); c.closePath(); c.fill(); c.stroke(); c.fillRect(-0.04, -0.5, 0.08, 0.32); c.strokeRect(-0.04, -0.5, 0.08, 0.32); c.fillRect(-0.14, -0.42, 0.28, 0.08); c.strokeRect(-0.14, -0.42, 0.28, 0.08); base(); }
+      c.fillStyle = hi; c.beginPath(); c.ellipse(-0.1, 0.1, 0.04, 0.12, 0, 0, TAU); c.fill(); c.restore();
+    };
+    return Object.assign({
+      sk, hold: true, title: 'Chess', how: 'You are white. Tap a piece, then tap where it should go.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], pos: null, sel: null, moves: [], last: null, think: 0, over: false, keep: false, ply: 0, status: '', pend: 0,
+      perft(d, fen) { const pos = start(); const go = (dd, col) => { if (!dd) return 1; let n = 0; legal(pos, col).forEach(m => { const u = make(pos, m); n += go(dd - 1, other(col)); unmake(pos, m, u); }); return n; }; return go(d, 'w'); },
+      geom() { this.cs = Math.floor(Math.min((this.w - 14) / 8, (this.h - 170) / 8)); this.gx = Math.floor((this.w - this.cs * 8) / 2); this.gy = 80; },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.pos = start(); this.sel = null; this.moves = []; this.last = null; this.think = 0; this.over = false; this.ply = 0; this.status = 'Your move'; this.floats = []; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready'; },
+      enter() { this.reset(); },
+      afterMove(who) {
+        const p = this.pos, next = p.turn, ms = legal(p, next), chk = inCheck(p, next); this.ply++;
+        if (!ms.length) { this.over = true; if (chk) { if (who === 'w') { this.score += 200; this.best = Math.max(this.best, this.score); this.keep = true; this.msg = 'Checkmate. You win!'; this.state = 'dead'; this.dead = 0; sfx(780, 0.4, 0.07); } else { this.msg = 'Checkmate. Computer wins.'; this.shake = 0.5; this.flash = 0.3; this.finish(); this.msg = 'Checkmate. Computer wins.'; } } else { this.keep = true; this.msg = 'Stalemate. Draw.'; this.state = 'dead'; this.dead = 0; } return; }
+        if (this.ply > 160) { this.over = true; this.keep = true; this.msg = 'Draw.'; this.state = 'dead'; this.dead = 0; return; }
+        this.status = chk ? 'Check!' : (next === 'w' ? 'Your move' : 'Computer is thinking...'); if (chk) { sfx(500, 0.15, 0.06); buzz(20); }
+        if (next === 'b') this.think = 0.35;
+      },
+      doMove(m, who) {
+        const cap = this.pos.b[m.tr][m.tc]; make(this.pos, m); this.last = [m.fr, m.fc, m.tr, m.tc]; this.sel = null; this.moves = [];
+        if (cap) { sfx(220, 0.08, 0.06, 'square'); if (who === 'w') { const pts = Math.round(VAL[cap[1]] / 100) * 5; this.score += pts; this.best = Math.max(this.best, this.score); this.floats.push({ t: '+' + pts, x: this.gx + m.tc * this.cs + this.cs / 2, y: this.gy + m.tr * this.cs, age: 0, c: 'good' }); } buzz(10); } else sfx(340, 0.05, 0.04);
+        this.afterMove(who);
+      },
+      bind(cv) {
+        cv.addEventListener('pointerdown', e => {
+          if (this.kick()) return; if (this.state !== 'run' || this.over || this.pos.turn !== 'w') return;
+          const p = ptrPos(cv, e), c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs); if (c < 0 || r < 0 || c > 7 || r > 7) { this.sel = null; this.moves = []; return; }
+          const mv = this.moves.find(m => m.tr === r && m.tc === c); if (mv) { this.doMove(mv, 'w'); return; }
+          const pc = this.pos.b[r][c]; if (pc && pc[0] === 'w') { this.sel = [r, c]; this.moves = legal(this.pos, 'w').filter(m => m.fr === r && m.fc === c); sfx(420, 0.03, 0.03); } else { this.sel = null; this.moves = []; }
+        });
+      },
+      tick(dt) {
+        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return;
+        if (this.think > 0) { this.think -= dt; if (this.think <= 0 && !this.over) { const m = pickMove(this.pos, 'b', 3); if (m) this.doMove(m, 'b'); } }
+      },
+      draw() {
+        const c = this.ctx, w = this.w, sk = SK, cs = this.cs, gx = this.gx, gy = this.gy;
+        drawBg(c, w, this.h);
+        txt(c, 'CHESS', w / 2, 30, 24, sk.fg, 'center'); txt(c, 'SCORE ' + this.score, 16, 58, 11, sk.dim, 'left', MONO); txt(c, this.status, w - 14, 58, 12, sk.fg, 'right', MONO);
+        box(c, gx - 6, gy - 6, cs * 8 + 12, cs * 8 + 12, { fill: sk.dim, r: Math.min(sk.r, 6), hard: Math.min(sk.hard, 3), soft: 0, lw: sk.lw });
+        const kc = this.pos && inCheck(this.pos, this.pos.turn) ? findK(this.pos, this.pos.turn) : null;
+        for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
+          const X = gx + q * cs, Y = gy + r * cs, dark = (r + q) % 2; c.fillStyle = dark ? '#b58863' : '#f0d9b5'; c.fillRect(X, Y, cs, cs);
+          if (this.last && ((this.last[0] === r && this.last[1] === q) || (this.last[2] === r && this.last[3] === q))) { c.fillStyle = 'rgba(255,220,60,.42)'; c.fillRect(X, Y, cs, cs); }
+          if (this.sel && this.sel[0] === r && this.sel[1] === q) { c.fillStyle = 'rgba(80,200,120,.55)'; c.fillRect(X, Y, cs, cs); }
+          if (kc && kc[0] === r && kc[1] === q) { const g = c.createRadialGradient(X + cs / 2, Y + cs / 2, 2, X + cs / 2, Y + cs / 2, cs * 0.7); g.addColorStop(0, 'rgba(255,40,40,.85)'); g.addColorStop(1, 'rgba(255,40,40,0)'); c.fillStyle = g; c.fillRect(X, Y, cs, cs); }
+        }
+        for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) { const p = this.pos.b[r][q]; if (p) piece(c, p[1], gx + q * cs + cs / 2, gy + r * cs + cs / 2, cs * 0.92, p[0] === 'w'); }
+        this.moves.forEach(m => { const X = gx + m.tc * cs + cs / 2, Y = gy + m.tr * cs + cs / 2; if (this.pos.b[m.tr][m.tc] || m.ep) { c.beginPath(); c.arc(X, Y, cs * 0.46, 0, TAU); c.lineWidth = 3; c.strokeStyle = 'rgba(220,50,50,.85)'; c.stroke(); } else dot(c, X, Y, cs * 0.14, 'rgba(40,120,70,.7)', { lw: 0 }); });
+        for (let i = 0; i < 8; i++) { c.globalAlpha = 0.7; txt(c, 'abcdefgh'[i], gx + i * cs + cs - 6, gy + cs * 8 - 7, 9, i % 2 ? '#f0d9b5' : '#b58863', 'center', MONO); txt(c, String(8 - i), gx + 6, gy + i * cs + 8, 9, i % 2 ? '#b58863' : '#f0d9b5', 'center', MONO); c.globalAlpha = 1; }
+        txt(c, 'You play white at the bottom', w / 2, gy + cs * 8 + 28, 11, sk.dim, 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+  skin('walnut', {
+    bg: ['#2b1a10', '#1a0f08'], pat: 'speck', patc: 'rgba(255,220,170,.06)', fg: '#f4e4c8', dim: '#7a5a3a', panel: '#f0d9b5', pfg: '#2b1a10', dark: true,
+    line: '#d9a864', lw: 2, hard: 0, soft: 10, shc: 'rgba(0,0,0,.45)', r: 6, pal: ['#d9a864', '#b58863', '#7a4e2d', '#e8c58a'], good: '#7fb069', bad: '#d1495b',
+    font: '"Playfair Display","Georgia",serif', fw: 900, fs: 0.92, mono: '"Courier Prime","Courier New",monospace', mw: 700, ms: 0.9,
+    veil: 'rgba(26,15,8,.82)', vfg: '#f4e4c8',
+    slide: '#2b1a10', sbgc: '#2b1a10', sfg: '#f4e4c8', sdim: '#d9bf99', stag: '#e8c58a', tsize: 28, tfw: 900, tls: '0',
+    frame: 'border-radius:14px;box-shadow:0 0 0 3px #7a4e2d,0 0 0 5px #1a0f08,0 14px 28px rgba(0,0,0,.5)'
+  });
+  NEW_SLIDES.push(mk(makeChess(SKINS.walnut), 'Chess', SKINS.walnut, 'Full chess against the computer, with castling, en passant and checkmate. You play white.', '#chess #strategy #classic', 12.9e9, 4.7e9, 2.2e9, 'chess'));
+
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
   const PACKS = [
@@ -4445,6 +4605,7 @@ body{
   SLIDES.push(...NEW_SLIDES);
   const BASEK = ['wire', 'orbit', 'raise', 'swipe', 'servers', 'stack', 'popup', 'dash', 'snake', 'break', 'simon', 'hl', 'beat', 'sling'];
   SLIDES.forEach((s, i) => { s.cm = genComments(s.kind || BASEK[i]); });
+  { const rnd = mulberry(20261022); for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
 
   const feed = document.getElementById('feed'), phone = document.getElementById('phone');
   const loadedFonts = {};
