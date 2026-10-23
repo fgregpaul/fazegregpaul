@@ -5881,7 +5881,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     }, MIX);
   }
 
-  function makeMerge(sk) {
+  function makeFruitMerge(sk) {
     const N = 10, RAD = l => 12 + l * 5.2, NM = ['Seed', 'Cherry', 'Plum', 'Lime', 'Orange', 'Apple', 'Pear', 'Peach', 'Melon', 'Giant'];
     return Object.assign({
       sk, hold: true, title: 'Fruit Merge', how: 'Slide to aim, lift to drop. Two matching fruits merge into the next one up. Do not let the pile climb over the line.',
@@ -6009,7 +6009,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
 
   NEW_SLIDES.push(
     mk(makeSurvive(SKINS.gloam), 'Survive the Night', SKINS.gloam, 'Two minutes until dawn. You shoot automatically, you steer. Collect gems and pick an upgrade each level.', '#survivors #roguelite #night', 9.4e9, 3.2e9, 1.1e9, 'survive'),
-    mk(makeMerge(SKINS.orchard), 'Fruit Merge', SKINS.orchard, 'Drop fruit in the bin. Matching fruit merge into bigger ones. Keep the pile under the line.', '#merge #fruit #satisfying', 12.8e9, 2.4e9, 2.1e9, 'merge'),
+    mk(makeFruitMerge(SKINS.orchard), 'Fruit Merge', SKINS.orchard, 'Drop fruit in the bin. Matching fruit merge into bigger ones. Keep the pile under the line.', '#merge #fruit #satisfying', 12.8e9, 2.4e9, 2.1e9, 'merge'),
     mk(makePlinko(SKINS.dojo), 'Plinko', SKINS.dojo, 'Drop balls down the pegs. Edge slots pay x6, the middle pays x0.2. Reach 500 chips.', '#plinko #luck #drop', 8.8e9, 1.9e9, 0.9e9, 'plinko'),
     mk(makeCreator(SKINS.ringlight), 'Content Creator', SKINS.ringlight, 'Film clips, hit the trend, grow your followers before time runs out.', '#creator #trending #followers', 14.2e9, 5.5e9, 3.8e9, 'creator')
   );
@@ -6506,7 +6506,7 @@ const SUMMIT_LEVELS = [
     }, MIX);
   }
 
-  function makeBeat(sk) {
+  function makeCircleBeat(sk) {
     const BPM = 128, BEAT = 60 / BPM, LEN = 62, AR = 0.95, W300 = 0.07, W100 = 0.13, W50 = 0.19;
     return Object.assign({
       sk, hold: true, title: 'Circle Beat', how: 'Tap each circle when the shrinking ring touches its edge, in number order. On PC, hover the circle and press Z, X or C (or click). Keep your health bar up until the song ends.',
@@ -6641,7 +6641,7 @@ const SUMMIT_LEVELS = [
     mk(makeBlast(SKINS.jewel), 'Block Blast', SKINS.jewel, 'Drag blocks onto the board. Fill rows and columns to blast them. Chain clears for combos.', '#blockpuzzle #combo #satisfying', 18.4e9, 4.1e9, 3.3e9, 'blast'),
     mk(makeTTT(SKINS.graph), 'Tic Tac Toe', SKINS.graph, 'You are X. Easy, normal, or impossible. Impossible is actually impossible.', '#tictactoe #classic #brain', 4.2e9, 1.3e9, 380e6, 'ttt'),
     mk(makeSummit(SKINS.peak), 'Summit', SKINS.peak, 'Twelve screens up a mountain. Jump, wall jump and dash past spikes, springs, crumbling ledges and clouds. Find the hidden flowers.', '#platformer #precision #climb', 7.7e9, 2.6e9, 1.2e9, 'summit'),
-    mk(makeBeat(SKINS.beatpink), 'Circle Beat', SKINS.beatpink, 'Tap the circles on the beat. One minute song, ranks from D to SS.', '#rhythm #circles #aim', 10.9e9, 3.9e9, 1.6e9, 'circles'),
+    mk(makeCircleBeat(SKINS.beatpink), 'Circle Beat', SKINS.beatpink, 'Tap the circles on the beat. One minute song, ranks from D to SS.', '#rhythm #circles #aim', 10.9e9, 3.9e9, 1.6e9, 'circles'),
     mk(makeAim(SKINS.range), 'Aim Lab', SKINS.range, 'A 3D aim trainer. Gridshot, Microflick and Tracking drills, 30 seconds each.', '#aimtrainer #fps #reaction', 6.3e9, 1.7e9, 900e6, 'aim')
   );
 
