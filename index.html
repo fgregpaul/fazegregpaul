@@ -5731,7 +5731,7 @@ body{
       MUS.next += sp;
     }
   }
-  function musicSwitch(i) { if (i === MUS.idx) return; const first = MUS.idx < 0; MUS.idx = i; musicFor(SLIDES[i]); MUS.next = 0; if (!first) WHOOSH(); }
+  function musicSwitch(i) { if (i === MUS.idx) return; const first = MUS.idx < 0; MUS.idx = i; musicFor(SLIDES[i]); MUS.next = 0; }
   setInterval(musicTick, 40);
   (() => {
     const mb = document.getElementById('mus'); if (!mb) return;
