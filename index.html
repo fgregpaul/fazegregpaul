@@ -1414,6 +1414,10 @@ body{
     fizz: ['the inspectors are scary at night', 'mint and berry sells the best', 'got the bigger bag first', 'i made 1500 on day 6', 'selling in front of inspectors was a mistake'],
     sus: ['it was definitely the one who lied about the room', 'i voted wrong twice', 'being alone in the corridor is scary', 'finally caught the saboteur', 'the witness lines are actually useful'],
     hanoi: ['7 discs took me forever', 'the pattern clicks after disc 4', 'perfect solve on 5', 'i tried to skip the middle peg', 'my brain hurts but in a good way'],
+    survive: ['the swarm at 90 seconds is unreal', 'orbs plus extra shot is broken', 'i got to dawn with half a heart', 'boots first every time', 'magnet was the wrong pick'],
+    merge: ['i got a giant once', 'one bad drop ruined the whole pile', 'so satisfying when they chain', 'aim for the corners', 'the plums keep ruining me'],
+    plinko: ['hit x10 twice in a row', 'the middle slots are a trap', 'bet 50 and pray', 'it always lands in x0.3', 'edge slots pay but never come'],
+    creator: ['the trend changes right when i pick', 'perfect cut on a trending clip', 'rerolling costs too much time', 'cooking is always trending for me', 'hit the goal with 3 seconds left'],
     sling: ['angry birds who', 'why does the target move', 'the aim line helps a lot', 'i keep overshooting']
   };
   const MORECM = {
@@ -5741,6 +5745,206 @@ body{
   NEW_SLIDES.push(
     mk(makeSuspects(SKINS.spaceship), 'Suspects', SKINS.spaceship, 'One of your crew is the saboteur. Do your tasks, find the body, compare what people saw and vote.', '#deduction #whodunit #crew', 15.9e9, 6.1e9, 3.4e9, 'sus'),
     mk(makeHanoi(SKINS.pastel), 'Tower of Hanoi', SKINS.pastel, 'Move the whole stack to the far peg. Small on big only. Starts with 3 discs and goes up to 7.', '#hanoi #puzzle #brain', 3.1e9, 640e6, 130e6, 'hanoi')
+  );
+
+  /* ===== stage 5i: survive the night, fruit merge, slice, content creator ===== */
+
+  function makeSurvive(sk) {
+    const UPG = [
+      { n: 'Faster fire', d: 'Shoot 25% faster', f: g => { g.rate *= 0.78; } },
+      { n: 'More damage', d: '+1 damage per hit', f: g => { g.dmg += 1; } },
+      { n: 'Extra shot', d: '+1 projectile per volley', f: g => { g.multi++; } },
+      { n: 'Boots', d: 'Move 15% faster', f: g => { g.spd *= 1.15; } },
+      { n: 'Orbiting orb', d: 'An orb circles you and hurts anything it touches', f: g => { g.orbs++; } },
+      { n: 'Magnet', d: 'Pull gems in from farther away', f: g => { g.mag += 45; } },
+      { n: 'Bandage', d: 'Restore 2 hearts', f: g => { g.hp = Math.min(g.maxhp, g.hp + 2); } },
+      { n: 'Tough skin', d: '+1 max heart and heal 1', f: g => { g.maxhp++; g.hp = Math.min(g.maxhp, g.hp + 1); } }
+    ];
+    const DUR = 120;
+    return Object.assign({
+      sk, hold: true, title: 'Survive the Night', how: 'Drag to move. You shoot on your own. Collect glowing gems, pick an upgrade each level, and last until dawn.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], js: null,
+      layout() {},
+      reset() { this.p = { x: 0, y: 0 }; this.hp = 5; this.maxhp = 5; this.xp = 0; this.need = 4; this.lvl = 1; this.en = []; this.shots = []; this.gems = []; this.t = 0; this.sp = 0; this.fire = 0; this.ang = 0; this.inv = 0; this.menu = null; this.kills = 0; this.rate = 0.7; this.dmg = 1; this.multi = 1; this.spd = 105; this.orbs = 0; this.mag = 55; this.score = 0; this.floats = []; this.state = 'ready'; this.face = 1; },
+      enter() { this.reset(); },
+      bind(cv) {
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = ptrPos(cv, e);
+          if (this.menu) { this.menu.forEach((u, i) => { const y = 130 + i * 96; if (p[0] > 18 && p[0] < this.w - 18 && p[1] > y && p[1] < y + 86) { u.f(this); this.menu = null; sfx(660, 0.12, 0.04, 'sine'); } }); return; }
+          this.js = { ox: p[0], oy: p[1], x: p[0], y: p[1], id: e.pointerId }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => { if (this.js && this.js.id === e.pointerId) { const p = ptrPos(cv, e); this.js.x = p[0]; this.js.y = p[1]; } });
+        ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => { if (this.js && this.js.id === e.pointerId) this.js = null; })); },
+      key(e) { return false; },
+      spawn() { const t = this.t, a = rand(0, TAU), d = Math.max(this.w, this.h) * 0.62; let k = 0; const r = Math.random(); if (t > 60 && r < 0.18) k = 2; else if (t > 25 && r < 0.4) k = 1;
+        const T = [{ hp: 2, sp: 55, r: 9, c: sk.pal[0] }, { hp: 5, sp: 38, r: 12, c: sk.pal[2] }, { hp: 14, sp: 30, r: 19, c: sk.pal[1] }][k]; this.en.push({ x: this.p.x + Math.cos(a) * d, y: this.p.y + Math.sin(a) * d, hp: T.hp, sp: T.sp * (1 + t / 300), r: T.r, c: T.c, k, ocd: 0 }); },
+      kill(e) { this.kills++; this.score += 2 + e.k * 3; this.gems.push({ x: e.x, y: e.y, v: e.k + 1 }); if (Math.random() < 0.3 && e.k) this.gems.push({ x: e.x + 6, y: e.y + 6, v: 1 }); sfx(520 + rand(0, 120), 0.05, 0.02, 'sine'); },
+      tick(dt) {
+        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run' || this.menu) return;
+        const P = this.p; this.t += dt; this.inv -= dt;
+        if (this.t >= DUR) { this.score += 500 + this.hp * 50; this.best = Math.max(this.best, this.score); this.msg = 'You made it to dawn!'; this.state = 'dead'; this.dead = 0; JING('win'); return; }
+        if (this.js) { const dx = this.js.x - this.js.ox, dy = this.js.y - this.js.oy, d = Math.hypot(dx, dy); if (d > 6) { const k = Math.min(1, d / 40); P.x += dx / d * k * this.spd * dt; P.y += dy / d * k * this.spd * dt; if (Math.abs(dx) > 4) this.face = dx > 0 ? 1 : -1; } }
+        this.sp -= dt; if (this.sp <= 0) { this.spawn(); this.sp = Math.max(0.1, 0.75 - this.t / 190) * rand(0.7, 1.2); }
+        this.fire -= dt; if (this.fire <= 0) { let n = null, nd = 280; this.en.forEach(e => { const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < nd) { nd = d; n = e; } }); if (n) { const a0 = Math.atan2(n.y - P.y, n.x - P.x); for (let i = 0; i < this.multi; i++) { const a = a0 + (i - (this.multi - 1) / 2) * 0.16; this.shots.push({ x: P.x, y: P.y, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, life: 1 }); } this.fire = this.rate; sfx(780, 0.03, 0.015, 'sine'); } }
+        this.ang += dt * 3;
+        this.shots.forEach(s => { s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; });
+        this.en.forEach(e => { const dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1; e.x += dx / d * e.sp * dt; e.y += dy / d * e.sp * dt; e.ocd -= dt;
+          this.shots.forEach(s => { if (s.life > 0 && e.hp > 0 && Math.hypot(s.x - e.x, s.y - e.y) < e.r + 4) { e.hp -= this.dmg; s.life = 0; e.x -= dx / d * 5; e.y -= dy / d * 5; } });
+          for (let i = 0; i < this.orbs; i++) { const a = this.ang + i * TAU / this.orbs, ox = P.x + Math.cos(a) * 50, oy = P.y + Math.sin(a) * 50; if (e.hp > 0 && e.ocd <= 0 && Math.hypot(ox - e.x, oy - e.y) < e.r + 9) { e.hp -= 1 + (this.dmg > 2 ? 1 : 0); e.ocd = 0.35; } }
+          if (e.hp > 0 && d < e.r + 9 && this.inv <= 0) { this.hp--; this.inv = 1.1; this.shake = 0.3; this.flash = 0.2; sfx(160, 0.2, 0.05, 'sine'); if (this.hp <= 0) { this.score += Math.floor(this.t) * 3; this.best = Math.max(this.best, this.score); this.msg = 'Dawn was ' + Math.ceil(DUR - this.t) + 's away'; this.state = 'dead'; this.dead = 0; JING('over'); } } });
+        this.en.forEach(e => { if (e.hp <= 0) this.kill(e); }); this.en = this.en.filter(e => e.hp > 0); this.shots = this.shots.filter(s => s.life > 0);
+        this.gems.forEach(g => { const d = Math.hypot(P.x - g.x, P.y - g.y); if (d < this.mag) { g.x += (P.x - g.x) / d * 220 * dt; g.y += (P.y - g.y) / d * 220 * dt; } if (d < 12) { g.got = 1; this.xp += g.v; } });
+        this.gems = this.gems.filter(g => !g.got);
+        if (this.xp >= this.need) { this.xp -= this.need; this.lvl++; this.need = Math.ceil(this.need * 1.3) + 1; this.menu = shuf(UPG).slice(0, 3); this.js = null; JING('coin'); }
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, P = this.p, cx = w / 2, cy = h / 2 + 10; drawBg(c, w, h);
+        c.fillStyle = 'rgba(255,255,255,.07)'; const gx = -((P.x % 60) + 60) % 60, gy = -((P.y % 60) + 60) % 60; for (let x = gx; x < w + 60; x += 60) for (let y = gy; y < h + 60; y += 60) c.fillRect(x, y, 3, 3);
+        const sx = x => cx + x - P.x, sy = y => cy + y - P.y;
+        this.gems.forEach(g => { dot(c, sx(g.x), sy(g.y), 4 + g.v, sk.pal[3], { lw: 0 }); });
+        this.en.forEach(e => { c.fillStyle = e.c; c.strokeStyle = sk.line; c.lineWidth = 2; c.beginPath(); c.arc(sx(e.x), sy(e.y), e.r, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.beginPath(); c.arc(sx(e.x) - e.r * 0.35, sy(e.y) - e.r * 0.2, e.r * 0.2, 0, TAU); c.arc(sx(e.x) + e.r * 0.35, sy(e.y) - e.r * 0.2, e.r * 0.2, 0, TAU); c.fill(); if (e.k === 0) { c.strokeStyle = e.c; c.lineWidth = 3; c.beginPath(); c.moveTo(sx(e.x) - e.r, sy(e.y)); c.lineTo(sx(e.x) - e.r * 1.7, sy(e.y) - e.r * 0.8); c.moveTo(sx(e.x) + e.r, sy(e.y)); c.lineTo(sx(e.x) + e.r * 1.7, sy(e.y) - e.r * 0.8); c.stroke(); } });
+        this.shots.forEach(s => dot(c, sx(s.x), sy(s.y), 3.5, sk.pal[3], { lw: 0 }));
+        for (let i = 0; i < this.orbs; i++) { const a = this.ang + i * TAU / this.orbs; dot(c, cx + Math.cos(a) * 50, cy + Math.sin(a) * 50, 8, sk.pal[1], { lw: 2 }); }
+        if (this.inv <= 0 || Math.floor(this.inv * 14) % 2) { c.fillStyle = sk.fg; c.strokeStyle = sk.line; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 10, 0, TAU); c.fill(); c.stroke(); c.fillStyle = sk.pal[0]; c.beginPath(); c.moveTo(cx - 10 * this.face, cy - 4); c.lineTo(cx - 20 * this.face, cy + 12); c.lineTo(cx - 6 * this.face, cy + 10); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(cx + 3 * this.face, cy - 2, 1.8, 0, TAU); c.fill(); }
+        c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0, 56, w, 8); c.fillStyle = sk.pal[2]; c.fillRect(0, 56, w * (this.xp / this.need), 8);
+        for (let i = 0; i < this.maxhp; i++) dot(c, 18 + i * 20, 82, 7, i < this.hp ? sk.pal[0] : 'rgba(255,255,255,.18)', { lw: 1.5 });
+        txt(c, 'LV ' + this.lvl, w - 14, 86, 13, sk.fg, 'right', MONO); const left = Math.max(0, DUR - this.t); txt(c, Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0') + ' to dawn', w / 2, 100, 12, sk.dim, 'center', MONO);
+        if (this.js) { c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 3; c.beginPath(); c.arc(this.js.ox, this.js.oy, 36, 0, TAU); c.stroke(); dot(c, this.js.x, this.js.y, 13, 'rgba(255,255,255,.4)', { lw: 0 }); }
+        if (this.menu) { c.fillStyle = 'rgba(8,6,20,.88)'; c.fillRect(0, 56, w, h); txt(c, 'LEVEL ' + this.lvl, w / 2, 96, 22, sk.pal[3], 'center'); txt(c, 'Pick one', w / 2, 116, 11, sk.dim, 'center', MONO); this.menu.forEach((u, i) => { const y = 130 + i * 96; box(c, 18, y, w - 36, 86, { fill: sk.panel, r: sk.r + 4, hard: 0, soft: 0, lw: sk.lw, line: sk.line }); txt(c, u.n, 34, y + 32, 17, sk.pfg, 'left'); const ws = u.d.split(' '); let L = ['']; ws.forEach(q => { if ((L[L.length - 1] + ' ' + q).length > 34) L.push(q); else L[L.length - 1] += (L[L.length - 1] ? ' ' : '') + q; }); L.slice(0, 2).forEach((s, k) => txt(c, s, 34, y + 52 + k * 15, 11, sk.dim, 'left', MONO)); }); }
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  function makeMerge(sk) {
+    const N = 10, RAD = l => 12 + l * 5.2, NM = ['Seed', 'Cherry', 'Plum', 'Lime', 'Orange', 'Apple', 'Pear', 'Peach', 'Melon', 'Giant'];
+    return Object.assign({
+      sk, hold: true, title: 'Fruit Merge', how: 'Slide to aim, lift to drop. Two matching fruits merge into the next one up. Do not let the pile climb over the line.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      geom() { this.bw = Math.min(this.w - 30, 320); this.L = (this.w - this.bw) / 2; this.T = 118; this.B = this.h - 24; },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.f = []; this.cur = this.rl(); this.nxt = this.rl(); this.ax = this.w / 2; this.cd = 0; this.over = 0; this.score = 0; this.floats = []; this.state = 'ready'; this.aim = false; },
+      rl() { return Math.floor(Math.random() * Math.random() * 4); },
+      enter() { this.reset(); },
+      drop() { if (this.state !== 'run' || this.cd > 0) return; const r = RAD(this.cur); this.f.push({ x: clamp(this.ax, this.L + r + 2, this.L + this.bw - r - 2), y: this.T - 20, vx: 0, vy: 0, l: this.cur, age: 0 }); this.cur = this.nxt; this.nxt = this.rl(); this.cd = 0.55; sfx(300, 0.05, 0.03, 'sine'); },
+      bind(cv) { const mv = e => { this.ax = ptrPos(cv, e)[0]; };
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.aim = true; mv(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => { if (this.aim) mv(e); });
+        cv.addEventListener('pointerup', e => { if (this.aim) { mv(e); this.drop(); } this.aim = false; });
+        cv.addEventListener('pointercancel', () => { this.aim = false; }); },
+      key(e) { if (e.type !== 'keydown') return false; if (e.code === 'ArrowLeft') this.ax -= 20; else if (e.code === 'ArrowRight') this.ax += 20; else if (e.code === 'Space') this.drop(); else return false; return true; },
+      tick(dt) {
+        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.cd -= dt; const F = this.f; const sub = 4, hh = dt / sub, L = this.L, R = this.L + this.bw, B = this.B;
+        F.forEach(a => { a.age += dt; });
+        for (let s = 0; s < sub; s++) {
+          F.forEach(a => { const r = RAD(a.l); a.vy += 900 * hh; a.x += a.vx * hh; a.y += a.vy * hh; if (a.x < L + r) { a.x = L + r; a.vx *= -0.2; } if (a.x > R - r) { a.x = R - r; a.vx *= -0.2; } if (a.y > B - r) { a.y = B - r; a.vy *= -0.15; a.vx *= 0.97; } });
+          for (let i = 0; i < F.length; i++) for (let j = i + 1; j < F.length; j++) { const a = F[i], b = F[j]; if (a.dead || b.dead) continue; const ra = RAD(a.l), rb = RAD(b.l), dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01;
+            if (d < ra + rb) { if (a.l === b.l && a.age > 0.05 && b.age > 0.05) { a.dead = b.dead = true; const nl = a.l + 1; const pts = (a.l + 1) * (a.l + 2) / 2 + 1; this.score += pts; this.best = Math.max(this.best, this.score); if (nl < N) F.push({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, vx: 0, vy: 0, l: nl, age: 0 }); else { this.score += 100; this.floats.push({ t: 'GIANT! +100', x: this.w / 2, y: this.T + 60, age: 0, c: 'good' }); }
+                sfx(300 + nl * 55, 0.14, 0.05, 'sine'); this.floats.push({ t: '+' + pts, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, age: 0, c: 'good' }); continue; }
+              const o = (ra + rb - d) / 2, nx = dx / d, ny = dy / d, ma = ra * ra, mb = rb * rb, tot = ma + mb; a.x -= nx * o * mb / tot * 2; a.y -= ny * o * mb / tot * 2; b.x += nx * o * ma / tot * 2; b.y += ny * o * ma / tot * 2;
+              const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny; if (rv < 0) { const k = rv * 0.6; a.vx += nx * k * mb / tot * 2; a.vy += ny * k * mb / tot * 2; b.vx -= nx * k * ma / tot * 2; b.vy -= ny * k * ma / tot * 2; } } }
+        }
+        this.f = this.f.filter(a => !a.dead);
+        const line = this.T + 20; const hi = this.f.some(a => a.age > 1.2 && a.y - RAD(a.l) < line && Math.abs(a.vy) < 60); this.over = hi ? this.over + dt : Math.max(0, this.over - dt * 2);
+        if (this.over > 2.5) { this.msg = 'Overflowed at ' + this.score; this.state = 'dead'; this.dead = 0; JING('over'); }
+      },
+      draw() {
+        const c = this.ctx, w = this.w, sk = SK; this.geom(); drawBg(c, w, this.h); const L = this.L, bw = this.bw, T = this.T, B = this.B;
+        txt(c, String(this.score), 16, 82, 28, sk.fg, 'left'); txt(c, 'best ' + this.best, 16, 100, 11, sk.dim, 'left', MONO);
+        box(c, w - 78, 66, 64, 44, { fill: sk.panel, r: 10, hard: 0, soft: 0, lw: 0 }); txt(c, 'next', w - 46, 80, 9, sk.dim, 'center', MONO); this.fruit(c, w - 46, 96, 8 + this.nxt * 1.4, this.nxt);
+        box(c, L - 6, T, bw + 12, B - T + 8, { fill: 'rgba(255,255,255,.35)', r: 14, hard: 0, soft: 0, lw: 3, line: sk.line }); c.setLineDash([8, 6]); c.strokeStyle = this.over > 0 ? sk.bad : sk.dim; c.lineWidth = 2; c.beginPath(); c.moveTo(L, T + 20); c.lineTo(L + bw, T + 20); c.stroke(); c.setLineDash([]);
+        const ax = clamp(this.ax, L + RAD(this.cur) + 2, L + bw - RAD(this.cur) - 2); if (this.state === 'run' && this.cd <= 0) { c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 2; c.beginPath(); c.moveTo(ax, T - 20); c.lineTo(ax, B); c.stroke(); this.fruit(c, ax, T - 20, RAD(this.cur), this.cur); }
+        this.f.forEach(a => this.fruit(c, a.x, a.y, RAD(a.l), a.l)); if (this.over > 0) txt(c, 'careful...', w / 2, T + 12, 11, sk.bad, 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      },
+      fruit(c, x, y, r, l) { const sk = SK; c.fillStyle = 'hsl(' + ((l * 37 + 350) % 360) + ',72%,58%)'; c.strokeStyle = sk.line; c.lineWidth = 2.5; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,255,255,.45)'; c.beginPath(); c.arc(x - r * 0.35, y - r * 0.35, r * 0.25, 0, TAU); c.fill(); c.fillStyle = '#222'; c.beginPath(); c.arc(x - r * 0.3, y + r * 0.05, Math.max(1.5, r * 0.09), 0, TAU); c.arc(x + r * 0.3, y + r * 0.05, Math.max(1.5, r * 0.09), 0, TAU); c.fill(); c.strokeStyle = '#222'; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y + r * 0.2, r * 0.2, 0.2, Math.PI - 0.2); c.stroke(); if (r > 16) { c.strokeStyle = '#2f7a3a'; c.lineWidth = 3; c.beginPath(); c.moveTo(x, y - r); c.lineTo(x + 3, y - r - 6); c.stroke(); } }
+    }, MIX);
+  }
+
+  function makePlinko(sk) {
+    const MULT = [6, 2.5, 1, 0.5, 0.2, 0.5, 1, 2.5, 6], GOAL = 500;
+    return Object.assign({
+      sk, hold: true, title: 'Plinko', how: 'Tap to drop a ball. Where you tap nudges it only a little. It bounces down into a slot and pays out the bet times the number. Pick your bet at the bottom. Reach 500 chips.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      geom() { this.bw = Math.min(this.w - 16, 340); this.L = (this.w - this.bw) / 2; this.T = 124; this.B = this.h - 96; this.sx = this.bw / 9; },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.balls = []; this.chips = 100; this.bet = 10; this.score = 100; this.floats = []; this.hit = {}; this.state = 'ready'; this.drops = 0; },
+      enter() { this.reset(); },
+      pegs() { const P = [], rows = 9, rh = (this.B - 40 - this.T - 20) / rows; for (let r = 0; r < rows; r++) { const n = r % 2 ? 9 : 8, off = r % 2 ? 0 : this.sx / 2; for (let k = 0; k < n; k++) P.push([this.L + off + k * this.sx + (r % 2 ? 0 : 0), this.T + 30 + r * rh]); } return P; },
+      drop(x) { if (this.state !== 'run' || this.chips < this.bet) return; this.chips -= this.bet; this.balls.push({ x: clamp(this.L + this.bw / 2 + (x - this.L - this.bw / 2) * 0.35 + rand(-12, 12), this.L + 14, this.L + this.bw - 14), y: this.T - 4, vx: rand(-10, 10), vy: 0, bet: this.bet }); this.drops++; sfx(500, 0.04, 0.02, 'sine'); },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+        if (p[1] > this.h - 82) { const bets = [5, 10, 25, 50], i = Math.floor((p[0] - 14) / ((this.w - 28) / 4)); if (i >= 0 && i < 4) { this.bet = bets[i]; sfx(400, 0.05, 0.03, 'sine'); } return; } this.drop(p[0]); }); },
+      key(e) { return false; },
+      tick(dt) {
+        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; const P = this.pegs(), sub = 3, hh = dt / sub, PR = 4, BR = 6;
+        this.balls.forEach(b => { for (let s = 0; s < sub; s++) { b.vy += 650 * hh; b.x += b.vx * hh; b.y += b.vy * hh; if (b.x < this.L + BR) { b.x = this.L + BR; b.vx = Math.abs(b.vx) * 0.5; } if (b.x > this.L + this.bw - BR) { b.x = this.L + this.bw - BR; b.vx = -Math.abs(b.vx) * 0.5; }
+          for (const q of P) { const dx = b.x - q[0], dy = b.y - q[1]; if (Math.abs(dx) > 12 || Math.abs(dy) > 12) continue; const d = Math.hypot(dx, dy); if (d < PR + BR) { const nx = dx / (d || 1), ny = dy / (d || 1); b.x = q[0] + nx * (PR + BR); b.y = q[1] + ny * (PR + BR); const vn = b.vx * nx + b.vy * ny; if (vn < 0) { b.vx -= 1.22 * vn * nx; b.vy -= 1.22 * vn * ny; b.vx = clamp(b.vx * 0.5 + rand(-14, 14), -62, 62); this.hit[q[0] + ',' + q[1]] = 0.15; if (Math.random() < 0.3) sfx(700 + rand(0, 400), 0.02, 0.01, 'sine'); } } } } });
+        Object.keys(this.hit).forEach(k => { this.hit[k] -= dt; if (this.hit[k] <= 0) delete this.hit[k]; });
+        this.balls.forEach(b => { if (b.y > this.B) { b.done = true; const i = clamp(Math.floor((b.x - this.L) / this.sx), 0, 8), m = MULT[i]; const  pay = Math.round(b.bet * m); this.chips += pay; this.floats.push({ t: (pay >= b.bet ? '+' : '') + pay, x: this.L + i * this.sx + this.sx / 2, y: this.B - 20, age: 0, c: pay >= b.bet ? 'good' : 'bad' }); sfx(m >= 3 ? 880 : m >= 1 ? 600 : 260, 0.12, 0.04, 'sine'); } });
+        this.balls = this.balls.filter(b => !b.done); this.score = this.chips; this.best = Math.max(this.best, this.chips);
+        if (this.chips >= GOAL) { this.msg = 'You hit ' + GOAL + ' chips!'; this.state = 'dead'; this.dead = 0; JING('win'); }
+        else if (this.chips < 5 && !this.balls.length) { this.msg = 'Out of chips after ' + this.drops + ' balls'; this.state = 'dead'; this.dead = 0; JING('over'); }
+        else if (this.chips < this.bet && !this.balls.length) this.bet = this.chips >= 25 ? 25 : this.chips >= 10 ? 10 : 5;
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK; this.geom(); drawBg(c, w, h); const L = this.L, bw = this.bw, sx = this.sx;
+        txt(c, String(this.chips), 16, 84, 30, sk.fg, 'left'); txt(c, 'chips   goal ' + GOAL, 16, 102, 11, sk.dim, 'left', MONO);
+        MULT.forEach((m, i) => { const x = L + i * sx, hot = m >= 3, col = hot ? sk.pal[0] : m >= 1 ? sk.pal[1] : sk.pal[3]; box(c, x + 2, this.B + 2, sx - 4, 36, { fill: col, r: 6, hard: 0, soft: 0, lw: sk.lw ? 2 : 0, line: sk.line }); txt(c, 'x' + m, x + sx / 2, this.B + 25, 11, '#ffffff', 'center', MONO); });
+        this.pegs().forEach(q => { const hot = this.hit[q[0] + ',' + q[1]]; dot(c, q[0], q[1], hot ? 6 : 4, hot ? sk.pal[2] : sk.fg, { lw: 0 }); });
+        this.balls.forEach(b => dot(c, b.x, b.y, 6, sk.pal[1], { lw: 1.5 }));
+        if (this.state === 'run') { c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(L, this.T - 10, bw, 2); txt(c, 'tap to drop', w / 2, this.T - 16, 10, sk.dim, 'center', MONO); }
+        const bets = [5, 10, 25, 50], bwid = (w - 28) / 4; bets.forEach((v, i) => { const on = this.bet === v; box(c, 14 + i * bwid + 3, h - 62, bwid - 6, 44, { fill: on ? sk.pal[0] : sk.panel, r: sk.r + 2, hard: 0, soft: 0, lw: sk.lw ? 2 : 0, line: sk.line }); txt(c, 'bet ' + v, 14 + i * bwid + bwid / 2, h - 36, 13, on ? '#ffffff' : sk.pfg, 'center', MONO); });
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  function makeCreator(sk) {
+    const GEN = ['Cooking', 'Pets', 'Dance', 'Fails', 'Pranks', 'Gaming'], GOAL = 400000, LIM = 60;
+    return Object.assign({
+      sk, hold: true, title: 'Content Creator', how: 'Tap FILM when the moving bar is inside the green zone. A clip that matches the trending topic earns triple views. REROLL swaps your idea but costs 1.5 seconds.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      layout() {},
+      reset() { this.fol = 1200; this.time = LIM; this.trend = Math.floor(rand(0, 6)); this.tt = 9; this.idea = Math.floor(rand(0, 6)); this.m = 0; this.dir = 1; this.sw = rand(0.25, 0.75); this.zw = 0.17; this.res = null; this.lock = 0; this.posts = 0; this.score = 0; this.floats = []; this.state = 'ready'; this.last = ''; },
+      enter() { this.reset(); },
+      newIdea() { this.idea = Math.floor(rand(0, 6)); this.sw = rand(0.2, 0.8); this.zw = Math.max(0.07, this.zw - 0.004); },
+      film() { if (this.state !== 'run' || this.lock > 0) return; const d = Math.abs(this.m - this.sw), q = d < this.zw / 2 ? 3 : d < this.zw ? 1.5 : 0.3, tr = this.idea === this.trend ? 3 : 1, views = Math.round(9000 * q * tr * (1 + this.fol / 60000));
+        this.fol += Math.round(views * 0.22); this.posts++; this.score = this.fol; this.best = Math.max(this.best, this.score); this.res = { views, q, tr, t: 1.1 }; this.lock = 1.1; this.floats.push({ t: '+' + fmt(views) + ' views', x: this.w / 2, y: 250, age: 0, c: q >= 3 ? 'good' : q >= 1.5 ? 'good' : 'bad' }); sfx(q >= 3 ? 880 : q >= 1.5 ? 660 : 200, 0.15, 0.05, 'sine'); if (this.fol >= GOAL) { this.msg = 'You hit ' + fmt(GOAL) + ' followers!'; this.state = 'dead'; this.dead = 0; JING('win'); } },
+      reroll() { if (this.state !== 'run' || this.lock > 0) return; this.time -= 1.5; this.newIdea(); sfx(420, 0.06, 0.03, 'sine'); },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = ptrPos(cv, e), w = this.w, h = this.h; if (p[1] > h - 150 && p[1] < h - 90 && p[0] < w * 0.3) this.reroll(); else if (p[1] > h - 150) this.film(); else if (p[1] > 130) this.film(); }); },
+      key(e) { if (e.type === 'keydown' && e.code === 'Space') { this.film(); return true; } return false; },
+      tick(dt) {
+        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return;
+        this.time -= dt; this.tt -= dt; this.lock -= dt; if (this.res) { this.res.t -= dt; if (this.res.t <= 0) { this.res = null; this.newIdea(); } }
+        if (!this.res) { const sp = 0.9 + this.posts * 0.045; this.m += this.dir * sp * dt; if (this.m > 1) { this.m = 1; this.dir = -1; } if (this.m < 0) { this.m = 0; this.dir = 1; } }
+        if (this.tt <= 0) { this.trend = (this.trend + 1 + Math.floor(rand(0, 5))) % 6; this.tt = 9; this.floats.push({ t: 'New trend: ' + GEN[this.trend], x: this.w / 2, y: 140, age: 0, c: 'good' }); }
+        if (this.time <= 0) { this.time = 0; this.msg = 'Out of time at ' + fmt(this.fol) + ' followers'; this.state = 'dead'; this.dead = 0; JING('over'); }
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK; drawBg(c, w, h);
+        txt(c, fmt(this.fol), w / 2, 90, 36, sk.fg, 'center'); txt(c, 'followers   goal ' + fmt(GOAL), w / 2, 108, 11, sk.dim, 'center', MONO);
+        box(c, 20, 118, w - 40, 6, { fill: 'rgba(0,0,0,.12)', r: 3, hard: 0, soft: 0, lw: 0 }); box(c, 20, 118, Math.max(6, (w - 40) * Math.min(1, this.fol / GOAL)), 6, { fill: sk.pal[0], r: 3, hard: 0, soft: 0, lw: 0 });
+        box(c, 20, 136, w - 40, 40, { fill: sk.panel, r: sk.r + 2, hard: 0, soft: 0, lw: sk.lw, line: sk.line }); txt(c, 'TRENDING: ' + GEN[this.trend], w / 2, 160, 15, sk.pfg, 'center'); box(c, 26, 168, Math.max(4, (w - 52) * (this.tt / 9)), 3, { fill: sk.pal[1], r: 2, hard: 0, soft: 0, lw: 0 });
+        const cw = Math.min(w - 90, 230), ch = Math.min(h * 0.3, 210), cx = (w - cw) / 2, cy = 192; const match = this.idea === this.trend;
+        box(c, cx, cy, cw, ch, { fill: sk.pal[this.idea % 4], r: sk.r + 8, hard: sk.hard ? 4 : 0, sh: sk.sh, soft: 0, lw: sk.lw, line: sk.line }); txt(c, 'your clip', w / 2, cy + 28, 11, 'rgba(255,255,255,.85)', 'center', MONO); txt(c, GEN[this.idea], w / 2, cy + ch / 2 + 8, 28, '#ffffff', 'center'); if (match) txt(c, 'MATCHES THE TREND x3', w / 2, cy + ch - 18, 11, '#ffffff', 'center', MONO);
+        dot(c, cx + 18, cy + 18, 5, '#ff3b3b', { lw: 0 }); if (this.res) txt(c, this.res.q >= 3 ? 'PERFECT' : this.res.q >= 1.5 ? 'nice' : 'flop', w / 2, cy + ch + 28, 20, this.res.q >= 1.5 ? sk.good : sk.bad, 'center');
+        const by = Math.min(h - 220, cy + ch + 50); const bx = 24, bw = w - 48; box(c, bx, by, bw, 22, { fill: 'rgba(0,0,0,.15)', r: 11, hard: 0, soft: 0, lw: 0 }); box(c, bx + (this.sw - this.zw) * bw, by, this.zw * 2 * bw, 22, { fill: sk.pal[2], r: 11, hard: 0, soft: 0, lw: 0 }); box(c, bx + (this.sw - this.zw / 2) * bw, by, this.zw * bw, 22, { fill: sk.good, r: 11, hard: 0, soft: 0, lw: 0 }); const mx = bx + this.m * bw; c.fillStyle = sk.fg; c.fillRect(mx - 3, by - 6, 6, 34);
+        txt(c, 'time ' + Math.ceil(this.time) + 's   posts ' + this.posts, w / 2, by + 52, 12, sk.dim, 'center', MONO);
+        box(c, 20, h - 150, w * 0.3, 54, { fill: sk.panel, r: sk.r + 4, hard: 0, soft: 0, lw: sk.lw, line: sk.line }); txt(c, 'REROLL', 20 + w * 0.15, h - 118, 12, sk.pfg, 'center', MONO); txt(c, '-1.5s', 20 + w * 0.15, h - 104, 9, sk.dim, 'center', MONO);
+        box(c, 20 + w * 0.3 + 10, h - 150, w - 40 - w * 0.3 - 10, 54, { fill: sk.pal[0], r: sk.r + 4, hard: sk.hard ? 4 : 0, sh: sk.sh, soft: 0, lw: sk.lw, line: sk.line }); txt(c, 'FILM', 20 + w * 0.3 + 10 + (w - 40 - w * 0.3 - 10) / 2, h - 116, 22, '#ffffff', 'center');
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  skin('gloam', { bg: ['#120a22', '#1d1038'], pat: 'speck', patc: 'rgba(255,255,255,.05)', fg: '#f3ecff', dim: '#a08fc8', panel: '#2b1c4d', pfg: '#f3ecff', dark: true, line: '#8a6fe0', lw: 2, r: 10, pal: ['#ff5a7a', '#ffb347', '#5fe3b4', '#7de8ff'], good: '#5fe3b4', bad: '#ff5a7a', font: '"Cinzel","Georgia",serif', fw: 800, fs: 1, mono: '"Courier Prime","Courier New",monospace', mw: 400, ms: 1, veil: 'rgba(18,10,34,.86)', vfg: '#f3ecff', slide: '#120a22', sbgc: '#120a22', sfg: '#f3ecff', sdim: '#b3a3da', stag: '#ffb347', tsize: 26, tfw: 800, tls: '.03em', frame: 'box-shadow:0 0 0 2px #8a6fe0,0 0 28px rgba(138,111,224,.3)' });
+  skin('orchard', { bg: ['#f6efd6', '#e9f2c9'], pat: 'dots', patc: 'rgba(90,120,40,.08)', fg: '#3b3a20', dim: '#7d7a4a', panel: '#fffdf0', pfg: '#3b3a20', line: '#3b3a20', lw: 2.5, r: 14, soft: 8, shc: 'rgba(60,70,20,.2)', pal: ['#e85d3a', '#f2b632', '#6fa83a', '#7a5ca8'], good: '#4f8f2a', bad: '#d0432c', font: '"Baloo 2","Arial Rounded MT Bold",sans-serif', fw: 800, fs: 1, mono: '"Nunito",system-ui,sans-serif', mw: 800, ms: 0.92, veil: 'rgba(246,239,214,.85)', vfg: '#3b3a20', slide: '#e9f2c9', sbgc: '#e9f2c9', sfg: '#3b3a20', sdim: '#7d7a4a', stag: '#d0432c', tsize: 26, tfw: 800, tls: '0', frame: 'border-radius:22px;box-shadow:0 0 0 3px #3b3a20,0 10px 24px rgba(60,70,20,.3)' });
+  skin('dojo', { bg: ['#efe6d2', '#e3d6b8'], pat: 'stripes', patc: 'rgba(0,0,0,.035)', fg: '#1a1414', dim: '#6b5b4a', panel: '#fbf6e8', pfg: '#1a1414', line: '#1a1414', lw: 2, r: 2, pal: ['#c8201f', '#2a2a2a', '#b8860b', '#3a6b5a'], good: '#3a6b5a', bad: '#c8201f', font: '"Shippori Mincho","Georgia",serif', fw: 800, fs: 1, mono: '"Courier Prime","Courier New",monospace', mw: 700, ms: 0.9, veil: 'rgba(239,230,210,.86)', vfg: '#1a1414', slide: '#e3d6b8', sbgc: '#e3d6b8', sfg: '#1a1414', sdim: '#6b5b4a', stag: '#c8201f', tsize: 27, tfw: 800, tls: '.02em', frame: 'box-shadow:0 0 0 3px #1a1414,0 0 0 8px #c8201f' });
+  skin('ringlight', { bg: ['#ffe1ee', '#ffc9de'], pat: 'dots', patc: 'rgba(255,255,255,.7)', fg: '#4a1030', dim: '#a8527e', panel: '#ffffff', pfg: '#4a1030', line: '#4a1030', lw: 2, hard: 4, sh: '#4a1030', r: 14, pal: ['#ff3d8b', '#7c4dff', '#ff9f1c', '#18b6a4'], good: '#18b6a4', bad: '#ff3d3d', font: '"Poppins","Arial",sans-serif', fw: 800, fs: 1, mono: '"Poppins","Arial",sans-serif', mw: 600, ms: 0.85, veil: 'rgba(255,225,238,.86)', vfg: '#4a1030', slide: '#ffc9de', sbgc: '#ffc9de', sfg: '#4a1030', sdim: '#a8527e', stag: '#d6197f', tsize: 25, tfw: 800, tls: '-.01em', frame: 'border-radius:30px;box-shadow:0 0 0 6px #fff,0 0 0 9px #ff3d8b,0 14px 30px rgba(255,61,139,.35)' });
+
+  NEW_SLIDES.push(
+    mk(makeSurvive(SKINS.gloam), 'Survive the Night', SKINS.gloam, 'Two minutes until dawn. You shoot automatically, you steer. Collect gems and pick an upgrade each level.', '#survivors #roguelite #night', 9.4e9, 3.2e9, 1.1e9, 'survive'),
+    mk(makeMerge(SKINS.orchard), 'Fruit Merge', SKINS.orchard, 'Drop fruit in the bin. Matching fruit merge into bigger ones. Keep the pile under the line.', '#merge #fruit #satisfying', 12.8e9, 2.4e9, 2.1e9, 'merge'),
+    mk(makePlinko(SKINS.dojo), 'Plinko', SKINS.dojo, 'Drop balls down the pegs. Edge slots pay x6, the middle pays x0.2. Reach 500 chips.', '#plinko #luck #drop', 8.8e9, 1.9e9, 0.9e9, 'plinko'),
+    mk(makeCreator(SKINS.ringlight), 'Content Creator', SKINS.ringlight, 'Film clips, hit the trend, grow your followers before time runs out.', '#creator #trending #followers', 14.2e9, 5.5e9, 3.8e9, 'creator')
   );
 
 
