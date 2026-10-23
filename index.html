@@ -672,7 +672,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
       const d = Math.min(window.devicePixelRatio || 1, 2);
       g.W = Math.round(r.width); g.H = Math.round(r.height);
       if (!g.W || !g.H) return;
-      const ins = insets(canvas); if (ins[3]) ins[3].style.setProperty('--caph', ins[1] + 'px');
+      const ins = g.noInset ? [0, 0, 0, null, null] : insets(canvas); if (ins[3]) ins[3].style.setProperty('--caph', ins[1] + 'px');
       g.d = d; g.ox = 0; g.oy = ins[0]; g.w = g.W - ins[2]; g.h = Math.max(120, g.H - ins[0] - ins[1]);
       canvas.width = g.W * d; canvas.height = g.H * d;
       g.ctx.setTransform(d, 0, 0, d, 0, 0);
@@ -6939,7 +6939,7 @@ const SUMMIT_LEVELS = [
   const chipMix = {
     bank() { return this.chips; },
     pay(n) { this.chips += n; this.best = Math.max(this.best, this.chips); this.score = this.chips; },
-    loan() { this.chips += 500; this.loans = (this.loans || 0) + 1; this.score = this.chips; this.floats.push({ t: 'Greg loaned you 500 chips', x: this.w / 2, y: this.h * 0.4, age: 0, c: 'good' }); sfx(520, 0.15, 0.04, 'sine'); }
+    loan() { this.chips += 500; this.loans = (this.loans || 0) + 1; this.score = this.chips; this.floats.push({ t: 'Greg loaned you 500 ' + (this.casino ? 'galaxies' : 'chips'), x: this.w / 2, y: this.h * 0.4, age: 0, c: 'good' }); sfx(520, 0.15, 0.04, 'sine'); }
   };
 
   /* ---------- Solitaire (Klondike, draw one) ---------- */
@@ -7034,7 +7034,7 @@ const SUMMIT_LEVELS = [
       tick(dt) { this.decay(dt); if (this.state !== 'run') return; if (this.phase === 'dealer') { this.wait -= dt; if (this.wait <= 0) { if (val(this.dealer).t < 17) { this.dealer.push(this.card()); sfx(540, 0.04, 0.02, 'sine'); this.wait = 0.55; } else this.finish2(); } } },
       draw() {
         const c = this.ctx, w = this.w, h = this.h, sk = SK, cw = this.cw, ch = this.ch; this.geom(); drawBg(c, w, h);
-        txt(c, 'BLACKJACK', w / 2, 26, 18, sk.fg, 'center'); txt(c, 'BLACKJACK PAYS 3 TO 2  ·  DEALER STANDS ON 17', w / 2, 44, 9, sk.dim, 'center', MONO); txt(c, this.chips + ' chips', 12, 66, 15, sk.pal[1], 'left', MONO); if (this.phase !== 'play') txt(c, 'bet ' + this.bet, w - 12, 66, 13, sk.fg, 'right', MONO);
+        txt(c, 'BLACKJACK', w / 2, 26, 18, sk.fg, 'center'); txt(c, 'BLACKJACK PAYS 3 TO 2  ·  DEALER STANDS ON 17', w / 2, 44, 9, sk.dim, 'center', MONO); txt(c, this.chips + ' ' + (this.casino ? 'galaxies' : 'chips'), 12, 66, 15, sk.pal[1], 'left', MONO); if (this.phase !== 'play') txt(c, 'bet ' + this.bet, w - 12, 66, 13, sk.fg, 'right', MONO);
         const showHole = this.phase === 'dealer' || this.phase === 'done', dy = 84;
         this.dealer.forEach((cd, i) => drawCardX(c, w / 2 - (this.dealer.length * cw * 0.62) / 2 + i * cw * 0.62, dy, cw, ch, cd, i === 0 || showHole, sk.pal[3]));
         if (this.dealer.length) txt(c, 'Dealer ' + (showHole ? val(this.dealer).t : '?'), w / 2, dy + ch + 18, 12, sk.fg, 'center', MONO);
@@ -7066,13 +7066,13 @@ const SUMMIT_LEVELS = [
       state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [],
       geom() { const w = this.w, h = this.h; this.cw = Math.min(46, Math.floor(w / 7.4)); this.ch = Math.round(this.cw * 1.42); this.b1 = brow(8, h - 92, w - 16, 40, 3, 6); this.b2 = brow(8, h - 46, w - 16, 40, 3, 6); },
       layout() { this.geom(); },
-      reset() { this.geom(); this.P = [{ name: 'You', chips: 1000 }, { name: 'Vic', chips: 1000, sty: 'tight' }, { name: 'Dee', chips: 1000, sty: 'loose' }, { name: 'Moe', chips: 1000, sty: 'bluffer' }]; this.dealer = 0; this.handNo = 0; this.bb = 20; this.phase = 'idle'; this.board = []; this.log = ''; this.score = 1000; this.floats = []; this.state = 'ready'; this.wait = 0; this.newHand(); },
+      reset() { this.geom(); this.P = [{ name: 'You', chips: 1000 }, { name: 'Vic', chips: 1000, sty: 'tight' }, { name: 'Dee', chips: 1000, sty: 'loose' }, { name: 'Moe', chips: 1000, sty: 'bluffer' }].map(p => Object.assign(p, { hole: [], last: '', bet: 0, total: 0, folded: false, out: false })); this.dealer = 0; this.handNo = 0; this.bb = 20; this.phase = 'idle'; this.board = []; this.log = ''; this.score = 1000; this.floats = []; this.state = 'ready'; this.wait = 0; if (!this.casino) this.newHand(); },
       enter() { this.reset(); },
       alive() { return this.P.filter(p => p.chips > 0 || p.total > 0); },
       nextIdx(i, pred) { for (let k = 1; k <= 4; k++) { const j = (i + k) % 4; if (pred(this.P[j])) return j; } return -1; },
       newHand() { const P = this.P; P.forEach(p => { p.out = p.chips <= 0; p.hole = []; p.bet = 0; p.total = 0; p.folded = p.out; p.allin = false; p.acted = false; p.last = p.out ? 'out' : ''; p.win = false; p.hn = ''; });
         if (P[0].out) { this.msg = 'Busted after ' + this.handNo + ' hands'; this.state = 'dead'; this.dead = 0; JING('over'); return; }
-        if (P.slice(1).every(p => p.out)) { this.score = P[0].chips; this.best = Math.max(this.best, this.score); this.msg = 'You took every chip!'; this.state = 'dead'; this.dead = 0; JING('win'); return; }
+        if (P.slice(1).every(p => p.out)) { this.score = P[0].chips; this.best = Math.max(this.best, this.score); this.msg = 'You took every chip!'; if (this.casino) { const n = P[0].chips; this.chips += n; P[0].chips = 0; this.msg = 'You took the table! +' + n + ' galaxies'; } this.state = 'dead'; this.dead = 0; JING('win'); return; }
         this.handNo++; if (this.handNo > 1 && this.handNo % 8 === 1) { this.bb = Math.round(this.bb * 1.5 / 10) * 10; this.floats.push({ t: 'Blinds up: ' + this.bb / 2 + '/' + this.bb, x: this.w / 2, y: this.h * 0.42, age: 0, c: 'good' }); }
         this.deck = newDeck(); this.board = []; const act = p => !p.out; this.dealer = this.nextIdx(this.dealer, act); const n = P.filter(act).length;
         const sb = n === 2 ? this.dealer : this.nextIdx(this.dealer, act), bbi = this.nextIdx(sb, act); this.put(P[sb], this.bb / 2); P[sb].last = 'SB'; this.put(P[bbi], this.bb); P[bbi].last = 'BB';
@@ -7109,7 +7109,7 @@ const SUMMIT_LEVELS = [
         if (toCall <= 0) { if (eq > st.raise || r < st.bluff) this.act(i, 'raise', raiseTo()); else this.act(i, 'call'); }
         else { if (eq > st.raise + 0.08 && r < 0.75) this.act(i, 'raise', raiseTo()); else if (eq > odds + st.call || r < st.bluff * 0.5) this.act(i, 'call'); else this.act(i, 'fold'); } },
       bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
-        if (this.phase === 'show') { if ((this.showT || 0) > 0.4) this.newHand(); return; }
+        if (this.phase === 'show') { if (this.casino && p[1] > this.h - 50 && p[0] > this.w * 0.6) { this.cashOutH(); return; } if ((this.showT || 0) > 0.4) this.newHand(); return; }
         if (this.phase !== 'bet' || this.cur !== 0 || this.wait > 0) return; const me = this.P[0], toCall = this.curBet - me.bet, pot = this.pot();
         if (inB(this.b1[0], p)) this.act(0, 'fold'); else if (inB(this.b1[1], p)) this.act(0, 'call'); else if (inB(this.b1[2], p)) this.act(0, 'raise', me.bet + me.chips);
         else if (inB(this.b2[0], p)) this.act(0, 'raise', this.curBet + this.minR); else if (inB(this.b2[1], p)) this.act(0, 'raise', this.curBet + Math.max(this.minR, Math.round(pot / 2 / 10) * 10)); else if (inB(this.b2[2], p)) this.act(0, 'raise', this.curBet + Math.max(this.minR, pot + toCall)); }); },
@@ -7132,14 +7132,17 @@ const SUMMIT_LEVELS = [
         const me = P[0], my = h - 98 - ch * 1.15 - 30; me.hole.forEach((cd, k) => drawCardX(c, w / 2 - cw * 1.15 - 3 + k * (cw * 1.15 + 6), my, cw * 1.15, ch * 1.15, cd, true, null, me.win && this.phase === 'show'));
         txt(c, 'You ' + me.chips + (this.dealer === 0 ? '  (D)' : ''), 12, my + 14, 13, sk.fg, 'left', MONO); if (me.last) txt(c, me.last, 12, my + 30, 10, sk.dim, 'left', MONO);
         if (me.hole.length && this.board.length >= 3) txt(c, HNAMES[catOf(best7(me.hole.concat(this.board)))], w - 12, my + 14, 11, sk.pal[1], 'right', MONO);
-        if (this.phase === 'show') { txt(c, this.result, w / 2, by - 14, 11, sk.fg, 'center', MONO); cbtn(c, { x: 8, y: h - 46, w: w - 16, h: 40 }, 'NEXT HAND', true, sk); }
+        if (this.phase === 'show') { txt(c, this.result, w / 2, by - 14, 11, sk.fg, 'center', MONO); if (this.casino) { cbtn(c, { x: 8, y: h - 46, w: w * 0.6 - 14, h: 40 }, 'NEXT HAND', true, sk); cbtn(c, { x: w * 0.6, y: h - 46, w: w * 0.4 - 8, h: 40 }, 'CASH OUT ' + me.chips, false, sk); } else cbtn(c, { x: 8, y: h - 46, w: w - 16, h: 40 }, 'NEXT HAND', true, sk); }
         else { const mine = this.phase === 'bet' && this.cur === 0 && this.wait <= 0, toCall = this.curBet - me.bet, pot = this.pot();
           cbtn(c, this.b1[0], 'FOLD', false, sk, !mine); cbtn(c, this.b1[1], toCall > 0 ? 'CALL ' + Math.min(toCall, me.chips) : 'CHECK', mine, sk, !mine); cbtn(c, this.b1[2], 'ALL IN', false, sk, !mine);
           cbtn(c, this.b2[0], 'RAISE ' + (this.curBet + this.minR), false, sk, !mine); cbtn(c, this.b2[1], '½ POT', false, sk, !mine); cbtn(c, this.b2[2], 'POT', false, sk, !mine);
           if (!mine && this.phase === 'bet') txt(c, P[this.cur].name + ' is thinking...', w / 2, h - 100, 10, sk.dim, 'center', MONO); }
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
-    }, MIX);
+    }, MIX, chipMix, {
+      kick() { if (this.casino && (this.state === 'ready' || (this.state === 'dead' && this.dead > 0.6))) { if (this.chips < 200) { this.loan(); return true; } this.chips -= 200; this.reset(); this.P.forEach(p => { p.chips = 200; }); this.bb = 10; this.state = 'run'; this.handNo = 0; this.newHand(); return true; } return MIX.kick.call(this); },
+      cashOutH() { const n = this.P[0].chips; this.chips += n; this.P[0].chips = 0; this.msg = 'Cashed out ' + n + ' galaxies'; this.state = 'dead'; this.dead = 0; JING('coin'); }
+    });
   }
 
   /* ---------- Roulette (single zero) ---------- */
@@ -7163,7 +7166,7 @@ const SUMMIT_LEVELS = [
       bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e); if (this.phase !== 'bet') return;
         const vals = [5, 25, 100, 500]; for (let i = 0; i < 4; i++) if (inB(this.chipB[i], p)) { this.chip = vals[i]; sfx(700, 0.03, 0.02, 'sine'); return; }
         if (inB(this.spinB[0], p)) { this.chips += this.total(); this.bets = {}; sfx(300, 0.05, 0.02, 'sine'); return; } if (inB(this.spinB[1], p)) { if (this.chips < 5 && !this.total()) this.loan(); else this.spin(); return; }
-        const k = this.cellKey(p); if (!k) return; if (this.chips < this.chip) { this.floats.push({ t: 'not enough chips', x: p[0], y: p[1], age: 0, c: 'bad' }); return; } this.chips -= this.chip; this.bets[k] = (this.bets[k] || 0) + this.chip; this.score = this.chips; sfx(820, 0.03, 0.02, 'sine'); }); },
+        const k = this.cellKey(p); if (!k) return; if (this.chips < this.chip) { this.floats.push({ t: 'not enough ' + (this.casino ? 'galaxies' : 'chips'), x: p[0], y: p[1], age: 0, c: 'bad' }); return; } this.chips -= this.chip; this.bets[k] = (this.bets[k] || 0) + this.chip; this.score = this.chips; sfx(820, 0.03, 0.02, 'sine'); }); },
       key(e) { if (e.type === 'keydown' && e.code === 'Space' && this.state === 'run') { this.spin(); return true; } return false; },
       tick(dt) { this.decay(dt); if (this.state !== 'run') return; if (this.phase === 'spin') { this.st += dt; const T = 4.2, t = Math.min(1, this.st / T), ease = 1 - Math.pow(1 - t, 3); const idx = WHEEL.indexOf(this.res), pa = idx / 37 * TAU;
           this.wa = this.w0 + ease * TAU * 2.2; const target = this.w0 + TAU * 2.2 + pa; this.ba = this.b0 + (target - TAU * 5 - this.b0) * ease - TAU * 0; this.ba = target - (1 - ease) * TAU * 6; if (Math.random() < dt * 8 * (1 - t)) sfx(1200 + rand(0, 400), 0.01, 0.01, 'sine'); if (t >= 1) this.settle(); } },
@@ -7172,7 +7175,7 @@ const SUMMIT_LEVELS = [
         c.fillStyle = '#5a3a1e'; c.beginPath(); c.arc(cx, cy, R + 6, 0, TAU); c.fill(); for (let i = 0; i < 37; i++) { const a0 = this.wa + (i - 0.5) / 37 * TAU - Math.PI / 2, a1 = a0 + TAU / 37; c.fillStyle = colOf(WHEEL[i]); c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, R, a0, a1); c.closePath(); c.fill(); const am = (a0 + a1) / 2; c.save(); c.translate(cx + Math.cos(am) * R * 0.84, cy + Math.sin(am) * R * 0.84); c.rotate(am + Math.PI / 2); c.fillStyle = '#fff'; c.font = '700 ' + Math.max(7, R * 0.12) + 'px sans-serif'; c.textAlign = 'center'; c.fillText(WHEEL[i], 0, 3); c.restore(); }
         c.fillStyle = '#7a5230'; c.beginPath(); c.arc(cx, cy, R * 0.66, 0, TAU); c.fill(); c.fillStyle = '#c9a25a'; c.beginPath(); c.arc(cx, cy, R * 0.18, 0, TAU); c.fill();
         { const t = this.phase === 'spin' ? Math.min(1, this.st / 4.2) : 1, br = R * (0.98 - 0.26 * Math.min(1, t * 1.4) * (t > 0.6 ? 1 : 0.4)), a = this.ba - Math.PI / 2; if (this.hist.length || this.phase === 'spin') dot(c, cx + Math.cos(a) * br, cy + Math.sin(a) * br, Math.max(3, R * 0.07), '#ffffff', { lw: 1 }); }
-        txt(c, this.chips + ' chips', 10, 20, 13, sk.pal[1], 'left', MONO); txt(c, 'bet ' + this.total(), 10, 36, 11, sk.fg, 'left', MONO); this.hist.slice(0, 6).forEach((n, i) => { dot(c, w - 16 - i * 22, 18, 9, colOf(n), { lw: 1 }); txt(c, String(n), w - 16 - i * 22, 22, 9, '#fff', 'center', MONO); });
+        txt(c, this.chips + ' ' + (this.casino ? 'galaxies' : 'chips'), 10, 20, 13, sk.pal[1], 'left', MONO); txt(c, 'bet ' + this.total(), 10, 36, 11, sk.fg, 'left', MONO); this.hist.slice(0, 6).forEach((n, i) => { dot(c, w - 16 - i * 22, 18, 9, colOf(n), { lw: 1 }); txt(c, String(n), w - 16 - i * 22, 22, 9, '#fff', 'center', MONO); });
         const chh = this.chh, cwid = this.cwid, x0 = 8, ty = this.ty;
         const cell = (x, y, ww, hh, label, fill, key) => { c.fillStyle = fill; c.fillRect(x, y, ww, hh); c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(x, y, ww, hh); txt(c, label, x + ww / 2, y + hh / 2 + 4, Math.min(12, hh * 0.6), '#fff', 'center', MONO); const b = this.bets[key]; if (b) { dot(c, x + ww - 9, y + hh / 2, Math.min(8, hh * 0.42), sk.pal[1], { lw: 1.5 }); txt(c, b >= 1000 ? Math.round(b / 1000) + 'k' : String(b), x + ww - 9, y + hh / 2 + 3, 7, '#000', 'center', MONO); } };
         cell(x0, ty, this.tw, chh, '0', '#1f9d55', 'n0'); for (let r = 0; r < 12; r++) for (let k = 0; k < 3; k++) { const n = r * 3 + k + 1; cell(x0 + k * cwid, ty + (r + 1) * chh, cwid, chh, String(n), colOf(n), 'n' + n); }
@@ -7213,7 +7216,7 @@ const SUMMIT_LEVELS = [
         else if (this.auto && this.autoT != null) { this.autoT -= dt; if (this.autoT <= 0) { this.autoT = null; this.spin(); } } },
       draw() {
         const c = this.ctx, w = this.w, h = this.h, sk = SK, rw = this.rw, rh = this.rh, rx = this.rx, ry = this.ry; this.geom(); drawBg(c, w, h);
-        txt(c, 'LUCKY GREG', w / 2, 34, 24, sk.pal[1], 'center'); txt(c, this.chips + ' chips   bet ' + this.lb * 5 + ' (5 lines x ' + this.lb + ')', w / 2, 56, 11, sk.fg, 'center', MONO);
+        txt(c, 'LUCKY GREG', w / 2, 34, 24, sk.pal[1], 'center'); txt(c, this.chips + ' ' + (this.casino ? 'galaxies' : 'chips') + '   bet ' + this.lb * 5 + ' (5 lines x ' + this.lb + ')', w / 2, 56, 11, sk.fg, 'center', MONO);
         box(c, rx - 10, ry - 10, rw * 3 + 20, rh * 3 + 20, { fill: '#2a1740', r: 14, hard: 0, soft: 0, lw: 3, line: sk.pal[1] });
         for (let r = 0; r < 3; r++) { c.save(); c.beginPath(); c.rect(rx + r * rw + 2, ry, rw - 4, rh * 3); c.clip(); c.fillStyle = '#fffaf0'; c.fillRect(rx + r * rw + 2, ry, rw - 4, rh * 3);
           const spinning = this.phase === 'spin' && this.off[r] !== -1; if (spinning) { const o = this.off[r] * rh; for (let k = -1; k < 4; k++) drawSym(c, (k + Math.floor(this.t * 18) + r * 3) % 7, rx + r * rw + rw / 2, ry + k * rh + o + rh / 2, rh * 0.36); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(rx + r * rw, ry, rw, rh * 3); }
@@ -7250,7 +7253,7 @@ const SUMMIT_LEVELS = [
           if (this.m >= this.cp) { this.m = this.cp; this.phase = 'crashed'; this.hist.unshift(this.cp); if (this.hist.length > 8) this.hist.pop(); this.shake = 0.4; this.flash = 0.2; sfx(110, 0.5, 0.06, 'sine'); if (!this.cashed) this.floats.push({ t: 'lost ' + this.bet, x: this.w / 2, y: this.gy + 40, age: 0, c: 'bad' }); } } },
       draw() {
         const c = this.ctx, w = this.w, h = this.h, sk = SK, gx = this.gx, gy = this.gy, gw = this.gw, gh = this.gh; this.geom(); drawBg(c, w, h);
-        txt(c, 'CRASH', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' chips', w - 12, 26, 13, sk.pal[1], 'right', MONO);
+        txt(c, 'CRASH', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' ' + (this.casino ? 'galaxies' : 'chips'), w - 12, 26, 13, sk.pal[1], 'right', MONO);
         this.hist.forEach((v, i) => { const x = 12 + i * 44; box(c, x, 38, 40, 18, { fill: v >= 2 ? 'rgba(60,220,140,.25)' : 'rgba(255,80,80,.25)', r: 6, hard: 0, soft: 0, lw: 0 }); txt(c, v.toFixed(2) + 'x', x + 20, 51, 9, v >= 2 ? sk.good : sk.bad, 'center', MONO); });
         box(c, gx - 30, gy, gw + 38, gh, { fill: 'rgba(0,0,0,.25)', r: 10, hard: 0, soft: 0, lw: 0 });
         const maxT = Math.max(8, this.t * 1.15), maxM = Math.max(2, this.m * 1.2), X = t => gx + t / maxT * gw, Y = m => gy + gh - 12 - (m - 1) / (maxM - 1) * (gh - 30);
@@ -7287,7 +7290,7 @@ const SUMMIT_LEVELS = [
       tick(dt) { this.decay(dt); this.fx.forEach(f => f.t += dt); this.fx = this.fx.filter(f => f.t < 0.4); },
       draw() {
         const c = this.ctx, w = this.w, h = this.h, sk = SK, S = this.S; this.geom(); drawBg(c, w, h);
-        txt(c, 'MINES', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' chips', w - 12, 26, 13, sk.pal[1], 'right', MONO);
+        txt(c, 'MINES', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' ' + (this.casino ? 'galaxies' : 'chips'), w - 12, 26, 13, sk.pal[1], 'right', MONO);
         const nx = this.phase === 'play' ? mult(this.mines, this.k + 1) : mult(this.mines, 1); txt(c, this.phase === 'play' ? 'now ' + mult(this.mines, this.k).toFixed(2) + 'x   next gem ' + nx.toFixed(2) + 'x' : this.mines + ' mines   first gem pays ' + nx.toFixed(2) + 'x', w / 2, 52, 11, sk.dim, 'center', MONO);
         for (let i = 0; i < N; i++) { const cl = this.cells[i], x = this.gx + (i % 5) * S + 3, y = this.gy + Math.floor(i / 5) * S + 3, s = S - 6, shown = cl.open || cl.show; const f = this.fx.find(q => q.i === i), pop = f ? 1 + Math.sin(f.t / 0.4 * Math.PI) * 0.12 : 1;
           c.save(); c.translate(x + s / 2, y + s / 2); c.scale(pop, pop); box(c, -s / 2, -s / 2, s, s, { fill: shown ? (cl.mine ? (cl.open ? '#5a1620' : '#2a1a20') : (cl.open ? '#1b4a3a' : '#16302a')) : sk.panel, r: 8, hard: 0, soft: 0, lw: 0 });
@@ -7309,13 +7312,7 @@ const SUMMIT_LEVELS = [
   skin('minefield', { bg: ['#0e1a22', '#13242e'], pat: 'none', fg: '#e8f6f0', dim: '#8ab0a4', panel: '#1f3a46', pfg: '#e8f6f0', dark: true, line: '#3ddc84', lw: 0, r: 10, pal: ['#3ddc84', '#ffd23f', '#38b6ff', '#ff5a5a'], good: '#3ddc84', bad: '#ff5a5a', font: '"Rubik","Arial",sans-serif', fw: 800, fs: 1, mono: '"Rubik","Arial",sans-serif', mw: 600, ms: 0.85, veil: 'rgba(14,26,34,.86)', vfg: '#e8f6f0', slide: '#13242e', sbgc: '#13242e', sfg: '#e8f6f0', sdim: '#a8c8bc', stag: '#3ddc84', tsize: 27, tfw: 800, tls: '0', frame: '' });
 
   NEW_SLIDES.push(
-    mk(makeSolitaire(SKINS.klondike), 'Solitaire', SKINS.klondike, 'Klondike, draw one. Tap or drag cards. Undo is free.', '#solitaire #cards #classic', 6.9e9, 1.4e9, 520e6, 'solitaire'),
-    mk(makeBlackjack(SKINS.bjred), 'Blackjack', SKINS.bjred, 'Beat the dealer to 21. Double, split, and borrow from Greg when it goes badly.', '#blackjack #casino #21', 12.4e9, 4.4e9, 2.2e9, 'blackjack'),
-    mk(makeHoldem(SKINS.pokerroom), "Hold'em", SKINS.pokerroom, "No-limit Texas Hold'em vs three bots with different styles. Take every chip.", '#poker #holdem #allin', 10.2e9, 3.6e9, 1.4e9, 'holdem'),
-    mk(makeRoulette(SKINS.roulette), 'Roulette', SKINS.roulette, 'Single zero wheel. Bet numbers, colors, halves or dozens.', '#roulette #casino #red', 7.8e9, 2.1e9, 940e6, 'roulette'),
-    mk(makeSlots(SKINS.slotneon), 'Slots', SKINS.slotneon, 'Three reels, five lines, three sevens pay 450x. Auto spin for the brave.', '#slots #jackpot #spin', 16.1e9, 3.9e9, 2.8e9, 'slots'),
-    mk(makeCrash(SKINS.crashnight), 'Crash', SKINS.crashnight, 'The multiplier climbs until it does not. Cash out in time.', '#crash #multiplier #cashout', 13.3e9, 5.2e9, 3.1e9, 'crash'),
-    mk(makeMines(SKINS.minefield), 'Mines', SKINS.minefield, 'Flip tiles for gems, avoid the mines, cash out whenever you want.', '#mines #gems #risk', 11.7e9, 3.3e9, 2.0e9, 'mines')
+    mk(makeSolitaire(SKINS.klondike), 'Solitaire', SKINS.klondike, 'Klondike, draw one. Tap or drag cards. Undo is free.', '#solitaire #cards #classic', 6.9e9, 1.4e9, 520e6, 'solitaire')
   );
 
 
@@ -8087,6 +8084,40 @@ const SUMMIT_LEVELS = [
   { const u = document.getElementById('navUp'), d = document.getElementById('navDn'); if (u) u.addEventListener('click', () => go(-1)); if (d) d.addEventListener('click', () => go(1)); }
 
   addEventListener('keyup', e => { const g = games[cur]; if (g && g.key && !paused && /e\.type === 'keydown'/.test(String(g.key))) { if (g.key(e)) e.preventDefault(); } });
+
+
+  /* ===== Galaxy Casino: the crate sheet gets tabs for table games played with galaxies ===== */
+  (() => {
+    const crateEl = $('crate'), body = $('paneCrate'); if (!crateEl || !body) return;
+    const ttl = crateEl.querySelector('header > span'); if (ttl) ttl.textContent = 'Galaxy Casino';
+    const st = document.createElement('style');
+    st.textContent = '.ctabs{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 6px;scrollbar-width:none;flex:none;border-bottom:1px solid rgba(242,246,241,.08)}.ctabs::-webkit-scrollbar{display:none}' +
+      '.ctabs button{flex:none;border:0;border-radius:999px;padding:7px 13px;background:rgba(242,246,241,.09);color:var(--paper);font:600 12px var(--body);cursor:pointer}.ctabs button.on{background:var(--yellow);color:var(--ink)}.ctabs button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}' +
+      '.crate.big{height:92%;max-height:92%}.cgame{flex:1 1 auto;min-height:0;position:relative;margin:6px 8px calc(8px + var(--sab,0px));border-radius:14px;overflow:hidden}.cgame canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none}' +
+      '.cbal{flex:none;display:flex;justify-content:space-between;align-items:center;padding:6px 16px 0;font:500 11px var(--mono);color:var(--muted)}.cbal b{color:var(--paper);font:800 15px var(--display)}';
+    document.head.appendChild(st);
+    const GAMES = [['crate', 'Crate'], ['bj', 'Blackjack'], ['holdem', "Hold'em"], ['roul', 'Roulette'], ['slots', 'Slots'], ['crash', 'Crash'], ['mines', 'Mines']];
+    const tabs = document.createElement('div'); tabs.className = 'ctabs'; tabs.setAttribute('role', 'tablist');
+    tabs.innerHTML = GAMES.map(([k, n], i) => '<button type="button" role="tab" data-tab="' + k + '"' + (i ? '' : ' class="on" aria-selected="true"') + '>' + n + '</button>').join('');
+    crateEl.insertBefore(tabs, body);
+    const bal = document.createElement('div'); bal.className = 'cbal'; bal.hidden = true; bal.innerHTML = '<span>YOUR GALAXIES</span><b id="cbalN">0</b>'; crateEl.insertBefore(bal, body);
+    const gp = document.createElement('div'); gp.className = 'cgame'; gp.hidden = true; crateEl.appendChild(gp);
+    const MK = { bj: [makeBlackjack, 'bjred'], holdem: [makeHoldem, 'pokerroom'], roul: [makeRoulette, 'roulette'], slots: [makeSlots, 'slotneon'], crash: [makeCrash, 'crashnight'], mines: [makeMines, 'minefield'] };
+    const inst = {}; let active = null, lastT = 0;
+    const build = k => { const s = SKINS[MK[k][1]], g = MK[k][0](s); g.noInset = true; g.casino = true; g.sk = s;
+      Object.defineProperty(g, 'chips', { get: () => gal, set: v => { gal = Math.max(0, Math.round(v)); setGal(); }, configurable: true });
+      if (k === 'holdem') g.how = "Buy in for 200 galaxies and play no-limit Hold'em against Vic (tight), Dee (calls anything) and Moe (bluffs). Cash out between hands.";
+      try { loadFonts(s); } catch (_) {} const cv = document.createElement('canvas'); cv.setAttribute('aria-label', k + ' game'); gp.appendChild(cv); mount(cv, g); if (g.bind) g.bind(cv); g.cv = cv; inst[k] = g; return g; };
+    const cbalN = document.getElementById('cbalN'); const upd = () => { if (cbalN) cbalN.textContent = fmtN(gal); };
+    tabs.addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (!b) return; tabs.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-selected', String(on)); });
+      const k = b.dataset.tab; if (k === 'crate') { body.hidden = false; gp.hidden = true; bal.hidden = true; active = null; crateEl.classList.remove('big'); return; }
+      body.hidden = true; gp.hidden = false; bal.hidden = false; crateEl.classList.add('big'); Object.values(inst).forEach(g => { g.cv.style.display = 'none'; });
+      requestAnimationFrame(() => { const g = inst[k] || build(k); g.cv.style.display = 'block'; active = g; if (g.enter && !g.entered) { g.entered = true; } }); });
+    const loop = t => { const dt = Math.min(0.05, ((t - lastT) / 1000) || 0.016); lastT = t; upd();
+      if (active && crateEl.classList.contains('open') && active.w) { SK = active.sk; GM = active; try { if (active.tick) active.tick(dt); active.draw(); } catch (err) { console.error(err); } }
+      requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  })();
 
 })();
 </script>
