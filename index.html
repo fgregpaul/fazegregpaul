@@ -820,7 +820,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     say(m) { this.msg = m; this.msgT = 2.4; },
     pop(t, good) { this.floaters.push({ t, good, age: 0 }); },
     tap() {
-      const hit = Math.abs(this.m - this.zc) <= this.zw / 2;
+      const hit = Math.abs(this.m - this.zc) <= this.zw / 2 + 0.012;
       if (hit) {
         this.streak++;
         const mult = +(1.8 + Math.min(this.streak, 12) * 0.45).toFixed(1);
@@ -1154,7 +1154,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
   };
 
   raise.sk = SKINS.fintech;
-  raise.bind = function (cv) { cv.addEventListener('pointerup', () => this.tap()); };
+  raise.bind = function (cv) { cv.addEventListener('pointerdown', e => { e.preventDefault(); this.tap(); }); };
   raise.draw = function () {
     const c = this.ctx, w = this.w, h = this.h, sk = SK;
     drawBg(c, w, h);
