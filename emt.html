@@ -1,0 +1,829 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Morpheme Works</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Silkscreen&family=Titillium+Web:wght@400;600;700&display=swap">
+<style>
+/* Layout: a factory HUD. Three working panels (ore field / crafter / dispatch+research), full-width factory floor, then codex + console. */
+:root{
+  --bg:#1e1c1a;
+  --panel:#33302d;
+  --deep:#22201e;
+  --slot:#5a5550;
+  --ink:#ece4d6;
+  --muted:#a89f92;
+  --amber:#e8a03a;
+  --amber-ink:#2b1a05;
+  --go:#6dae45;
+  --go-ink:#0f1a07;
+  --bad:#e0624d;
+  --line:#141210;
+  --f-display:'Saira Stencil One', Impact, 'Arial Narrow', sans-serif;
+  --f-body:'Titillium Web', 'Segoe UI', system-ui, sans-serif;
+  --f-pixel:'Silkscreen', ui-monospace, 'Courier New', monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--ink)}
+body{font:15px/1.45 var(--f-body)}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.wrap{max-width:1440px;margin:0 auto;padding-block:14px 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));display:flex;flex-direction:column;gap:12px}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.brand{display:flex;flex-direction:column;gap:2px}
+.logo{font:400 clamp(28px,4.4vw,44px)/0.95 var(--f-display);letter-spacing:.02em;color:var(--amber);text-shadow:0 3px 0 #000}
+.sub{font:400 11px var(--f-pixel);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.stat{display:flex;align-items:center;gap:8px;background:var(--panel);padding:6px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px var(--line)}
+.stat img{width:24px;height:24px;image-rendering:pixelated}
+.stat b{font:700 20px var(--f-body);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted);line-height:1.1;max-width:9ch}
+
+.brief{list-style:none;margin:0;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 22px;background:var(--deep);box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 0 0 1px var(--line);font-size:13px;color:var(--muted);counter-reset:s}
+.brief li{counter-increment:s;display:flex;gap:6px;align-items:baseline}
+.brief li::before{content:counter(s);font:400 11px var(--f-pixel);color:var(--amber-ink);background:var(--amber);padding:0 5px}
+.brief b{color:var(--ink);font-weight:600}
+
+/* panels */
+.cols{display:grid;gap:12px;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1.1fr);grid-template-areas:"ore craft dispatch" "ore craft research";align-items:start}
+.ore-panel{grid-area:ore}.craft-panel{grid-area:craft}.dispatch-panel{grid-area:dispatch}.research-panel{grid-area:research}
+.cols2{display:grid;gap:12px;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start}
+@media (max-width:1060px){
+  .cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"craft dispatch" "ore research" "ore ."}
+}
+@media (max-width:700px){
+  .cols{grid-template-columns:minmax(0,1fr);grid-template-areas:"dispatch" "craft" "ore" "research"}
+  .cols2{grid-template-columns:minmax(0,1fr)}
+}
+.panel{background:var(--panel);padding:10px 12px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 0 rgba(0,0,0,.3),0 0 0 1px var(--line),0 3px 0 rgba(0,0,0,.35);min-width:0;display:flex;flex-direction:column;gap:10px}
+.panel h2{margin:0;display:flex;align-items:center;gap:10px;font:700 16px/1.2 var(--f-body);letter-spacing:.01em}
+.panel h2::after{content:"";flex:1;height:10px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.07) 0 2px,rgba(0,0,0,.45) 2px 4px);min-width:20px}
+.panel h3{margin:4px 0 0;font:400 11px var(--f-pixel);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.deep{background:var(--deep);box-shadow:inset 0 2px 4px rgba(0,0,0,.65),0 0 0 1px #0c0b0a}
+.hint{margin:0;font-size:13px;color:var(--muted);max-width:65ch}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* buttons */
+.btn{border:0;cursor:pointer;background:#8f8a84;color:#141210;font-weight:600;font-size:14px;padding:6px 14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -3px 0 rgba(0,0,0,.3),0 0 0 1px #0c0b0a}
+.btn:hover:not(:disabled){background:var(--amber);color:var(--amber-ink)}
+.btn:active:not(:disabled){box-shadow:inset 0 2px 0 rgba(0,0,0,.35),0 0 0 1px #0c0b0a}
+.btn.go{background:var(--go);color:var(--go-ink)}
+.btn.small{padding:3px 9px;font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn img{width:16px;height:16px;image-rendering:pixelated;vertical-align:-3px;margin-left:2px}
+
+/* slots */
+.slot{position:relative;display:grid;place-items:center;width:44px;height:44px;flex:none;background:var(--slot);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -2px 0 rgba(0,0,0,.35),0 0 0 1px #0d0c0b}
+.slot img{width:32px;height:32px;image-rendering:pixelated;pointer-events:none}
+.count{position:absolute;right:3px;bottom:0;font:700 13px var(--f-body);color:#fff;font-variant-numeric:tabular-nums;text-shadow:1px 1px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;pointer-events:none}
+
+/* ore field */
+.oregrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.ore{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr);gap:2px 8px;align-items:center;text-align:left;border:0;padding:6px 8px 9px 6px;cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  background:radial-gradient(circle at 12% 30%,rgba(255,255,255,.05) 0 1.5px,transparent 2px) 0 0/11px 9px,linear-gradient(100deg,color-mix(in srgb,var(--c) 22%,var(--deep)),var(--deep) 75%);
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 0 0 1px #0c0b0a}
+.ore:hover .slot,.ore.mining .slot{background:var(--amber)}
+.ore.mining{box-shadow:inset 0 0 0 2px var(--amber),0 0 0 1px #0c0b0a}
+.otext{display:flex;flex-direction:column;min-width:0}
+.otext b{font:700 15px/1.15 var(--f-body);overflow-wrap:anywhere}
+.otext i{font-style:normal;font-size:12px;line-height:1.2;color:var(--muted)}
+.oext{position:absolute;top:4px;right:6px;font:400 10px var(--f-pixel);color:var(--amber)}
+.obar{position:absolute;left:6px;right:6px;bottom:3px;height:3px;background:rgba(0,0,0,.5)}
+.obar span{display:block;height:100%;width:0;background:var(--amber)}
+
+/* crafter */
+.crafter{padding:12px;display:flex;flex-direction:column;gap:10px}
+.slots{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.slots .slot{width:56px;height:56px;border:0;cursor:pointer}
+.slots .slot img{width:40px;height:40px}
+.slots .slot.vacant{background:#3d3a36;cursor:default}
+.slots .slot.vacant::after{content:attr(data-n);font:400 10px var(--f-pixel);color:#6d675f}
+.slots .slot:not(.vacant):hover{background:var(--bad)}
+.plus{font:700 20px var(--f-body);color:#6d675f}
+.spell{min-height:34px;font:700 clamp(20px,3vw,26px)/1.2 var(--f-body);letter-spacing:.01em;overflow-wrap:anywhere}
+.spell .ph{color:#6d675f;font-weight:400;font-size:15px}
+.craftbar{height:6px;background:#141210}
+.craftbar div{height:100%;width:0;background:var(--go)}
+.msg{font-size:13px;color:var(--muted);flex:1 1 200px}
+.msg.bad{color:var(--bad)}.msg.good{color:var(--go)}
+
+.discovery{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.dhead{display:flex;gap:12px;align-items:center}
+.dhead img{width:48px;height:48px;image-rendering:pixelated;flex:none}
+.dword{font:700 22px/1.15 var(--f-body);overflow-wrap:anywhere}
+.ddef{font-size:14px;color:var(--ink)}
+.dparts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dpart{display:grid;grid-template-columns:24px auto;gap:0 6px;align-items:center;background:rgba(0,0,0,.25);padding:4px 8px 4px 4px}
+.dpart img{grid-row:span 2;width:24px;height:24px;image-rendering:pixelated}
+.dpart b{font-size:14px;line-height:1.1}
+.dpart i{font-style:normal;font-size:12px;color:var(--muted);line-height:1.1}
+.dplus{color:#6d675f;font-weight:700}
+
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px 4px;padding:8px}
+.cell{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:0;cursor:pointer;min-width:0}
+.cell:hover .slot{background:var(--amber)}
+.cell.empty .slot img{opacity:.35}
+.cell.empty .count{color:#9b948a}
+.lbl{font-size:11px;line-height:1.1;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inv .none{grid-column:1/-1;font-size:13px;color:var(--muted);padding:4px}
+
+/* dispatch */
+.calls{display:flex;flex-direction:column;gap:8px}
+.call{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.chead{display:flex;justify-content:space-between;gap:8px;font:400 11px var(--f-pixel);letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+.chead .rw{color:var(--amber);display:flex;align-items:center;gap:4px}
+.chead .rw img{width:14px;height:14px;image-rendering:pixelated}
+.clue{margin:0;font-size:15px;line-height:1.4}
+.ask{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.ask b{color:var(--ink)}
+.ask .hintline{color:#cdb98f}
+
+/* research */
+.tiers{display:flex;flex-direction:column;gap:6px}
+.tier{padding:8px 10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center}
+.tier.done{opacity:.6}
+.tname{font-weight:700;font-size:14px}
+.tname small{font:400 10px var(--f-pixel);color:var(--muted);letter-spacing:.06em;margin-right:6px}
+.tchips{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:3px}
+.tchips img{width:22px;height:22px;image-rendering:pixelated;background:rgba(0,0,0,.3)}
+
+/* factory */
+.floor{position:relative;overflow:hidden;padding:0}
+.floor canvas{display:block;width:100%;cursor:pointer;image-rendering:pixelated}
+.machine{padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;min-height:52px}
+.machine label{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.machine select{font:inherit;font-size:14px;background:var(--deep);color:var(--ink);border:0;padding:5px 8px;box-shadow:0 0 0 1px #0c0b0a,inset 0 1px 3px rgba(0,0,0,.6);max-width:100%}
+.mname{font-weight:700}
+.mstat{font-size:13px;color:var(--muted)}
+.mstat.bad{color:var(--bad)}
+
+/* codex */
+.codex{display:flex;flex-direction:column;gap:12px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.wcard{display:grid;grid-template-columns:36px minmax(0,1fr);gap:2px 10px;align-items:start;text-align:left;border:0;padding:8px;background:var(--deep);box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 0 0 1px #0c0b0a;cursor:default}
+.wcard.known{cursor:pointer}
+.wcard.known:hover{box-shadow:inset 0 0 0 2px var(--amber),0 0 0 1px #0c0b0a}
+.wcard img{grid-row:span 3;width:36px;height:36px;image-rendering:pixelated}
+.wcard b{font-size:15px;line-height:1.15;overflow-wrap:anywhere}
+.wcard .def{font-size:12px;color:var(--muted);line-height:1.3}
+.wcard .pp{font-size:12px;line-height:1.3}
+.locked{font-size:13px;color:var(--muted)}
+.cprog{height:6px;background:#141210}.cprog div{height:100%;background:var(--amber)}
+
+.log{height:300px;overflow-y:auto;padding:8px 10px;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.log p{margin:0;color:var(--muted)}
+.log p b{color:var(--ink)}
+.log p.good{color:#a8d88a}.log p.bad{color:#f0a090}.log p.new{color:#f3cf86}
+.log time{font:400 10px var(--f-pixel);color:#6d675f;margin-right:6px}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;z-index:20;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal .panel{width:min(560px,100%);max-height:85vh;overflow:auto}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="logo">MORPHEME WORKS</span>
+      <span class="sub">EMS terminology factory</span>
+    </div>
+    <div class="stats">
+      <div class="stat" title="Research packs: earned from dispatch calls"><img id="rpIcon" alt=""><b id="rp">0</b><span>research packs</span></div>
+      <div class="stat"><b id="discN">0</b><span>terms found of <span id="discT">0</span></span></div>
+      <div class="stat"><b id="callsDone">0</b><span>calls cleared</span></div>
+    </div>
+  </header>
+
+  <ol class="brief">
+    <li><span><b>Hold</b> a deposit in the ore field to mine word parts.</span></li>
+    <li><span><b>Click</b> inventory parts to load the crafter in order, then <b>Craft</b>.</span></li>
+    <li><span>Read each dispatch call and <b>deliver</b> the matching term.</span></li>
+    <li><span>Spend research packs on new body systems and machines.</span></li>
+  </ol>
+
+  <div class="cols">
+    <section class="panel ore-panel">
+      <h2>Ore field</h2>
+      <p class="hint">Press and hold a deposit to hand-mine it.</p>
+      <div id="ore" style="display:flex;flex-direction:column;gap:6px"></div>
+    </section>
+
+    <section class="panel craft-panel">
+      <h2>Crafting</h2>
+      <div class="deep crafter">
+        <div class="slots" id="slots"></div>
+        <div class="spell" id="spell"></div>
+        <div class="craftbar"><div id="craftProg"></div></div>
+        <div class="row">
+          <button class="btn go" id="craftBtn" type="button">Craft</button>
+          <button class="btn" id="clearBtn" type="button">Clear</button>
+          <span class="msg" id="craftMsg" role="status"></span>
+        </div>
+      </div>
+      <div class="deep discovery" id="discovery"></div>
+      <h3>Inventory · word parts</h3>
+      <div class="inv deep" id="inv"></div>
+      <h3>Inventory · finished terms</h3>
+      <div class="inv deep" id="terms"></div>
+    </section>
+
+    <section class="panel dispatch-panel">
+      <h2>Dispatch</h2>
+      <div class="calls" id="calls"></div>
+    </section>
+
+    <section class="panel research-panel">
+      <h2>Research</h2>
+      <div class="tiers" id="research"></div>
+    </section>
+  </div>
+
+  <section class="panel factory-panel">
+    <h2>Factory floor</h2>
+    <div class="row">
+      <button class="btn" id="buildDrill" type="button">Build extractor · 5 <img alt="" data-rp></button>
+      <button class="btn" id="buildAsm" type="button">Build assembler · 12 <img alt="" data-rp></button>
+      <span class="hint">Extractors feed the storage chest on the belt. Assemblers pull parts from the chest and craft terms on their own.</span>
+    </div>
+    <div class="floor deep" id="floorWrap"><canvas id="floor" aria-label="Factory floor"></canvas></div>
+    <div class="deep machine" id="machineBox"></div>
+  </section>
+
+  <div class="cols2">
+    <section class="panel">
+      <h2>Codex</h2>
+      <div class="cprog"><div id="codexProg" style="width:0"></div></div>
+      <div class="codex" id="codex"></div>
+    </section>
+    <section class="panel">
+      <h2>Console</h2>
+      <div class="log deep" id="log" aria-live="polite"></div>
+      <div class="row"><button class="btn small" id="resetBtn" type="button">Restart shift</button><span class="msg" id="resetMsg"></span></div>
+    </section>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h2 id="mTitle">Deliver a term</h2>
+    <p class="hint" id="mInfo"></p>
+    <div class="inv deep" id="mList"></div>
+    <div class="row"><button class="btn" id="mClose" type="button">Cancel</button></div>
+  </div>
+</div>
+
+<script>
+(()=>{
+/* ================= DATA ================= */
+const TIERS=[
+  {name:'Vitals',cost:0},
+  {name:'Blood & Gas',cost:15},
+  {name:'Cardiac',cost:30},
+  {name:'Neuro',cost:45},
+  {name:'Trauma & GI',cost:65},
+  {name:'Routes & Airways',cost:90},
+];
+const Mk=(id,t,m,c,g,tier)=>({id,t,m,c,g,tier});
+const MORPHS=[
+  Mk('brady','P','slow','#4f86c6','slow',1),
+  Mk('tachy','P','fast','#e0533d','fast',1),
+  Mk('a','P','without, absent','#9aa0a6','none',1),
+  Mk('dys','P','difficult, painful, abnormal','#a35ec4','zig',1),
+  Mk('hyper','P','above, excessive','#e8a33a','up',1),
+  Mk('hypo','P','below, deficient','#3fb3a8','down',1),
+  Mk('cardi','R','heart','#d8334a','heart',1),
+  Mk('pnea','R','breathing','#8fc7e8','lung',1),
+  Mk('tension','R','pressure','#c66b3d','gauge',1),
+  Mk('therm','R','heat, temperature','#f08a24','flame',1),
+  Mk('ia','S','condition','#7ec850',null,1),
+
+  Mk('an','P','without (before a vowel)','#b7bcc2','none',2),
+  Mk('glyc','R','sugar, glucose','#f2efe3','cube',2),
+  Mk('ox','R','oxygen','#5dc0f0','ring',2),
+  Mk('capn','R','carbon dioxide','#8a8f99','CO',2),
+  Mk('vol','R','volume','#b8323a','VL',2),
+  Mk('kal','R','potassium','#c9d64a','K',2),
+  Mk('cyan','R','blue','#3a6fd8','drop',2),
+  Mk('emia','S','blood condition','#c8303f',null,2),
+  Mk('osis','S','abnormal condition','#6b7fd8',null,2),
+
+  Mk('peri','P','around','#d36f9a','around',3),
+  Mk('endo','P','within, inner','#6fae4f','in',3),
+  Mk('my','R','muscle','#b5544a','muscle',3),
+  Mk('o','V','combining vowel; joins parts','#b08d57',null,3),
+  Mk('itis','S','inflammation','#ff6a3d',null,3),
+  Mk('megaly','S','enlargement','#b06ad6',null,3),
+  Mk('logy','S','study of','#4fb3d9',null,3),
+  Mk('al','S','pertaining to','#d9c24f',null,3),
+  Mk('ac','S','pertaining to','#e09a4f',null,3),
+
+  Mk('hemi','P','half, one side','#c9c04a','half',4),
+  Mk('para','P','beside; lower half','#5f7fd6','PA',4),
+  Mk('quadri','P','four','#d6873f','four',4),
+  Mk('neur','R','nerve','#f2d33a','bolt',4),
+  Mk('encephal','R','brain','#e7a3b0','brain',4),
+  Mk('cephal','R','head','#d99a8a','head',4),
+  Mk('phas','R','speech','#7fd1b9','bubble',4),
+  Mk('plegia','S','paralysis','#8a8f9e',null,4),
+  Mk('algia','S','pain','#e8505b',null,4),
+
+  Mk('hem','R','blood','#b3202f','drop',5),
+  Mk('hemat','R','blood','#8f1d2c','drop',5),
+  Mk('pneum','R','air, lung','#a9d8f0','lung',5),
+  Mk('gastr','R','stomach','#d9a05b','bean',5),
+  Mk('hepat','R','liver','#7a3b2a','wedge',5),
+  Mk('phag','R','eating, swallowing','#c98bd6','PG',5),
+  Mk('arthr','R','joint','#e3dcc8','bone',5),
+  Mk('thorax','R','chest','#c7b9a3','ribs',5),
+  Mk('rrhage','S','bursting forth (bleeding)','#a8142a',null,5),
+  Mk('emesis','S','vomiting','#9fbf3a',null,5),
+  Mk('oma','S','tumor, swelling','#a0527a',null,5),
+  Mk('ptysis','S','spitting, coughing up','#c4505a',null,5),
+
+  Mk('intra','P','within','#47a6d9','in',6),
+  Mk('sub','P','under, below','#8f6fd1','under',6),
+  Mk('ven','R','vein','#4b62c9','tube',6),
+  Mk('osse','R','bone','#efe7d2','bone',6),
+  Mk('muscul','R','muscle','#c0574b','muscle',6),
+  Mk('lingu','R','tongue','#e8828f','LI',6),
+  Mk('trache','R','trachea (windpipe)','#9fc4cc','rings',6),
+  Mk('nas','R','nose','#e2b07a','NA',6),
+  Mk('or','R','mouth','#e06f7a','OR',6),
+  Mk('pharyng','R','pharynx (throat)','#d88ea0','PX',6),
+  Mk('ous','S','pertaining to','#5fc4a8',null,6),
+  Mk('eal','S','pertaining to','#d98a5a',null,6),
+  Mk('ar','S','pertaining to','#8fb04f',null,6),
+];
+const M=Object.fromEntries(MORPHS.map(m=>[m.id,m]));
+const SUF_LBL={ia:'IA',emia:'EM',osis:'OS',itis:'IT',megaly:'MG',logy:'LG',al:'AL',ac:'AC',plegia:'PL',algia:'AG',rrhage:'RH',emesis:'ES',oma:'OM',ptysis:'PT',ous:'OU',eal:'EA',ar:'AR'};
+
+const Wd=(word,parts,tier,def,clue)=>({word,parts,tier,def,clue});
+const WORDS=[
+  Wd('bradycardia',['brady','cardi','ia'],1,'Slow heart rate, under 60 beats per minute.','71 y/o female, radial pulse 42 and regular, says she feels lightheaded. Chart the heart rate finding.'),
+  Wd('tachycardia',['tachy','cardi','ia'],1,'Fast heart rate, over 100 beats per minute.','Anxious 24 y/o after a fall. The monitor shows a heart rate of 138.'),
+  Wd('bradypnea',['brady','pnea'],1,'Abnormally slow breathing (under 12 per minute in adults).','Suspected opioid overdose. Respirations 6 per minute and shallow.'),
+  Wd('tachypnea',['tachy','pnea'],1,'Abnormally fast breathing.','Febrile 3 y/o breathing 44 times a minute.'),
+  Wd('apnea',['a','pnea'],1,'Absence of breathing.','Unresponsive patient, no chest rise for 15 seconds.'),
+  Wd('dyspnea',['dys','pnea'],1,'Difficult or labored breathing; shortness of breath.','COPD patient in the tripod position, can only speak three words at a time.'),
+  Wd('hypertension',['hyper','tension'],1,'High blood pressure.','Severe headache. Blood pressure 192/110 on two readings.'),
+  Wd('hypotension',['hypo','tension'],1,'Low blood pressure.','Pale and sweaty after a GI bleed. Blood pressure 78/40.'),
+  Wd('hypothermia',['hypo','therm','ia'],1,'Core body temperature below 95°F (35°C).','Found outside overnight in January. Shivering has stopped; core temp 91°F.'),
+  Wd('hyperthermia',['hyper','therm','ia'],1,'Abnormally high body temperature.','Marathon runner collapsed. Skin hot and dry, core temp 106°F.'),
+
+  Wd('hypoglycemia',['hypo','glyc','emia'],2,'Low blood sugar.','Diabetic patient, confused and sweaty. Glucometer reads 38 mg/dL.'),
+  Wd('hyperglycemia',['hyper','glyc','emia'],2,'High blood sugar.','Fruity breath odor, frequent urination, glucometer reads HI.'),
+  Wd('hypoxia',['hypo','ox','ia'],2,'Low oxygen reaching the tissues.','SpO₂ 84% on room air. Patient is restless and confused.'),
+  Wd('anoxia',['an','ox','ia'],2,'Total absence of oxygen in the tissues.','Drowning victim submerged for 10 minutes; the brain went without any oxygen.'),
+  Wd('hypercapnia',['hyper','capn','ia'],2,'Too much carbon dioxide in the blood.','COPD patient growing drowsy. EtCO₂ reads 68 mmHg.'),
+  Wd('hypovolemia',['hypo','vol','emia'],2,'Low circulating blood volume.','Open femur fracture with heavy blood loss, flat neck veins, heart rate 128.'),
+  Wd('hyperkalemia',['hyper','kal','emia'],2,'High potassium in the blood.','Dialysis patient missed two sessions. Peaked T waves on the 12-lead.'),
+  Wd('cyanosis',['cyan','osis'],2,'Bluish skin color from poor oxygenation.','Lips and nail beds are turning blue.'),
+
+  Wd('myocardial',['my','o','cardi','al'],3,'Pertaining to the heart muscle, as in myocardial infarction (heart attack).','STEMI alert: heart muscle is dying. Fill in the report: ___ infarction.'),
+  Wd('pericarditis',['peri','cardi','itis'],3,'Inflammation of the sac around the heart.','Sharp chest pain that eases when leaning forward, a week after a virus.'),
+  Wd('endocarditis',['endo','cardi','itis'],3,'Inflammation of the inner lining of the heart.','IV drug user with fever and a new murmur. The inner lining of the heart is infected.'),
+  Wd('cardiomegaly',['cardi','o','megaly'],3,'Enlarged heart.','The patient\'s discharge papers say the chest X-ray showed an enlarged heart.'),
+  Wd('cardiology',['cardi','o','logy'],3,'The study and medical specialty of the heart.','The ED asks which specialty to page for the cath lab.'),
+  Wd('cardiac',['cardi','ac'],3,'Pertaining to the heart.','Pulseless and apneic. Start the ___ arrest protocol.'),
+
+  Wd('hemiplegia',['hemi','plegia'],4,'Paralysis of one side of the body.','Stroke alert: no movement in the right arm and right leg.'),
+  Wd('paraplegia',['para','plegia'],4,'Paralysis of the lower body and both legs.','Motorcycle crash. No movement or feeling below the waist.'),
+  Wd('quadriplegia',['quadri','plegia'],4,'Paralysis of all four limbs.','Shallow-water diving injury at C5. Cannot move arms or legs.'),
+  Wd('aphasia',['a','phas','ia'],4,'Loss of the ability to speak or understand language.','Stroke patient is awake and alert but cannot produce any words.'),
+  Wd('dysphasia',['dys','phas','ia'],4,'Impaired speech or understanding of language.','The patient can talk, but words come out halting and jumbled.'),
+  Wd('cephalalgia',['cephal','algia'],4,'Headache.','Chief complaint: the worst head pain of her life.'),
+  Wd('encephalitis',['encephal','itis'],4,'Inflammation of the brain.','Fever, confusion and a new seizure. The brain itself is inflamed.'),
+  Wd('neuralgia',['neur','algia'],4,'Nerve pain.','Shooting, electric pain along one side of the face.'),
+
+  Wd('hemorrhage',['hem','o','rrhage'],5,'Heavy bleeding.','Arterial spurting from a thigh laceration. Tourniquet going on.'),
+  Wd('hematemesis',['hemat','emesis'],5,'Vomiting blood.','Patient with liver disease vomiting bright red blood.'),
+  Wd('hematoma',['hemat','oma'],5,'A pooled collection of blood under the skin or in tissue.','Large, swollen purple goose egg on the forehead after a fall.'),
+  Wd('hemothorax',['hem','o','thorax'],5,'Blood in the chest (pleural) cavity.','Stab wound to the chest. Dull sound on percussion over the injured side.'),
+  Wd('pneumothorax',['pneum','o','thorax'],5,'Air in the chest cavity, collapsing the lung.','Tall, thin male with sudden sharp chest pain. Breath sounds absent on the left.'),
+  Wd('hemoptysis',['hem','o','ptysis'],5,'Coughing up blood.','Patient with a TB history is coughing up bright red blood.'),
+  Wd('gastritis',['gastr','itis'],5,'Inflammation of the stomach.','Burning upper belly pain after weeks of heavy ibuprofen use.'),
+  Wd('hepatomegaly',['hepat','o','megaly'],5,'Enlarged liver.','The liver edge can be felt well below the right ribs.'),
+  Wd('dysphagia',['dys','phag','ia'],5,'Difficulty swallowing.','Post-stroke patient chokes on small sips of water.'),
+  Wd('arthralgia',['arthr','algia'],5,'Joint pain.','Aching knees and wrists with no injury.'),
+
+  Wd('intravenous',['intra','ven','ous'],6,'Within a vein (IV).','The medic starts a line in the antecubital vein.'),
+  Wd('intraosseous',['intra','osse','ous'],6,'Within a bone (IO).','No usable veins in the arrest patient. Drill access into the tibia.'),
+  Wd('intramuscular',['intra','muscul','ar'],6,'Within a muscle (IM).','Epinephrine auto-injector pressed into the outer thigh.'),
+  Wd('sublingual',['sub','lingu','al'],6,'Under the tongue (SL).','Nitroglycerin tablet placed under the tongue.'),
+  Wd('endotracheal',['endo','trache','al'],6,'Within the trachea, as in an ET tube.','The paramedic intubates; the tube passes the vocal cords into the windpipe.'),
+  Wd('nasopharyngeal',['nas','o','pharyng','eal'],6,'Pertaining to the nose and throat, as in an NPA.','Semi-conscious patient with a gag reflex. Insert an airway through the nose.'),
+  Wd('oropharyngeal',['or','o','pharyng','eal'],6,'Pertaining to the mouth and throat, as in an OPA.','Unconscious patient with no gag reflex. Insert an airway through the mouth.'),
+];
+const WMAP=Object.fromEntries(WORDS.map(w=>[w.word,w]));
+const COST={drill:5,asm:12}, DRILL_T=4, ASM_T=6, MINE_T=0.4, CRAFT_T=0.7;
+
+/* ================= SPRITES ================= */
+const OUT='#17130f';
+const hexRgb=h=>{h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]};
+const rgbHex=(r,g,b)=>'#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const mix=(h,t,f)=>{const a=hexRgb(h),b=hexRgb(t);return rgbHex(a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f)};
+const lighten=(h,f)=>mix(h,'#ffffff',f), darken=(h,f)=>mix(h,'#000000',f);
+const lum=h=>{const[r,g,b]=hexRgb(h);return(.299*r+.587*g+.114*b)/255};
+const hash=s=>{let h=2166136261;for(const ch of String(s)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0};
+const tc=m=>lum(m.c)<.45?lighten(m.c,.45):m.c;
+
+const GLYPHS={
+ up:["...#...","..###..",".#####.","#######","..###..","..###..","..###.."],
+ down:["..###..","..###..","..###..","#######",".#####.","..###..","...#..."],
+ fast:["#...#..",".#...#.","..#...#",".#...#.","#...#.."],
+ slow:["#####",".#.#.","..#..",".#.#.","#####"],
+ none:["..###..",".#...#.","#...#.#","#..#..#","#.#...#",".#...#.","..###.."],
+ zig:["#...#..",".#.#.#.","..#...#"],
+ around:[".#####.","#.....#","#..#..#","#.....#",".#####."],
+ in:["#######","#.....#","#..#..#","#.....#","#######"],
+ half:["..###..",".##..#.","###...#","###...#","###...#",".##..#.","..###.."],
+ four:["##.##","##.##",".....","##.##","##.##"],
+ under:["#######",".......","...#...","..###..",".#####."],
+ heart:[".##.##.","#######","#######",".#####.","..###..","...#..."],
+ lung:["...#...",".#.#.#.","##.#.##","##...##","##...##",".#...#."],
+ gauge:["..###..",".#...#.","#....##","#...#.#","#..#..#",".#####."],
+ flame:["...#...","..##...","..###..",".####..",".#####.",".##.##.","..###.."],
+ cube:["..###..",".#####.","#######","#.###.#","#..#..#",".#.#.#.","..###.."],
+ ring:["..###..",".#...#.","#.....#","#.....#","#.....#",".#...#.","..###.."],
+ drop:["...#...","..###..",".#####.","#######","#######",".#####.","..###.."],
+ muscle:[".#####.","#.#.#.#","#.#.#.#","#.#.#.#",".#####."],
+ bolt:["...###.","..###..",".###...","######.","..###..",".###...","###...."],
+ brain:[".##.##.","#..#..#","#.##.##","##..#.#","#.#...#",".#####.","...#..."],
+ head:["..###..",".#####.","#######","####.##","#######",".#####.","..#.#.."],
+ bubble:["#######","#.....#","#.#.#.#","#.....#","#######",".##....",".#....."],
+ bean:["..##...",".####..","####...","####...",".#####.","..#####","...###."],
+ wedge:["#######","#######",".######","..#####","....###"],
+ bone:["##.##",".###.","..#..","..#..","..#..",".###.","##.##"],
+ ribs:["...#...","#######","...#...","#######","...#...","#######","...#..."],
+ tube:["#######","..#....","...#...","..#....","#######"],
+ rings:[".###.","#...#",".###.","#...#",".###.","#...#",".###."],
+};
+const FONT={A:[".#.","#.#","###","#.#","#.#"],C:["###","#..","#..","#..","###"],E:["###","#..","##.","#..","###"],G:[".##","#..","#.#","#.#",".##"],H:["#.#","#.#","###","#.#","#.#"],I:["###",".#.",".#.",".#.","###"],K:["#.#","##.","#..","##.","#.#"],L:["#..","#..","#..","#..","###"],M:["#.#","###","###","#.#","#.#"],N:["##.","#.#","#.#","#.#","#.#"],O:[".#.","#.#","#.#","#.#",".#."],P:["##.","#.#","##.","#..","#.."],R:["##.","#.#","##.","#.#","#.#"],S:[".##","#..",".#.","..#","##."],T:["###",".#.",".#.",".#.",".#."],U:["#.#","#.#","#.#","#.#","###"],V:["#.#","#.#","#.#","#.#",".#."],X:["#.#","#.#",".#.","#.#","#.#"],"?":["##.","..#",".#.","...",".#."]};
+const textRows=str=>{const L=[...str].map(c=>FONT[c]||FONT['?']);return[0,1,2,3,4].map(r=>L.map(l=>l[r]).join('.'))};
+
+function Grid(){const g=new Array(256).fill(null);return{g,
+  get(x,y){return x<0||y<0||x>15||y>15?null:g[y*16+x]},
+  set(x,y,c,r){if(x<0||y<0||x>15||y>15)return;g[y*16+x]={c,r}}}}
+function shade(G){const n=G.g.map(p=>p&&{...p});for(let y=0;y<16;y++)for(let x=0;x<16;x++){const p=G.get(x,y);if(!p||p.r==='flat')continue;const d=q=>!q||q.r!==p.r;
+  if(d(G.get(x,y-1))||d(G.get(x-1,y)))n[y*16+x].c=lighten(p.c,.24);else if(d(G.get(x,y+1))||d(G.get(x+1,y)))n[y*16+x].c=darken(p.c,.3)}
+  for(let i=0;i<256;i++)G.g[i]=n[i]}
+function glyph(G,rows,cx,cy,col){const h=rows.length,w=rows[0].length,x0=Math.round(cx-w/2),y0=Math.round(cy-h/2);const pts=[];
+  rows.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch==='#')pts.push([x0+i,y0+j])}));const set=new Set(pts.map(p=>p.join()));const light=lum(col)>.5;
+  for(const[x,y]of pts){const sx=x+1,sy=y+1;if(set.has(sx+','+sy))continue;const q=G.get(sx,sy);if(q&&q.r!=='glyph')G.set(sx,sy,light?darken(q.c,.4):lighten(q.c,.3),q.r)}
+  for(const[x,y]of pts)G.set(x,y,col,'glyph')}
+function outline(G){const n=G.g.slice();for(let y=0;y<16;y++)for(let x=0;x<16;x++){if(G.get(x,y))continue;if(G.get(x-1,y)||G.get(x+1,y)||G.get(x,y-1)||G.get(x,y+1))n[y*16+x]={c:OUT,r:'out'}}for(let i=0;i<256;i++)G.g[i]=n[i]}
+function toCanvas(G){const c=document.createElement('canvas');c.width=c.height=16;const x=c.getContext('2d');G.g.forEach((p,i)=>{if(p){x.fillStyle=p.c;x.fillRect(i%16,(i/16)|0,1,1)}});return c}
+const each=f=>{for(let y=0;y<16;y++)for(let x=0;x<16;x++)f(x,y)};
+function gear(G,col){each((x,y)=>{const dx=x-7.5,dy=y-7.5,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
+  if(d<=4.4)G.set(x,y,col,'disc');else if(d<=5.7)G.set(x,y,'#8e9297','steel');else if(d<=7.1&&Math.cos(8*a)>.15)G.set(x,y,'#8e9297','steel')})}
+function chunk(G,col,id){const s=hash(id),s1=(s%628)/100,s2=((s>>9)%628)/100;each((x,y)=>{const dx=x-7.5,dy=y-7.5,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
+  const r=Math.min(6.9,5.7+.9*Math.sin(3*a+s1)+.55*Math.sin(5*a+s2));if(d<=r){const hv=hash(id+':'+x+','+y);let c=col;if(hv%9===0)c=lighten(col,.35);else if(hv%11===0)c=darken(col,.22);G.set(x,y,c,'ore')}})}
+function vial(G,liq){for(let x=6;x<=9;x++)G.set(x,1,'#8a5a34','cork');for(let y=2;y<=5;y++)for(let x=6;x<=9;x++)G.set(x,y,'#b9d3d6','glass');
+  for(let y=6;y<=14;y++)for(let x=3;x<=12;x++){if((x===3||x===12)&&(y===6||y===14))continue;const L=y>=8;G.set(x,y,L?liq:'#b9d3d6',L?'liq':'glass')}}
+function ringShape(G,col){each((x,y)=>{const d=Math.hypot(x-7.5,y-7.5);if(d>=2.4&&d<=6.3)G.set(x,y,col,'ring')})}
+
+const SPR={};
+function morphSprite(m){const G=Grid();
+  if(m.t==='P')gear(G,m.c);else if(m.t==='R')chunk(G,m.c,m.id);else if(m.t==='S')vial(G,m.c);else ringShape(G,m.c);
+  shade(G);
+  let rows=null,cx=7.5,cy=7.5;
+  if(m.t==='S'){rows=textRows(SUF_LBL[m.id]);cx=8;cy=11.5}else if(m.t!=='V')rows=GLYPHS[m.g]||textRows(m.g);
+  if(rows)glyph(G,rows,cx,cy,lum(m.c)>.6?'#1c1712':'#f6eedf');
+  outline(G);return toCanvas(G)}
+function wordSprite(w,ghost){const G=Grid();const board=ghost?'#46423e':'#36553f';
+  for(let y=2;y<=13;y++)for(let x=1;x<=14;x++){if((x===1||x===14)&&(y===2||y===13))continue;G.set(x,y,board,'board')}
+  for(let x=2;x<=13;x+=2)G.set(x,14,ghost?'#6a645d':'#d6ab3c','pin');
+  shade(G);
+  if(ghost){glyph(G,textRows('??'),7.5,8.5,'#7d766d')}
+  else{const n=w.parts.length,st=Math.round(8-(n*3-1)/2);w.parts.forEach((p,i)=>{G.set(st+i*3,4,M[p].c,'flat');G.set(st+i*3+1,4,M[p].c,'flat')});
+    const root=M[w.parts.find(p=>M[p].t==='R')];const rows=GLYPHS[root.g]||textRows(root.g);glyph(G,rows,7.5,9.5,lighten(root.c,.12))}
+  outline(G);return toCanvas(G)}
+function spr(key){if(SPR[key])return SPR[key];let cv;
+  if(key==='rp'){const G=Grid();vial(G,'#d23b3b');shade(G);outline(G);cv=toCanvas(G)}
+  else if(key==='ghost')cv=wordSprite(null,true);
+  else if(key.startsWith('w:'))cv=wordSprite(WMAP[key.slice(2)],false);
+  else cv=morphSprite(M[key]);
+  return SPR[key]={cv,url:cv.toDataURL()}}
+
+/* ================= STATE ================= */
+const SAVE='morpheme-works-v1';
+function fresh(){const inv={};MORPHS.filter(m=>m.tier===1).forEach(m=>inv[m.id]=2);
+  return{v:1,rp:0,tier:1,inv,terms:{},disc:{},drills:[],asms:[],calls:[],seq:101,nid:1,done:0,last:null}}
+let S=fresh();
+let slots=[null,null,null,null], mining=null, crafting=null, selId=null, anims=[], floats=[], time=0, modalCall=null;
+const dirty={inv:true,terms:true,calls:true,research:true,codex:true,ore:true,top:true,machine:true};
+const $=id=>document.getElementById(id);
+const disp=m=>m.t==='P'?m.id+'-':m.t==='S'?'-'+m.id:m.t==='V'?'-o-':m.id;
+const eq=(a,b)=>a.length===b.length&&a.every((x,i)=>x===b[i]);
+const unlockedM=()=>MORPHS.filter(m=>m.tier<=S.tier);
+const unlockedW=()=>WORDS.filter(w=>w.tier<=S.tier);
+function spellParts(seq){const out=[];let acc='';for(const p of seq){let piece=p;if((acc.endsWith('i')&&p.startsWith('i'))||(acc.endsWith('o')&&p.startsWith('o')))piece=p.slice(1);acc+=piece;out.push([p,piece])}return out}
+const colored=seq=>spellParts(seq).map(([p,piece])=>`<span style="color:${tc(M[p])}">${piece}</span>`).join('');
+
+function save(){try{localStorage.setItem(SAVE,JSON.stringify(S))}catch(e){}}
+function load(){try{const raw=localStorage.getItem(SAVE);if(!raw)return false;const d=JSON.parse(raw);if(!d||d.v!==1)return false;S=Object.assign(fresh(),d);return true}catch(e){return false}}
+
+/* ================= LOG ================= */
+function log(html,kind=''){const el=$('log');const p=document.createElement('p');if(kind)p.className=kind;
+  const t=new Date();p.innerHTML=`<time>${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</time>${html}`;
+  el.prepend(p);while(el.children.length>60)el.lastChild.remove()}
+function msg(text,kind=''){const m=$('craftMsg');m.textContent=text;m.className='msg '+kind}
+
+/* ================= CALLS ================= */
+function newCall(forced){const active=new Set(S.calls.map(c=>c.word));let w=forced?WMAP[forced]:null;
+  if(!w){const pool=unlockedW().filter(x=>!active.has(x.word));if(!pool.length)return null;
+    const wt=x=>(S.disc[x.word]?1:3)*(x.tier===S.tier?2:1);const tot=pool.reduce((s,x)=>s+wt(x),0);let r=Math.random()*tot;w=pool[pool.length-1];
+    for(const x of pool){r-=wt(x);if(r<=0){w=x;break}}}
+  const qty=S.disc[w.word]?1+Math.floor(Math.random()*Math.min(3,S.tier)):1;
+  return{id:S.seq++,word:w.word,qty,hint:0,wrong:0}}
+function refill(){while(S.calls.length<3){const c=newCall();if(!c)break;S.calls.push(c)}dirty.calls=true}
+const rewardOf=c=>Math.max(1,4*c.qty+(S.disc[c.word]?0:2)-(c.hint>=1?1:0)-(c.hint>=2?2:0)-c.wrong);
+
+function renderCalls(){const el=$('calls');el.innerHTML='';
+  for(const c of S.calls){const w=WMAP[c.word];const card=document.createElement('div');card.className='call deep';
+    const known=c.hint>=2;
+    card.innerHTML=`<div class="chead"><span>Call ${c.id} · ${TIERS[w.tier-1].name}</span><span class="rw">+${rewardOf(c)} <img alt="research packs" src="${spr('rp').url}"></span></div>
+      <p class="clue">${w.clue}</p>
+      <div class="ask"><span>Needs <b>${c.qty}×</b> ${known?`<b>${w.word}</b>`:`unknown term · ${w.parts.length} parts`}</span>
+      ${c.hint>=1?`<span class="hintline">${w.def} Parts mean: ${w.parts.map(p=>M[p].m.split(';')[0].split(',')[0]).join(' + ')}</span>`:''}</div>
+      <div class="row"></div>`;
+    const row=card.querySelector('.row');
+    const hb=btn(c.hint>=1?'Hint shown':'Hint −1','small',()=>{c.hint=Math.max(c.hint,1);dirty.calls=true});hb.disabled=c.hint>=1;
+    const rb=btn(known?'Term shown':'Show term −2','small',()=>{c.hint=2;dirty.calls=true});rb.disabled=known;
+    const db=btn('Deliver','go small',()=>openDeliver(c));
+    row.append(db,hb,rb);el.append(card)}}
+function btn(text,cls,fn){const b=document.createElement('button');b.type='button';b.className='btn '+cls;b.textContent=text;b.onclick=fn;return b}
+
+function openDeliver(c){modalCall=c;const w=WMAP[c.word];$('mTitle').textContent=`Deliver to call ${c.id}`;
+  $('mInfo').textContent=`${w.clue} Pick the term to send. This call needs ${c.qty}.`;
+  const list=$('mList');list.innerHTML='';const have=WORDS.filter(x=>(S.terms[x.word]||0)>0);
+  if(!have.length)list.innerHTML='<div class="none">No finished terms yet. Craft one in the crafter first.</div>';
+  for(const x of have){const b=document.createElement('button');b.type='button';b.className='cell';b.title=x.def;
+    b.innerHTML=`<span class="slot"><img alt="" src="${spr('w:'+x.word).url}"><span class="count">${S.terms[x.word]}</span></span><span class="lbl">${x.word}</span>`;
+    b.onclick=()=>deliver(c,x.word);list.append(b)}
+  $('modal').hidden=false;($('mList').querySelector('button')||$('mClose')).focus()}
+function closeModal(){$('modal').hidden=true;modalCall=null}
+function deliver(c,word){const w=WMAP[c.word];
+  if(word!==c.word){c.wrong++;const x=WMAP[word];log(`<b>${word}</b> means "${x.def}" That does not fit call ${c.id}. Reward −1.`,'bad');closeModal();dirty.calls=true;return}
+  const have=S.terms[word]||0;if(have<c.qty){$('mInfo').textContent=`Right term. This call needs ${c.qty} and you have ${have}. Craft more or build an assembler.`;return}
+  const r=rewardOf(c);S.terms[word]-=c.qty;S.rp+=r;S.done++;S.calls=S.calls.filter(k=>k!==c);
+  log(`Call ${c.id} cleared with <b>${word}</b> (${w.parts.map(p=>disp(M[p])).join(' + ')}). +${r} research packs.`,'good');
+  closeModal();refill();dirty.terms=dirty.top=dirty.research=dirty.calls=true}
+
+/* ================= CRAFTING ================= */
+const avail=id=>(S.inv[id]||0)-slots.filter(s=>s===id).length;
+function addSlot(id){const i=slots.indexOf(null);
+  if(i<0){msg('The crafter holds 4 parts. Click a loaded part to remove it.','bad');return}
+  if(avail(id)<=0){msg(`Out of ${disp(M[id])}. Hold its deposit in the ore field to mine more.`,'bad');return}
+  slots[i]=id;msg('');dirty.inv=true;renderSlots()}
+function canAfford(seq){const need={};seq.forEach(p=>need[p]=(need[p]||0)+1);return Object.keys(need).every(p=>(S.inv[p]||0)>=need[p])}
+function diagnose(seq){const key=s=>[...s].sort().join('|');const ws=unlockedW();
+  for(let i=1;i<=seq.length;i++){const t=[...seq.slice(0,i),'o',...seq.slice(i)];const hit=ws.find(w=>eq(w.parts,t));if(hit&&S.tier>=3)return`Close. This term needs the combining vowel -o- between two parts.`}
+  if(ws.some(w=>key(w.parts)===key(seq)))return'Right parts, wrong order. Terms read prefix → root → suffix.';
+  if(M[seq[0]].t==='S')return'A suffix goes at the end of a term, not the start.';
+  const sup=ws.filter(w=>w.parts.length>seq.length&&seq.every(p=>w.parts.includes(p)));
+  if(sup.length)return`Missing a part. ${sup.length===1?'One term uses':sup.length+' terms use'} these parts plus more.`;
+  return`No term is spelled ${spellParts(seq).map(x=>x[1]).join('')}. Try another root or suffix.`}
+function craft(){if(crafting)return;const seq=slots.filter(Boolean);
+  if(!seq.length){msg('Load word parts from your inventory first.','bad');return}
+  const w=unlockedW().find(x=>eq(x.parts,seq));
+  if(!w){msg(diagnose(seq),'bad');return}
+  if(!canAfford(seq)){msg('Not enough parts in inventory for another one.','bad');return}
+  seq.forEach(p=>S.inv[p]--);crafting={w,t:0};msg(`Crafting ${w.word}…`);dirty.inv=true;renderSlots()}
+function finishCraft(){const w=crafting.w;crafting=null;$('craftProg').style.width='0';
+  S.terms[w.word]=(S.terms[w.word]||0)+1;const first=!S.disc[w.word];S.disc[w.word]=true;S.last=w.word;
+  if(first){log(`New term: <b>${w.word}</b>. ${w.def}`,'new');msg(`Discovered ${w.word}!`,'good');dirty.codex=dirty.machine=true}
+  else msg(`Crafted ${w.word}.`,'good');
+  renderDiscovery();renderSlots();dirty.terms=dirty.top=dirty.calls=true}
+
+function renderSlots(){const el=$('slots');el.innerHTML='';
+  slots.forEach((id,i)=>{if(i){const p=document.createElement('span');p.className='plus';p.textContent='+';el.append(p)}
+    const b=document.createElement('button');b.type='button';b.className='slot'+(id?'':' vacant');b.dataset.n=i+1;
+    if(id){b.innerHTML=`<img alt="${disp(M[id])}" src="${spr(id).url}">`;b.title=`Remove ${disp(M[id])}`;b.setAttribute('aria-label',`Remove ${disp(M[id])}`)}
+    else{b.tabIndex=-1;b.setAttribute('aria-label',`Empty slot ${i+1}`)}
+    b.onclick=()=>{if(!slots[i])return;slots.splice(i,1);slots.push(null);dirty.inv=true;renderSlots()};el.append(b)});
+  const seq=slots.filter(Boolean);
+  $('spell').innerHTML=seq.length?colored(seq):'<span class="ph">Load parts in order: prefix, root, suffix.</span>';
+  $('craftBtn').disabled=!!crafting||!seq.length||!canAfford(seq)}
+
+function renderDiscovery(){const el=$('discovery');const w=WMAP[S.last];
+  if(!w){el.innerHTML=`<p class="hint">Each term you craft is broken down here. Start with the first dispatch call: a slow heart rate. Try <b>brady-</b> + <b>cardi</b> + <b>-ia</b>.</p>`;return}
+  el.innerHTML=`<div class="dhead"><img alt="" src="${spr('w:'+w.word).url}"><div><div class="dword">${colored(w.parts)}</div><div class="ddef">${w.def}</div></div></div>
+   <div class="dparts">${w.parts.map(p=>`<span class="dpart"><img alt="" src="${spr(p).url}"><b style="color:${tc(M[p])}">${disp(M[p])}</b><i>${M[p].m}</i></span>`).join('<span class="dplus">+</span>')}</div>`}
+
+/* ================= INVENTORY / ORE ================= */
+function renderInv(){const el=$('inv');el.innerHTML='';
+  for(const m of unlockedM()){const a=Math.max(0,avail(m.id));const b=document.createElement('button');b.type='button';b.className='cell'+(a<=0?' empty':'');
+    b.title=`${disp(m)} = ${m.m}. Click to load into the crafter.`;
+    b.innerHTML=`<span class="slot"><img alt="" src="${spr(m.id).url}"><span class="count">${a}</span></span><span class="lbl">${disp(m)}</span>`;
+    b.onclick=()=>addSlot(m.id);el.append(b)}}
+function renderTerms(){const el=$('terms');el.innerHTML='';const ws=WORDS.filter(w=>S.disc[w.word]);
+  if(!ws.length){el.innerHTML='<div class="none">Crafted terms land here.</div>';return}
+  for(const w of ws){const n=S.terms[w.word]||0;const b=document.createElement('button');b.type='button';b.className='cell'+(n<=0?' empty':'');b.title=`${w.word}: ${w.def}`;
+    b.innerHTML=`<span class="slot"><img alt="" src="${spr('w:'+w.word).url}"><span class="count">${n}</span></span><span class="lbl">${w.word}</span>`;
+    b.onclick=()=>{S.last=w.word;renderDiscovery()};el.append(b)}}
+let OREF={};
+function renderOre(){const el=$('ore');el.innerHTML='';OREF={};
+  for(const[t,name]of[['P','Prefixes'],['R','Root words'],['S','Suffixes'],['V','Combining vowel']]){const ms=unlockedM().filter(m=>m.t===t);if(!ms.length)continue;
+    const h=document.createElement('h3');h.textContent=name;el.append(h);const g=document.createElement('div');g.className='oregrid';
+    for(const m of ms){const b=document.createElement('button');b.type='button';b.className='ore';b.style.setProperty('--c',m.c);b.title=`${disp(m)} = ${m.m}. Hold to mine.`;
+      b.innerHTML=`<span class="slot"><img alt="" src="${spr(m.id).url}"></span><span class="otext"><b>${disp(m)}</b><i>${m.m}</i></span><span class="oext"></span><span class="obar"><span></span></span>`;
+      b.addEventListener('pointerdown',e=>{if(e.button!==0)return;try{b.setPointerCapture(e.pointerId)}catch(_){}startMine(m.id)});
+      ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,stopMine));
+      b.addEventListener('click',e=>{if(e.detail===0){S.inv[m.id]=(S.inv[m.id]||0)+1;dirty.inv=dirty.top=true}});
+      b.addEventListener('contextmenu',e=>e.preventDefault());
+      g.append(b);OREF[m.id]={b,bar:b.querySelector('.obar span'),ext:b.querySelector('.oext')}}
+    el.append(g)}
+  updateOreExt()}
+function updateOreExt(){const c={};S.drills.forEach(d=>c[d.item]=(c[d.item]||0)+1);for(const id in OREF){OREF[id].ext.textContent=c[id]?`EXT×${c[id]}`:''}}
+function startMine(id){stopMine();mining={id,t:0};OREF[id]?.b.classList.add('mining')}
+function stopMine(){if(!mining)return;const r=OREF[mining.id];if(r){r.b.classList.remove('mining');r.bar.style.width='0'}mining=null}
+
+/* ================= RESEARCH / CODEX / TOP ================= */
+function renderResearch(){const el=$('research');el.innerHTML='';
+  TIERS.forEach((t,i)=>{const n=i+1;if(n===1)return;const d=document.createElement('div');d.className='tier deep'+(S.tier>=n?' done':'');
+    const ms=MORPHS.filter(m=>m.tier===n);
+    d.innerHTML=`<div class="tname"><small>TIER ${n}</small>${t.name}</div><div></div><div class="tchips">${ms.map(m=>`<img alt="${disp(m)}" title="${disp(m)} = ${m.m}" src="${spr(m.id).url}">`).join('')}</div>`;
+    const slot=d.children[1];
+    if(S.tier>=n){slot.innerHTML='<span class="mstat">Researched</span>'}
+    else{const b=btn(`Research · ${t.cost}`,'small',()=>research(n));b.insertAdjacentHTML('beforeend',` <img alt="" src="${spr('rp').url}">`);
+      b.disabled=S.tier!==n-1||S.rp<t.cost;if(S.tier<n-1)b.title=`Requires tier ${n-1}`;slot.append(b)}
+    el.append(d)})}
+function research(n){const t=TIERS[n-1];if(S.tier!==n-1||S.rp<t.cost)return;S.rp-=t.cost;S.tier=n;
+  MORPHS.filter(m=>m.tier===n).forEach(m=>S.inv[m.id]=(S.inv[m.id]||0)+2);
+  log(`Research complete: <b>${t.name}</b>. New deposits opened in the ore field.`,'new');
+  Object.keys(dirty).forEach(k=>dirty[k]=true)}
+function renderCodex(){const el=$('codex');el.innerHTML='';
+  for(let n=1;n<=TIERS.length;n++){const ws=WORDS.filter(w=>w.tier===n);const h=document.createElement('h3');
+    const found=ws.filter(w=>S.disc[w.word]).length;h.textContent=`Tier ${n} · ${TIERS[n-1].name} · ${found}/${ws.length}`;el.append(h);
+    if(n>S.tier){const p=document.createElement('p');p.className='locked';p.textContent=`Locked. Research ${TIERS[n-1].name} to add ${ws.length} terms.`;el.append(p);continue}
+    const g=document.createElement('div');g.className='cgrid';
+    for(const w of ws){const k=!!S.disc[w.word];const b=document.createElement('button');b.type='button';b.className='wcard'+(k?' known':'');
+      b.innerHTML=k?`<img alt="" src="${spr('w:'+w.word).url}"><b>${w.word}</b><span class="pp">${w.parts.map(p=>`<span style="color:${tc(M[p])}">${disp(M[p])}</span>`).join(' + ')}</span><span class="def">${w.def}</span>`
+        :`<img alt="" src="${spr('ghost').url}"><b>Undiscovered</b><span class="pp" style="color:var(--muted)">${w.parts.map(p=>({P:'prefix',R:'root',S:'suffix',V:'-o-'})[M[p].t]).join(' + ')}</span><span class="def">${w.def}</span>`;
+      if(k){b.title='Load this recipe into the crafter';b.onclick=()=>{slots=[...w.parts,null,null,null,null].slice(0,4);msg(`Loaded ${w.word}.`);dirty.inv=true;renderSlots();$('craftBtn').scrollIntoView({block:'nearest',behavior:'smooth'})}}
+      else b.tabIndex=-1;
+      g.append(b)}
+    el.append(g)}
+  $('codexProg').style.width=(100*Object.keys(S.disc).length/WORDS.length)+'%'}
+function renderTop(){$('rp').textContent=S.rp;$('discN').textContent=Object.keys(S.disc).length;$('discT').textContent=WORDS.length;$('callsDone').textContent=S.done;
+  $('buildDrill').disabled=S.rp<COST.drill;const anyDisc=Object.keys(S.disc).length>0;$('buildAsm').disabled=S.rp<COST.asm||!anyDisc;
+  $('buildAsm').title=anyDisc?'':'Craft a term by hand first so the assembler knows a recipe.';
+  document.querySelectorAll('.call .rw').forEach(()=>{})}
+
+/* ================= FACTORY ================= */
+const TILE=36;const cv=$('floor'),ctx=cv.getContext('2d');let LAY=null,cssW=0;
+function layout(){const W=cssW||600;const cols=Math.max(8,Math.floor(W/TILE));const per=Math.max(1,Math.floor((cols-3)/2));
+  const dr=Math.max(1,Math.ceil(S.drills.length/per)),ar=Math.max(1,Math.ceil(S.asms.length/per));const bus=dr,ret=dr+1,rows=dr+2+ar,chestX=cols-2;
+  const drills=S.drills.map((m,i)=>({m,x:2*(i%per),y:dr-1-Math.floor(i/per)}));
+  const asms=S.asms.map((m,i)=>({m,x:2*(i%per),y:ret+1+Math.floor(i/per)}));
+  const up={},down={};drills.forEach(d=>{up[d.x+1]=Math.min(up[d.x+1]??99,d.y)});asms.forEach(a=>{down[a.x+1]=Math.max(down[a.x+1]??-1,a.y)});
+  const ox=Math.floor((W-cols*TILE)/2);
+  return{W,cols,per,dr,ar,bus,ret,rows,chestX,drills,asms,up,down,ox,H:rows*TILE}}
+function resize(){const r=$('floorWrap').getBoundingClientRect();cssW=Math.floor(r.width)}
+new ResizeObserver(resize).observe($('floorWrap'));
+
+const C={ground1:'#2b2723',ground2:'#28241f',belt:'#3d3935',rail:'#211e1b',chev:'#c99a2e',drill:'#6e5c47',asm:'#536170',chest:'#7a5530'};
+function block(px,py,w,h,base){ctx.fillStyle=OUT;ctx.fillRect(px+1,py+1,w-2,h-2);ctx.fillStyle=base;ctx.fillRect(px+2,py+2,w-4,h-4);
+  ctx.fillStyle=lighten(base,.2);ctx.fillRect(px+2,py+2,w-4,2);ctx.fillRect(px+2,py+2,2,h-4);ctx.fillStyle=darken(base,.4);ctx.fillRect(px+2,py+h-4,w-4,2);ctx.fillRect(px+w-4,py+2,2,h-4)}
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function belt(x,y,dir){const L=LAY,px=L.ox+x*TILE,py=y*TILE;ctx.fillStyle=C.belt;ctx.fillRect(px,py,TILE,TILE);ctx.fillStyle=C.rail;
+  if(dir==='D'){ctx.fillRect(px+5,py,3,TILE);ctx.fillRect(px+TILE-8,py,3,TILE)}else{ctx.fillRect(px,py+5,TILE,3);ctx.fillRect(px,py+TILE-8,TILE,3)}
+  ctx.save();ctx.beginPath();ctx.rect(px,py,TILE,TILE);ctx.clip();ctx.strokeStyle=C.chev;ctx.lineWidth=2;const off=reduced?0:(time*22)%(TILE/2);const m=TILE/2;
+  for(let k=-1;k<2;k++){const o=k*TILE/2+off;ctx.beginPath();
+    if(dir==='R'){const cx=px+o+TILE/4;ctx.moveTo(cx-3,py+12);ctx.lineTo(cx+3,py+m);ctx.lineTo(cx-3,py+TILE-12)}
+    else if(dir==='L'){const cx=px+TILE-o-TILE/4;ctx.moveTo(cx+3,py+12);ctx.lineTo(cx-3,py+m);ctx.lineTo(cx+3,py+TILE-12)}
+    else{const cy=py+o+TILE/4;ctx.moveTo(px+12,cy-3);ctx.lineTo(px+m,cy+3);ctx.lineTo(px+TILE-12,cy-3)}
+    ctx.stroke()}ctx.restore()}
+function icon(key,x,y,s=16){ctx.drawImage(spr(key).cv,x,y,s,s)}
+function gearPath(cx,cy,ro,ri,n,rot){ctx.beginPath();const w=Math.PI/n*.55;for(let i=0;i<n;i++){const a=rot+i*2*Math.PI/n;
+  const pts=[[ri,a-w*1.25],[ro,a-w*.7],[ro,a+w*.7],[ri,a+w*1.25]];pts.forEach(([r,t],j)=>{const X=cx+Math.cos(t)*r,Y=cy+Math.sin(t)*r;i===0&&j===0?ctx.moveTo(X,Y):ctx.lineTo(X,Y)})}ctx.closePath()}
+function drawDrill(d){const L=LAY,px=L.ox+d.x*TILE,py=d.y*TILE,m=d.m;block(px,py,TILE,TILE,C.drill);
+  ctx.fillStyle='#2a2420';ctx.beginPath();ctx.arc(px+TILE/2,py+TILE/2,10,0,7);ctx.fill();
+  const a=reduced?0:time*5;ctx.strokeStyle='#bdb6aa';ctx.lineWidth=3;ctx.beginPath();for(let k=0;k<3;k++){const t=a+k*2.094;ctx.moveTo(px+TILE/2,py+TILE/2);ctx.lineTo(px+TILE/2+Math.cos(t)*8,py+TILE/2+Math.sin(t)*8)}ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(px+3,py+3,17,17);icon(m.item,px+3,py+3);
+  ctx.fillStyle='#141210';ctx.fillRect(px+5,py+TILE-8,TILE-10,3);ctx.fillStyle='#e8a03a';ctx.fillRect(px+5,py+TILE-8,(TILE-10)*Math.min(1,(m.t||0)/DRILL_T),3);
+  if(m.id===selId){ctx.strokeStyle='#e8a03a';ctx.lineWidth=2;ctx.strokeRect(px+1,py+1,TILE-2,TILE-2)}}
+function drawAsm(a){const L=LAY,px=L.ox+a.x*TILE,py=a.y*TILE,m=a.m;block(px,py,TILE,TILE,C.asm);
+  gearPath(px+TILE/2,py+TILE/2+1,12,9,8,m.busy&&!reduced?time*2:0);ctx.fillStyle='#a8a094';ctx.fill();ctx.fillStyle='#3b3530';ctx.beginPath();ctx.arc(px+TILE/2,py+TILE/2+1,6,0,7);ctx.fill();
+  if(m.word){ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(px+3,py+3,17,17);icon('w:'+m.word,px+3,py+3)}
+  ctx.fillStyle='#141210';ctx.fillRect(px+5,py+TILE-8,TILE-10,3);ctx.fillStyle='#6dae45';ctx.fillRect(px+5,py+TILE-8,(TILE-10)*(m.busy?Math.min(1,m.t/ASM_T):0),3);
+  if(!m.busy&&(!m.word||m.missing)&&Math.floor(time*2)%2===0){const x=px+TILE-14,y=py+4;ctx.fillStyle='#e0624d';ctx.beginPath();ctx.moveTo(x+5,y);ctx.lineTo(x+10,y+9);ctx.lineTo(x,y+9);ctx.closePath();ctx.fill();ctx.fillStyle='#1b0d08';ctx.fillRect(x+4,y+3,2,3);ctx.fillRect(x+4,y+7,2,1)}
+  if(m.id===selId){ctx.strokeStyle='#e8a03a';ctx.lineWidth=2;ctx.strokeRect(px+1,py+1,TILE-2,TILE-2)}}
+function ghost(x,y,label){const px=LAY.ox+x*TILE,py=y*TILE;ctx.setLineDash([4,3]);ctx.strokeStyle='#625b53';ctx.lineWidth=1.5;ctx.strokeRect(px+3.5,py+3.5,TILE-7,TILE-7);ctx.setLineDash([]);
+  ctx.fillStyle='#7d766d';ctx.font='400 9px Silkscreen, monospace';ctx.textBaseline='middle';ctx.fillText(label,px+TILE+4,py+TILE/2)}
+function draw(){if(!cssW)return;const L=LAY=layout();const dpr=window.devicePixelRatio||1;
+  if(cv.width!==Math.round(L.W*dpr)||cv.height!==Math.round(L.H*dpr)){cv.width=Math.round(L.W*dpr);cv.height=Math.round(L.H*dpr);cv.style.height=L.H+'px'}
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.imageSmoothingEnabled=false;
+  ctx.fillStyle=C.ground2;ctx.fillRect(0,0,L.W,L.H);
+  for(let y=0;y<L.rows;y++)for(let x=0;x<L.cols;x++){ctx.fillStyle=(hash(x*31+y*17)%3===0)?C.ground1:C.ground2;ctx.fillRect(L.ox+x*TILE,y*TILE,TILE,TILE)}
+  for(let x=0;x<L.chestX;x++){belt(x,L.bus,'R');belt(x,L.ret,'L')}
+  for(const lx in L.up)for(let y=L.up[lx];y<L.bus;y++)belt(+lx,y,'D');
+  for(const lx in L.down)for(let y=L.ret+1;y<=L.down[lx];y++)belt(+lx,y,'D');
+  // chest
+  const cx=L.ox+L.chestX*TILE,cy=L.bus*TILE;block(cx,cy,TILE*2,TILE*2,C.chest);ctx.fillStyle=darken(C.chest,.3);for(let k=12;k<TILE*2-6;k+=10)ctx.fillRect(cx+4,cy+k,TILE*2-8,1);
+  ctx.fillStyle='#3e3c3a';ctx.fillRect(cx+14,cy+3,4,TILE*2-6);ctx.fillRect(cx+TILE*2-18,cy+3,4,TILE*2-6);
+  ctx.fillStyle='#f3e6cc';ctx.font='400 9px Silkscreen, monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+  const tot=Object.values(S.inv).reduce((s,v)=>s+v,0);ctx.fillText('STORAGE',cx+TILE,cy+TILE-6);ctx.font='700 13px "Titillium Web", sans-serif';ctx.fillText(String(tot),cx+TILE,cy+TILE+8);ctx.textAlign='left';
+  if(!L.drills.length)ghost(0,L.dr-1,'BUILD AN EXTRACTOR');if(!L.asms.length)ghost(0,L.ret+1,'BUILD AN ASSEMBLER');
+  L.drills.forEach(drawDrill);L.asms.forEach(drawAsm);
+  for(const a of anims){const p=pathPos(a);ctx.drawImage(spr(a.key).cv,L.ox+p[0]-7,p[1]-7,14,14)}
+  ctx.font='700 13px "Titillium Web", sans-serif';ctx.textAlign='center';
+  for(const f of floats){const al=Math.max(0,1-f.t/1.2);ctx.globalAlpha=al;const y=f.y-f.t*18;ctx.fillStyle='#000';ctx.fillText(f.text,L.ox+f.x+1,y+1);ctx.fillStyle=f.col;ctx.fillText(f.text,L.ox+f.x,y)}
+  ctx.globalAlpha=1;ctx.textAlign='left'}
+function pathPos(a){let d=a.t*a.speed;for(let i=1;i<a.pts.length;i++){const[x0,y0]=a.pts[i-1],[x1,y1]=a.pts[i];const sl=Math.hypot(x1-x0,y1-y0);if(d<=sl){const f=sl?d/sl:0;return[x0+(x1-x0)*f,y0+(y1-y0)*f]}d-=sl}return a.pts[a.pts.length-1]}
+function spawnPath(key,ptsTiles,delay=0){const pts=ptsTiles.map(([x,y])=>[x*TILE,y*TILE]);let len=0;for(let i=1;i<pts.length;i++)len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);anims.push({key,pts,len,t:-delay,speed:110})}
+
+function findMachine(id){return S.drills.find(d=>d.id===id)||S.asms.find(a=>a.id===id)}
+cv.addEventListener('click',e=>{if(!LAY)return;const r=cv.getBoundingClientRect();const x=Math.floor((e.clientX-r.left-LAY.ox)/TILE),y=Math.floor((e.clientY-r.top)/TILE);
+  const hit=LAY.drills.find(d=>d.x===x&&d.y===y)||LAY.asms.find(a=>a.x===x&&a.y===y);selId=hit?hit.m.id:null;dirty.machine=true});
+$('buildDrill').onclick=()=>{if(S.rp<COST.drill)return;S.rp-=COST.drill;const first=unlockedM().find(m=>(S.inv[m.id]||0)===Math.min(...unlockedM().map(k=>S.inv[k.id]||0)))||unlockedM()[0];
+  const d={id:S.nid++,item:first.id,t:0};S.drills.push(d);selId=d.id;log(`Extractor built on the <b>${disp(first)}</b> deposit. Change its deposit below the floor.`);dirty.top=dirty.machine=dirty.research=true;updateOreExt()};
+$('buildAsm').onclick=()=>{const known=WORDS.filter(w=>S.disc[w.word]);if(S.rp<COST.asm||!known.length)return;S.rp-=COST.asm;
+  const a={id:S.nid++,word:known[known.length-1].word,t:0,busy:false,missing:null};S.asms.push(a);selId=a.id;log(`Assembler built, set to <b>${a.word}</b>.`);dirty.top=dirty.machine=dirty.research=true};
+
+let mStatus=null;
+function renderMachine(){const box=$('machineBox');const m=findMachine(selId);mStatus=null;
+  if(!m){box.innerHTML='<p class="hint">Click a machine on the floor to configure it. Extractors mine one part every 4 seconds. Assemblers craft one term every 6 seconds from parts in storage.</p>';return}
+  const isD=!!m.item;box.innerHTML='';
+  const name=document.createElement('span');name.className='mname';name.textContent=isD?`Extractor #${m.id}`:`Assembler #${m.id}`;
+  const lab=document.createElement('label');lab.textContent=isD?'Deposit':'Recipe';const sel=document.createElement('select');sel.id='msel';
+  if(isD){for(const[t,n]of[['P','Prefixes'],['R','Roots'],['S','Suffixes'],['V','Vowel']]){const ms=unlockedM().filter(k=>k.t===t);if(!ms.length)continue;const og=document.createElement('optgroup');og.label=n;
+      ms.forEach(k=>{const o=new Option(`${disp(k)}  (${k.m})`,k.id);og.append(o)});sel.append(og)}sel.value=m.item}
+  else{WORDS.filter(w=>S.disc[w.word]).forEach(w=>sel.append(new Option(`${w.word}  = ${w.parts.join(' + ')}`,w.word)));sel.value=m.word}
+  sel.onchange=()=>{if(isD){m.item=sel.value;m.t=0;updateOreExt()}else{m.word=sel.value;m.busy=false;m.t=0}};lab.append(sel);
+  const st=document.createElement('span');st.className='mstat';mStatus={el:st,m};
+  const rm=btn(`Remove · refund ${Math.floor((isD?COST.drill:COST.asm)/2)}`,'small',()=>{const refund=Math.floor((isD?COST.drill:COST.asm)/2);S.rp+=refund;
+    if(isD)S.drills=S.drills.filter(x=>x!==m);else S.asms=S.asms.filter(x=>x!==m);selId=null;log(`${isD?'Extractor':'Assembler'} removed. +${refund} research packs.`);dirty.top=dirty.machine=dirty.research=true;updateOreExt()});
+  box.append(name,lab,st,rm);updateMStatus()}
+function updateMStatus(){if(!mStatus)return;const{el,m}=mStatus;
+  if(m.item){el.className='mstat';el.textContent=`Mining ${disp(M[m.item])} · ${(S.inv[m.item]||0)} in storage`}
+  else if(m.busy){el.className='mstat';el.textContent=`Crafting ${m.word} · ${Math.round(100*m.t/ASM_T)}%`}
+  else if(m.missing){el.className='mstat bad';el.textContent=`Waiting for ${m.missing.map(p=>disp(M[p])).join(', ')} in storage`}
+  else{el.className='mstat';el.textContent='Idle'}}
+
+/* ================= LOOP ================= */
+let last=performance.now(),uiTick=0;
+function update(dt){time+=dt;
+  if(mining){mining.t+=dt;while(mining.t>=MINE_T){mining.t-=MINE_T;S.inv[mining.id]=(S.inv[mining.id]||0)+1;dirty.inv=dirty.top=true}const r=OREF[mining.id];if(r)r.bar.style.width=(100*mining.t/MINE_T)+'%'}
+  if(crafting){crafting.t+=dt;$('craftProg').style.width=Math.min(100,100*crafting.t/CRAFT_T)+'%';if(crafting.t>=CRAFT_T)finishCraft()}
+  const L=LAY;
+  S.drills.forEach((d,i)=>{d.t=(d.t||0)+dt;if(d.t>=DRILL_T){d.t-=DRILL_T;S.inv[d.item]=(S.inv[d.item]||0)+1;dirty.inv=true;
+    if(L){const p=L.drills[i];if(p){const lx=p.x+1;spawnPath(d.item,[[p.x+.5,p.y+.5],[lx+.5,p.y+.5],[lx+.5,L.bus+.5],[L.chestX+.3,L.bus+.5]])}}}});
+  S.asms.forEach((a,i)=>{const w=WMAP[a.word];if(!w)return;
+    if(!a.busy){const need={};w.parts.forEach(p=>need[p]=(need[p]||0)+1);const miss=Object.keys(need).filter(p=>(S.inv[p]||0)<need[p]);
+      if(miss.length){a.missing=miss}else{a.missing=null;w.parts.forEach(p=>S.inv[p]--);a.busy=true;a.t=0;dirty.inv=true;
+        if(L){const p=L.asms[i];if(p){const lx=p.x+1;w.parts.forEach((part,k)=>spawnPath(part,[[L.chestX+.3,L.ret+.5],[lx+.5,L.ret+.5],[lx+.5,p.y+.5],[p.x+.5,p.y+.5]],k*.18))}}}}
+    else{a.t+=dt;if(a.t>=ASM_T){a.busy=false;S.terms[a.word]=(S.terms[a.word]||0)+1;dirty.terms=dirty.calls=true;
+      if(L){const p=L.asms[i];if(p)floats.push({text:`+1 ${a.word}`,x:(p.x+.5)*TILE+40,y:p.y*TILE+8,t:0,col:'#a8d88a'})}}}});
+  for(const a of anims)a.t+=dt;anims=anims.filter(a=>a.t*a.speed<a.len);
+  for(const f of floats)f.t+=dt;floats=floats.filter(f=>f.t<1.2)}
+function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;update(dt);draw();
+  uiTick+=dt;if(uiTick>.15){uiTick=0;flush();updateMStatus()}
+  requestAnimationFrame(frame)}
+function flush(){
+  if(dirty.ore){dirty.ore=false;renderOre()}
+  if(dirty.inv){dirty.inv=false;renderInv();renderSlots()}
+  if(dirty.terms){dirty.terms=false;renderTerms();if(modalCall&&!$('modal').hidden)openDeliver(modalCall)}
+  if(dirty.calls){dirty.calls=false;renderCalls()}
+  if(dirty.research){dirty.research=false;renderResearch()}
+  if(dirty.codex){dirty.codex=false;renderCodex()}
+  if(dirty.machine){dirty.machine=false;renderMachine()}
+  if(dirty.top){dirty.top=false;renderTop();dirty.research=true}}
+
+/* ================= WIRING ================= */
+$('craftBtn').onclick=craft;
+$('clearBtn').onclick=()=>{slots=[null,null,null,null];msg('');dirty.inv=true;renderSlots()};
+$('mClose').onclick=closeModal;
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal()});
+let resetArmed=false;
+$('resetBtn').onclick=()=>{if(!resetArmed){resetArmed=true;$('resetBtn').textContent='Click again to wipe progress';$('resetMsg').textContent='This clears all terms, machines and research.';setTimeout(()=>{resetArmed=false;$('resetBtn').textContent='Restart shift';$('resetMsg').textContent=''},4000);return}
+  resetArmed=false;$('resetBtn').textContent='Restart shift';$('resetMsg').textContent='';S=fresh();slots=[null,null,null,null];selId=null;anims=[];floats=[];S.calls=[newCall('bradycardia')];refill();$('log').innerHTML='';
+  log('New shift started. Dispatch has calls waiting.');renderDiscovery();Object.keys(dirty).forEach(k=>dirty[k]=true);save()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modal').hidden){closeModal();return}
+  const tag=(e.target.tagName||'').toLowerCase();if(tag==='select'||tag==='input'||!$('modal').hidden)return;
+  if(e.key==='Enter'&&e.target===document.body){e.preventDefault();craft()}
+  if(e.key==='Backspace'){const i=slots.map(Boolean).lastIndexOf(true);if(i>=0){e.preventDefault();slots[i]=null;dirty.inv=true;renderSlots()}}});
+setInterval(save,4000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+window.addEventListener('pagehide',save);
+document.querySelectorAll('img[data-rp]').forEach(i=>i.src=spr('rp').url);
+$('rpIcon').src=spr('rp').url;
+
+function start(data){
+  let restored=false;
+  if(data&&data.S){S=Object.assign(fresh(),data.S);restored=true}else restored=load();
+  if(!S.calls.length){S.calls=[newCall('bradycardia')];}
+  refill();
+  log(restored?'Shift resumed. Your factory kept its state.':'Shift started. Dispatch has a call waiting: a patient with a slow pulse.');
+  renderDiscovery();resize();Object.keys(dirty).forEach(k=>dirty[k]=true);flush();requestAnimationFrame(frame)}
+try{window.claude?.hot?.snapshot?.(()=>({S:JSON.parse(JSON.stringify(S))}))}catch(e){}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+})();
+</script>
+
+</body></html>
