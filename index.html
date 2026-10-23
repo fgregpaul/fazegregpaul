@@ -1476,6 +1476,13 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     summit: ['level 5 took me 40 deaths', 'the dash feels so good', 'wall jumps are clean', 'finally hit the summit', 'up dash then jump is the trick'],
     circles: ['got an S rank', 'the streams at the end', 'my combo broke on the last note', 'tapping on the beat is addicting', 'clicking circles is my job now'],
     aim: ['gridshot pb', 'my reaction time is 380ms help', 'microflick is brutal on phone', 'accuracy over speed', 'my aim is better than i thought'],
+    solitaire: ['the auto finish is so satisfying', 'stuck with three kings buried', 'won in 140 moves', 'undo is carrying me', 'this is my grandmas favorite'],
+    blackjack: ['split aces and lost both', 'dealer had 21 again', 'doubled on 11 and got a 2', 'borrowed from greg 4 times', 'always stand on 17'],
+    holdem: ['moe bluffs every hand', 'dee called my all in with 7 2', 'vic only plays aces lol', 'took everyone out with a flush', 'the blinds are eating me'],
+    roulette: ['all on red', 'it hit 0 twice in a row', 'won 35 to 1 on my birthday number', 'dozens are the move', 'the wheel sound is perfect'],
+    slots: ['hit three sevens', 'auto spin drained me', 'two cherries again', 'this is why my wallet is empty', 'the gem line hit'],
+    crash: ['cashed at 1.01 like a coward', 'it went to 40x and i left at 2x', 'auto 2x is the strat', 'crashed at 1.00 instantly', 'held too long every time'],
+    mines: ['one more tile', '10 mines is insane', 'cashed out at 5 gems', 'boom on the first tile', 'the next gem multiplier gets me'],
     sling: ['angry birds who', 'why does the target move', 'the aim line helps a lot', 'i keep overshooting']
   };
   const MORECM = {
@@ -6909,6 +6916,407 @@ const SUMMIT_LEVELS = [
       }
     }, MIX);
   }
+
+  /* ===== stage 5l: casino night. solitaire, blackjack, hold'em, roulette, slots, crash, mines. play chips only. ===== */
+  const SUITS = ['♠', '♥', '♦', '♣'], RANKS = { 1: 'A', 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+  const rankTxt = r => RANKS[r] || String(r);
+  const newDeck = (n) => { const d = []; for (let k = 0; k < (n || 1); k++) for (let s = 0; s < 4; s++) for (let r = 2; r <= 14; r++) d.push({ r, s }); for (let i = d.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [d[i], d[j]] = [d[j], d[i]]; } return d; };
+  const isRed = cd => cd.s === 1 || cd.s === 2;
+  function drawCardX(c, x, y, w, h, cd, up, back, hi) {
+    const r = Math.max(3, w * 0.1);
+    c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.roundRect(x + 1, y + 2, w, h, r); c.fill();
+    if (!up) { c.fillStyle = back || '#1f4fbf'; c.beginPath(); c.roundRect(x, y, w, h, r); c.fill(); c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 1.5; c.beginPath(); c.roundRect(x + 2.5, y + 2.5, w - 5, h - 5, r * 0.7); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 1; for (let k = -h; k < w; k += 6) { c.beginPath(); c.moveTo(x + Math.max(3, k), y + Math.max(3, -k + 3)); c.lineTo(x + Math.min(w - 3, k + h), y + Math.min(h - 3, h - 3 - Math.max(0, k + h - w))); c.stroke(); } return; }
+    c.fillStyle = hi ? '#fff8d0' : '#ffffff'; c.beginPath(); c.roundRect(x, y, w, h, r); c.fill(); c.strokeStyle = hi ? '#ffb000' : 'rgba(0,0,0,.25)'; c.lineWidth = hi ? 2.5 : 1; c.stroke();
+    const col = isRed(cd) ? '#d62839' : '#16161d', fs = Math.max(9, Math.round(w * 0.3)); c.fillStyle = col; c.textAlign = 'left'; c.textBaseline = 'alphabetic'; c.font = '700 ' + fs + 'px "Georgia",serif'; c.fillText(rankTxt(cd.r), x + w * 0.08, y + fs * 0.95);
+    c.font = Math.round(fs * 0.85) + 'px sans-serif'; c.fillText(SUITS[cd.s], x + w * 0.08, y + fs * 1.8);
+    if (h > w * 1.2) { c.font = Math.round(w * 0.5) + 'px sans-serif'; c.textAlign = 'center'; c.fillText(SUITS[cd.s], x + w * 0.58, y + h * 0.78); }
+    c.textAlign = 'left';
+  }
+  const cbtn = (c, b, label, on, sk, disabled) => { box(c, b.x, b.y, b.w, b.h, { fill: disabled ? 'rgba(255,255,255,.08)' : on ? sk.pal[0] : sk.panel, r: Math.min(12, b.h / 2), hard: 0, soft: 0, lw: sk.lw ? 2 : 0, line: sk.line }); txt(c, label, b.x + b.w / 2, b.y + b.h / 2 + 4, Math.min(13, b.h * 0.38), disabled ? 'rgba(255,255,255,.35)' : on ? onC(sk.pal[0]) : sk.pfg, 'center', MONO); };
+  const inB = (b, p) => b && p[0] >= b.x && p[0] <= b.x + b.w && p[1] >= b.y && p[1] <= b.y + b.h;
+  const brow = (x, y, w, h, n, gap) => { const bw = (w - gap * (n - 1)) / n, out = []; for (let i = 0; i < n; i++) out.push({ x: x + i * (bw + gap), y, w: bw, h }); return out; };
+  const CHIPS = { chips: 1000, loans: 0 };
+  const chipMix = {
+    bank() { return this.chips; },
+    pay(n) { this.chips += n; this.best = Math.max(this.best, this.chips); this.score = this.chips; },
+    loan() { this.chips += 500; this.loans = (this.loans || 0) + 1; this.score = this.chips; this.floats.push({ t: 'Greg loaned you 500 chips', x: this.w / 2, y: this.h * 0.4, age: 0, c: 'good' }); sfx(520, 0.15, 0.04, 'sine'); }
+  };
+
+  /* ---------- Solitaire (Klondike, draw one) ---------- */
+  function makeSolitaire(sk) {
+    return Object.assign({
+      sk, hold: true, title: 'Solitaire', how: 'Classic Klondike. Tap a card to send it where it fits, or drag it. Tap the deck to draw. Build the four piles from Ace to King.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      geom() { const w = this.w; this.cw = Math.floor((w - 8 - 6 * 4) / 7); this.ch = Math.round(this.cw * 1.42); this.cx = i => 4 + i * (this.cw + 4); this.ty = 46 + this.ch + 12; this.bb = brow(8, this.h - 46, this.w - 16, 38, 3, 8); },
+      layout() { this.geom(); },
+      reset() { this.geom(); const d = newDeck(); this.tab = []; for (let i = 0; i < 7; i++) { const col = []; for (let k = 0; k <= i; k++) { const cd = d.pop(); cd.up = k === i; col.push(cd); } this.tab.push(col); } this.stock = d.map(cd => Object.assign(cd, { up: false })); this.waste = []; this.found = [[], [], [], []]; this.hist = []; this.moves = 0; this.t = 0; this.drag = null; this.anim = []; this.auto = false; this.score = 0; this.floats = []; this.state = 'ready'; },
+      enter() { this.reset(); },
+      sr: cd => cd.r === 14 ? 1 : cd.r,
+      snap() { this.hist.push(JSON.stringify({ t: this.tab, s: this.stock, w: this.waste, f: this.found })); if (this.hist.length > 60) this.hist.shift(); },
+      undo() { const h = this.hist.pop(); if (!h) return; const o = JSON.parse(h); this.tab = o.t; this.stock = o.s; this.waste = o.w; this.found = o.f; sfx(300, 0.05, 0.03, 'sine'); },
+      canFound(cd, f) { const top = f[f.length - 1]; return top ? top.s === cd.s && this.sr(cd) === this.sr(top) + 1 : this.sr(cd) === 1; },
+      canTab(cd, col) { const top = col[col.length - 1]; return top ? top.up && isRed(top) !== isRed(cd) && this.sr(cd) === this.sr(top) - 1 : this.sr(cd) === 13; },
+      colY(col, k) { const avail = this.h - 56 - this.ty - this.ch; let dn = 0, up = 0; col.forEach((cd, i) => { if (i < col.length - 1) { if (cd.up) up++; else dn++; } }); let fu = 18, fd = 7; const need = up * fu + dn * fd; if (need > avail && need > 0) { const s = avail / need; fu *= s; fd *= s; } let y = this.ty; for (let i = 0; i < k; i++) y += col[i].up ? fu : fd; return y; },
+      pick(p) { // returns {src, idx, cards}
+        const cw = this.cw, ch = this.ch;
+        if (p[1] >= 46 && p[1] <= 46 + ch) { if (p[0] >= this.cx(0) && p[0] <= this.cx(0) + cw) return { src: 'stock' }; if (p[0] >= this.cx(1) && p[0] <= this.cx(1) + cw && this.waste.length) return { src: 'w', cards: [this.waste[this.waste.length - 1]] }; for (let f = 0; f < 4; f++) if (p[0] >= this.cx(3 + f) && p[0] <= this.cx(3 + f) + cw && this.found[f].length) return { src: 'f', idx: f, cards: [this.found[f][this.found[f].length - 1]] }; }
+        for (let i = 0; i < 7; i++) { if (p[0] < this.cx(i) || p[0] > this.cx(i) + cw) continue; const col = this.tab[i]; for (let k = col.length - 1; k >= 0; k--) { const y = this.colY(col, k); if (p[1] >= y && p[1] <= y + ch && col[k].up) return { src: 't', idx: i, k, cards: col.slice(k) }; } }
+        return null; },
+      remove(sel) { if (sel.src === 'w') this.waste.pop(); else if (sel.src === 'f') this.found[sel.idx].pop(); else { this.tab[sel.idx].splice(sel.k); const col = this.tab[sel.idx]; if (col.length && !col[col.length - 1].up) { col[col.length - 1].up = true; } } },
+      tryMove(sel, dst) { const cd = sel.cards[0];
+        if (dst.f != null) { if (sel.cards.length !== 1 || !this.canFound(cd, this.found[dst.f]) || (sel.src === 'f' && sel.idx === dst.f)) return false; this.snap(); this.remove(sel); this.found[dst.f].push(cd); }
+        else { if ((sel.src === 't' && sel.idx === dst.t) || !this.canTab(cd, this.tab[dst.t])) return false; this.snap(); this.remove(sel); sel.cards.forEach(x => this.tab[dst.t].push(x)); }
+        this.moves++; sfx(440 + Math.random() * 60, 0.04, 0.025, 'sine'); this.check(); return true; },
+      autoMove(sel) { if (sel.cards.length === 1) for (let f = 0; f < 4; f++) if (this.tryMove(sel, { f })) return true; const order = [0, 1, 2, 3, 4, 5, 6].sort((a, b) => (this.tab[a].length ? 0 : 1) - (this.tab[b].length ? 0 : 1)); for (const t of order) if (this.tryMove(sel, { t })) return true; this.shake = 0.1; return false; },
+      draw1() { this.snap(); if (this.stock.length) { const cd = this.stock.pop(); cd.up = true; this.waste.push(cd); sfx(600, 0.03, 0.02, 'sine'); } else { this.stock = this.waste.reverse().map(cd => Object.assign(cd, { up: false })); this.waste = []; sfx(300, 0.08, 0.03, 'sine'); } this.moves++; },
+      check() { if (this.found.every(f => f.length === 13)) { this.score = Math.max(100, 1500 - Math.floor(this.t) * 2 - this.moves * 2); this.best = Math.max(this.best, this.score); this.msg = 'You won in ' + this.moves + ' moves, ' + Math.floor(this.t) + 's'; this.state = 'dead'; this.dead = 0; JING('win'); } },
+      canAuto() { return !this.stock.length && !this.waste.length && this.tab.every(c => c.every(cd => cd.up)) && !this.found.every(f => f.length === 13); },
+      bind(cv) {
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+          if (inB(this.bb[0], p)) { this.reset(); this.state = 'run'; return; } if (inB(this.bb[1], p)) { this.undo(); return; } if (inB(this.bb[2], p)) { if (this.canAuto()) this.auto = true; return; }
+          const sel = this.pick(p); if (!sel) return; if (sel.src === 'stock') { this.draw1(); return; }
+          const x0 = sel.src === 'w' ? this.cx(1) : sel.src === 'f' ? this.cx(3 + sel.idx) : this.cx(sel.idx), y0 = sel.src === 't' ? this.colY(this.tab[sel.idx], sel.k) : 46;
+          this.drag = { sel, id: e.pointerId, sx: p[0], sy: p[1], ox: p[0] - x0, oy: p[1] - y0, x: p[0], y: p[1], moved: 0 }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => { if (!this.drag || this.drag.id !== e.pointerId) return; const p = ptrPos(cv, e); this.drag.x = p[0]; this.drag.y = p[1]; this.drag.moved = Math.max(this.drag.moved, Math.hypot(p[0] - this.drag.sx, p[1] - this.drag.sy)); });
+        const up = e => { if (!this.drag || this.drag.id !== e.pointerId) return; const d = this.drag; this.drag = null; if (this.state !== 'run') return;
+          if (d.moved < 8) { this.autoMove(d.sel); return; }
+          const cx = d.x - d.ox + this.cw / 2, cy = d.y - d.oy + this.ch / 2; let done = false;
+          if (cy < 46 + this.ch + 6) { for (let f = 0; f < 4 && !done; f++) if (Math.abs(cx - (this.cx(3 + f) + this.cw / 2)) < this.cw) done = this.tryMove(d.sel, { f }); }
+          if (!done) { let bi = -1, bd = 1e9; for (let t = 0; t < 7; t++) { const dd = Math.abs(cx - (this.cx(t) + this.cw / 2)); if (dd < bd) { bd = dd; bi = t; } } if (bd < this.cw) done = this.tryMove(d.sel, { t: bi }); } };
+        cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { this.drag = null; }); },
+      key(e) { return false; },
+      tick(dt) { this.decay(dt); if (this.state !== 'run') { if (this.state === 'dead') this.dead += dt; return; } this.t += dt;
+        if (this.auto) { this.at = (this.at || 0) - dt; if (this.at <= 0) { this.at = 0.07; let moved = false; for (let i = 0; i < 7 && !moved; i++) { const col = this.tab[i]; if (!col.length) continue; const sel = { src: 't', idx: i, k: col.length - 1, cards: [col[col.length - 1]] }; for (let f = 0; f < 4 && !moved; f++) if (this.canFound(sel.cards[0], this.found[f])) { this.remove(sel); this.found[f].push(sel.cards[0]); moved = true; sfx(500 + this.found[f].length * 30, 0.04, 0.02, 'sine'); } } if (!moved) this.auto = false; this.check(); } } },
+      draw() {
+        const c = this.ctx, w = this.w, sk = SK, cw = this.cw, ch = this.ch; this.geom(); drawBg(c, w, this.h);
+        txt(c, 'SOLITAIRE', 8, 30, 16, sk.fg, 'left'); txt(c, 'moves ' + this.moves + '   ' + Math.floor(this.t) + 's', w - 8, 30, 11, sk.dim, 'right', MONO);
+        const slot = (x, y, lbl) => { c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 1.5; c.beginPath(); c.roundRect(x, y, cw, ch, 4); c.stroke(); if (lbl) txt(c, lbl, x + cw / 2, y + ch / 2 + 5, 14, 'rgba(255,255,255,.3)', 'center'); };
+        const dragSet = this.drag && this.drag.moved >= 8 ? new Set(this.drag.sel.cards) : new Set();
+        slot(this.cx(0), 46, this.stock.length ? '' : '↻'); if (this.stock.length) drawCardX(c, this.cx(0), 46, cw, ch, null, false, sk.pal[1]);
+        slot(this.cx(1), 46); { const n = this.waste.length; if (n) { const top = this.waste[n - 1]; if (dragSet.has(top) && n > 1) drawCardX(c, this.cx(1), 46, cw, ch, this.waste[n - 2], true); else if (!dragSet.has(top)) drawCardX(c, this.cx(1), 46, cw, ch, top, true); } }
+        for (let f = 0; f < 4; f++) { slot(this.cx(3 + f), 46, SUITS[f]); const F = this.found[f], n = F.length; if (n) { const top = F[n - 1]; if (!dragSet.has(top)) drawCardX(c, this.cx(3 + f), 46, cw, ch, top, true); else if (n > 1) drawCardX(c, this.cx(3 + f), 46, cw, ch, F[n - 2], true); } }
+        for (let i = 0; i < 7; i++) { const col = this.tab[i]; slot(this.cx(i), this.ty, 'K'); col.forEach((cd, k) => { if (dragSet.has(cd)) return; drawCardX(c, this.cx(i), this.colY(col, k), cw, ch, cd, cd.up, sk.pal[1]); }); }
+        if (this.drag && this.drag.moved >= 8) this.drag.sel.cards.forEach((cd, k) => drawCardX(c, this.drag.x - this.drag.ox, this.drag.y - this.drag.oy + k * 18, cw, ch, cd, true, null, k === 0));
+        cbtn(c, this.bb[0], 'NEW', false, sk); cbtn(c, this.bb[1], 'UNDO', false, sk, !this.hist.length); cbtn(c, this.bb[2], 'AUTO', this.canAuto(), sk, !this.canAuto());
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  /* ---------- Blackjack ---------- */
+  function makeBlackjack(sk) {
+    const val = cards => { let t = 0, a = 0; cards.forEach(cd => { if (cd.r === 14) { a++; t += 11; } else t += Math.min(10, cd.r); }); while (t > 21 && a) { t -= 10; a--; } return { t, soft: a > 0 }; };
+    return Object.assign({
+      sk, hold: true, title: 'Blackjack', how: 'Pick a bet and tap DEAL. Get closer to 21 than the dealer without going over. Blackjack pays 3 to 2. Dealer stands on all 17s.',
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [], chips: 1000,
+      geom() { const w = this.w, h = this.h; this.cw = Math.min(58, Math.floor(w / 6.2)); this.ch = Math.round(this.cw * 1.42); this.chipB = brow(10, h - 100, w - 20, 40, 4, 6); this.actB = brow(10, h - 50, w - 20, 42, 4, 6); },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.shoe = newDeck(6); this.phase = 'bet'; this.bet = 50; this.hands = []; this.dealer = []; this.cur = 0; this.res = ''; this.score = this.chips; this.floats = []; this.state = 'ready'; this.wait = 0; },
+      enter() { if (this.chips == null) this.chips = 1000; this.reset(); },
+      card() { if (this.shoe.length < 60) { this.shoe = newDeck(6); this.floats.push({ t: 'new shoe', x: this.w / 2, y: 90, age: 0, c: 'good' }); } return this.shoe.pop(); },
+      deal() { if (this.chips < this.bet) { if (this.chips < 10) this.loan(); return; } this.chips -= this.bet; this.score = this.chips; this.hands = [{ c: [this.card(), this.card()], bet: this.bet, done: false }]; this.dealer = [this.card(), this.card()]; this.cur = 0; this.phase = 'play'; this.res = ''; sfx(500, 0.05, 0.03, 'sine');
+        const pv = val(this.hands[0].c).t, dv = val(this.dealer).t; if (pv === 21 || dv === 21) this.finish2(); },
+      hand() { return this.hands[this.cur]; },
+      hit() { const H = this.hand(); H.c.push(this.card()); sfx(560, 0.04, 0.02, 'sine'); if (val(H.c).t >= 21) this.next(); },
+      stand() { this.next(); },
+      dbl() { const H = this.hand(); if (H.c.length !== 2 || this.chips < H.bet) return; this.chips -= H.bet; H.bet *= 2; H.c.push(this.card()); H.dbl = true; this.next(); },
+      split() { const H = this.hand(); if (H.c.length !== 2 || Math.min(10, H.c[0].r === 14 ? 11 : H.c[0].r) !== Math.min(10, H.c[1].r === 14 ? 11 : H.c[1].r) || this.chips < H.bet || this.hands.length > 3) return; this.chips -= H.bet; const B = { c: [H.c.pop(), this.card()], bet: H.bet }; H.c.push(this.card()); this.hands.splice(this.cur + 1, 0, B); sfx(620, 0.05, 0.03, 'sine'); },
+      next() { this.hands[this.cur].done = true; if (this.cur < this.hands.length - 1) { this.cur++; return; } if (this.hands.every(H => val(H.c).t > 21)) { this.finish2(); return; } this.phase = 'dealer'; this.wait = 0.5; },
+      finish2() { this.phase = 'done'; const dv = val(this.dealer).t, dbj = dv === 21 && this.dealer.length === 2; let net = 0, lines = [];
+        this.hands.forEach(H => { const pv = val(H.c).t, pbj = pv === 21 && H.c.length === 2 && this.hands.length === 1; let win = 0;
+          if (pv > 21) win = 0; else if (pbj && !dbj) win = H.bet * 2.5; else if (dbj && !pbj) win = 0; else if (pbj && dbj) win = H.bet; else if (dv > 21 || pv > dv) win = H.bet * 2; else if (pv === dv) win = H.bet; else win = 0;
+          this.chips += win; net += win - H.bet; lines.push(pv > 21 ? 'bust' : pbj && !dbj ? 'blackjack!' : win > H.bet ? 'win' : win === H.bet ? 'push' : 'lose'); });
+        this.res = lines.join(' / ') + (net ? (net > 0 ? '  +' : '  ') + net : ''); this.score = this.chips; this.best = Math.max(this.best, this.chips); if (net > 0) JING('coin'); else if (net < 0) sfx(200, 0.2, 0.03, 'sine'); },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+        if (this.phase === 'bet' || this.phase === 'done') { const vals = [10, 50, 100, 500]; this.chipB.forEach((b, i) => { if (inB(b, p)) { this.bet = vals[i]; sfx(700, 0.03, 0.02, 'sine'); if (this.phase === 'done') this.phase = 'bet'; } }); if ((p[1] >= this.actB[0].y && p[1] <= this.actB[0].y + this.actB[0].h) || (this.phase === 'done' && p[1] < this.h - 110)) { if (this.chips < 10) this.loan(); else this.deal(); } return; }
+        if (this.phase !== 'play') return; const a = this.actB; if (inB(a[0], p)) this.hit(); else if (inB(a[1], p)) this.stand(); else if (inB(a[2], p)) this.dbl(); else if (inB(a[3], p)) this.split(); }); },
+      key(e) { if (e.type !== 'keydown' || this.state !== 'run') return false; const k = e.code; if (this.phase === 'play') { if (k === 'KeyH') this.hit(); else if (k === 'KeyS') this.stand(); else if (k === 'KeyD') this.dbl(); else if (k === 'KeyP') this.split(); else return false; return true; } if (k === 'Space' || k === 'Enter') { this.deal(); return true; } return false; },
+      tick(dt) { this.decay(dt); if (this.state !== 'run') return; if (this.phase === 'dealer') { this.wait -= dt; if (this.wait <= 0) { if (val(this.dealer).t < 17) { this.dealer.push(this.card()); sfx(540, 0.04, 0.02, 'sine'); this.wait = 0.55; } else this.finish2(); } } },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, cw = this.cw, ch = this.ch; this.geom(); drawBg(c, w, h);
+        txt(c, 'BLACKJACK', w / 2, 26, 18, sk.fg, 'center'); txt(c, 'BLACKJACK PAYS 3 TO 2  ·  DEALER STANDS ON 17', w / 2, 44, 9, sk.dim, 'center', MONO); txt(c, this.chips + ' chips', 12, 66, 15, sk.pal[1], 'left', MONO); if (this.phase !== 'play') txt(c, 'bet ' + this.bet, w - 12, 66, 13, sk.fg, 'right', MONO);
+        const showHole = this.phase === 'dealer' || this.phase === 'done', dy = 84;
+        this.dealer.forEach((cd, i) => drawCardX(c, w / 2 - (this.dealer.length * cw * 0.62) / 2 + i * cw * 0.62, dy, cw, ch, cd, i === 0 || showHole, sk.pal[3]));
+        if (this.dealer.length) txt(c, 'Dealer ' + (showHole ? val(this.dealer).t : '?'), w / 2, dy + ch + 18, 12, sk.fg, 'center', MONO);
+        const py = dy + ch + 44, n = this.hands.length, hw = (w - 20) / Math.max(1, n);
+        this.hands.forEach((H, hi) => { const cxh = 10 + hw * hi + hw / 2, step = Math.min(cw * 0.55, (hw - cw - 6) / Math.max(1, H.c.length - 1)); H.c.forEach((cd, i) => drawCardX(c, cxh - (cw + step * (H.c.length - 1)) / 2 + i * step, py + i * 6, cw, ch, cd, true, null, this.phase === 'play' && hi === this.cur && n > 1)); const v = val(H.c); txt(c, (v.soft && v.t < 21 ? 'soft ' : '') + v.t + '  bet ' + H.bet, cxh, py + ch + 22 + H.c.length * 6, 11, sk.fg, 'center', MONO); });
+        if (this.res) txt(c, this.res, w / 2, h - 118, 15, sk.pal[1], 'center');
+        if (this.phase === 'play') { const H = this.hand(), canD = H.c.length === 2 && this.chips >= H.bet, cv = x => x.r === 14 ? 11 : Math.min(10, x.r), canS = H.c.length === 2 && cv(H.c[0]) === cv(H.c[1]) && this.chips >= H.bet && this.hands.length < 4; cbtn(c, this.actB[0], 'HIT', true, sk); cbtn(c, this.actB[1], 'STAND', false, sk); cbtn(c, this.actB[2], 'DOUBLE', false, sk, !canD); cbtn(c, this.actB[3], 'SPLIT', false, sk, !canS); }
+        else if (this.phase !== 'dealer') { [10, 50, 100, 500].forEach((v, i) => cbtn(c, this.chipB[i], String(v), this.bet === v, sk, this.chips < v && this.chips >= 10)); const broke = this.chips < 10; cbtn(c, { x: this.actB[0].x, y: this.actB[0].y, w: this.actB[3].x + this.actB[3].w - this.actB[0].x, h: this.actB[0].h }, broke ? 'BORROW 500 FROM GREG' : this.phase === 'done' ? 'DEAL AGAIN' : 'DEAL', true, sk); }
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, chipMix, MIX);
+  }
+
+  /* ---------- Texas Hold'em vs three bots ---------- */
+  const HNAMES = ['High card', 'Pair', 'Two pair', 'Three of a kind', 'Straight', 'Flush', 'Full house', 'Four of a kind', 'Straight flush'];
+  const eval5 = cs => { const rs = cs.map(c => c.r).sort((a, b) => b - a), flush = cs.every(c => c.s === cs[0].s), cnt = {}; rs.forEach(r => { cnt[r] = (cnt[r] || 0) + 1; });
+    const g = Object.keys(cnt).map(Number).sort((a, b) => cnt[b] - cnt[a] || b - a), uniq = g.length; let sh = 0; if (uniq === 5) { if (rs[0] - rs[4] === 4) sh = rs[0]; else if (rs[0] === 14 && rs[1] === 5) sh = 5; }
+    let cat, k; if (sh && flush) { cat = 8; k = [sh]; } else if (cnt[g[0]] === 4) { cat = 7; k = g; } else if (cnt[g[0]] === 3 && cnt[g[1]] === 2) { cat = 6; k = g; } else if (flush) { cat = 5; k = rs; } else if (sh) { cat = 4; k = [sh]; } else if (cnt[g[0]] === 3) { cat = 3; k = g; } else if (cnt[g[0]] === 2 && cnt[g[1]] === 2) { cat = 2; k = g; } else if (cnt[g[0]] === 2) { cat = 1; k = g; } else { cat = 0; k = rs; }
+    let v = cat; for (let i = 0; i < 5; i++) v = v * 15 + (k[i] || 0); return v; };
+  const best7 = cs => { let b = -1; const n = cs.length; if (n <= 5) return eval5(cs); for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const f = []; for (let k = 0; k < n; k++) if (k !== i && k !== j) f.push(cs[k]); const v = eval5(f); if (v > b) b = v; } return b; };
+  const catOf = v => Math.floor(v / Math.pow(15, 5));
+  const equity = (hole, board, nOpp, iters) => { const used = new Set(hole.concat(board).map(c => c.r * 4 + c.s)), deck = []; for (let s = 0; s < 4; s++) for (let r = 2; r <= 14; r++) if (!used.has(r * 4 + s)) deck.push({ r, s }); let win = 0;
+    for (let it = 0; it < iters; it++) { const d = deck.slice(), take = () => d.splice(Math.floor(Math.random() * d.length), 1)[0], B = board.slice(); while (B.length < 5) B.push(take()); const me = best7(hole.concat(B)); let best = 0, tie = 1, lost = false; for (let o = 0; o < nOpp; o++) { const v = best7([take(), take()].concat(B)); if (v > me) { lost = true; break; } if (v === me) tie++; } if (!lost) win += 1 / tie; }
+    return win / iters; };
+  function makeHoldem(sk) {
+    const STY = { tight: { call: 0.06, raise: 0.7, bluff: 0.04 }, loose: { call: -0.07, raise: 0.6, bluff: 0.08 }, bluffer: { call: 0.0, raise: 0.64, bluff: 0.24 } };
+    return Object.assign({
+      sk, hold: true, title: "Hold'em", how: "No-limit Texas Hold'em against three bots: Vic plays tight, Dee calls everything, Moe bluffs. Blinds go up every 8 hands. Take all their chips.",
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [],
+      geom() { const w = this.w, h = this.h; this.cw = Math.min(46, Math.floor(w / 7.4)); this.ch = Math.round(this.cw * 1.42); this.b1 = brow(8, h - 92, w - 16, 40, 3, 6); this.b2 = brow(8, h - 46, w - 16, 40, 3, 6); },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.P = [{ name: 'You', chips: 1000 }, { name: 'Vic', chips: 1000, sty: 'tight' }, { name: 'Dee', chips: 1000, sty: 'loose' }, { name: 'Moe', chips: 1000, sty: 'bluffer' }]; this.dealer = 0; this.handNo = 0; this.bb = 20; this.phase = 'idle'; this.board = []; this.log = ''; this.score = 1000; this.floats = []; this.state = 'ready'; this.wait = 0; this.newHand(); },
+      enter() { this.reset(); },
+      alive() { return this.P.filter(p => p.chips > 0 || p.total > 0); },
+      nextIdx(i, pred) { for (let k = 1; k <= 4; k++) { const j = (i + k) % 4; if (pred(this.P[j])) return j; } return -1; },
+      newHand() { const P = this.P; P.forEach(p => { p.out = p.chips <= 0; p.hole = []; p.bet = 0; p.total = 0; p.folded = p.out; p.allin = false; p.acted = false; p.last = p.out ? 'out' : ''; p.win = false; p.hn = ''; });
+        if (P[0].out) { this.msg = 'Busted after ' + this.handNo + ' hands'; this.state = 'dead'; this.dead = 0; JING('over'); return; }
+        if (P.slice(1).every(p => p.out)) { this.score = P[0].chips; this.best = Math.max(this.best, this.score); this.msg = 'You took every chip!'; this.state = 'dead'; this.dead = 0; JING('win'); return; }
+        this.handNo++; if (this.handNo > 1 && this.handNo % 8 === 1) { this.bb = Math.round(this.bb * 1.5 / 10) * 10; this.floats.push({ t: 'Blinds up: ' + this.bb / 2 + '/' + this.bb, x: this.w / 2, y: this.h * 0.42, age: 0, c: 'good' }); }
+        this.deck = newDeck(); this.board = []; const act = p => !p.out; this.dealer = this.nextIdx(this.dealer, act); const n = P.filter(act).length;
+        const sb = n === 2 ? this.dealer : this.nextIdx(this.dealer, act), bbi = this.nextIdx(sb, act); this.put(P[sb], this.bb / 2); P[sb].last = 'SB'; this.put(P[bbi], this.bb); P[bbi].last = 'BB';
+        P.forEach(p => { if (!p.out) p.hole = [this.deck.pop(), this.deck.pop()]; }); this.cur = this.nextIdx(bbi, p => !p.out && !p.folded && !p.allin); this.curBet = this.bb; this.minR = this.bb; this.street = 0; this.phase = 'bet'; this.wait = 0.6; this.result = ''; sfx(500, 0.05, 0.03, 'sine'); this.score = P[0].chips; },
+      put(p, amt) { amt = Math.min(amt, p.chips); p.chips -= amt; p.bet += amt; p.total += amt; if (p.chips === 0) p.allin = true; return amt; },
+      pot() { return this.P.reduce((a, p) => a + p.total, 0); },
+      act(i, a, to) { const p = this.P[i]; const toCall = this.curBet - p.bet;
+        if (a === 'fold') { p.folded = true; p.last = 'fold'; sfx(220, 0.05, 0.02, 'sine'); }
+        else if (a === 'call') { if (toCall <= 0) p.last = 'check'; else { this.put(p, toCall); p.last = p.allin ? 'all in' : 'call ' + this.curBet; } sfx(600, 0.04, 0.02, 'sine'); }
+        else { const target = Math.min(to, p.bet + p.chips); const raiseBy = target - this.curBet; this.put(p, target - p.bet); if (raiseBy >= this.minR) this.minR = raiseBy; if (target > this.curBet) { this.curBet = target; this.P.forEach((q, j) => { if (j !== i && !q.folded && !q.allin) q.acted = false; }); } p.last = p.allin ? 'all in ' + p.bet : 'raise ' + p.bet; sfx(760, 0.06, 0.03, 'sine'); }
+        p.acted = true; this.after(i); },
+      after(i) { const P = this.P, live = P.filter(p => !p.folded);
+        if (live.length === 1) { this.award([[this.pot(), live]]); return; }
+        const can = live.filter(p => !p.allin); const done = can.every(p => p.acted && p.bet === this.curBet) && live.every(p => p.allin || p.bet === this.curBet);
+        if (done || (can.length <= 1 && live.every(p => p.allin || p.bet >= this.curBet))) { this.nextStreet(); return; }
+        this.cur = this.nextIdx(i, p => !p.folded && !p.allin); this.wait = 0.6; },
+      nextStreet() { const P = this.P; P.forEach(p => { p.bet = 0; p.acted = false; }); this.curBet = 0; this.minR = this.bb; this.street++;
+        if (this.street === 1) { this.board.push(this.deck.pop(), this.deck.pop(), this.deck.pop()); } else if (this.street <= 3) this.board.push(this.deck.pop()); else { this.showdown(); return; }
+        sfx(480, 0.05, 0.03, 'sine'); const can = P.filter(p => !p.folded && !p.allin);
+        if (can.length <= 1) { this.phase = 'runout'; this.wait = 0.9; return; }
+        this.cur = this.nextIdx(this.dealer, p => !p.folded && !p.allin); this.wait = 0.5; },
+      showdown() { const P = this.P, live = P.filter(p => !p.folded); live.forEach(p => { p.val = best7(p.hole.concat(this.board)); p.hn = HNAMES[catOf(p.val)]; });
+        const levels = [...new Set(P.filter(p => p.total > 0 && !p.folded).map(p => p.total))].sort((a, b) => a - b); const pots = []; let prev = 0;
+        levels.forEach(L => { let amt = 0; P.forEach(p => { amt += Math.max(0, Math.min(p.total, L) - Math.min(p.total, prev)); }); const elig = live.filter(p => p.total >= L); if (amt > 0) pots.push([amt, elig]); prev = L; });
+        // chips folded players put in above the top level go to the last pot
+        const extra = this.pot() - pots.reduce((a, q) => a + q[0], 0); if (extra > 0 && pots.length) pots[pots.length - 1][0] += extra;
+        this.award(pots, true); },
+      award(pots, sd) { const P = this.P, lines = []; pots.forEach(([amt, elig]) => { let bv = -1, ws = []; elig.forEach(p => { const v = sd ? p.val : 1; if (v > bv) { bv = v; ws = [p]; } else if (v === bv) ws.push(p); }); const share = Math.floor(amt / ws.length); ws.forEach((p, k) => { p.chips += share + (k === 0 ? amt - share * ws.length : 0); p.win = true; }); lines.push(ws.map(p => p.name).join(' & ') + ' win' + (ws.length === 1 && ws[0].name !== 'You' ? 's' : '') + ' ' + amt + (sd && ws[0].hn ? ' with ' + ws[0].hn.toLowerCase() : '')); });
+        P.forEach(p => { p.total = 0; p.bet = 0; }); this.result = lines.join('  ·  '); this.phase = 'show'; this.sd = !!sd; this.wait = 0; this.showT = 0; this.score = P[0].chips; this.best = Math.max(this.best, this.score);
+        if (P[0].win) JING('coin'); },
+      botMove(i) { const p = this.P[i], st = STY[p.sty], toCall = this.curBet - p.bet, pot = this.pot(), opp = this.P.filter((q, j) => j !== i && !q.folded).length;
+        const eq = equity(p.hole, this.board, opp, this.street === 0 ? 90 : 140), odds = toCall / (pot + toCall || 1), r = Math.random();
+        const raiseTo = () => { const size = Math.max(this.minR, Math.round(pot * (0.5 + Math.random() * 0.5) / 10) * 10); return this.curBet + size; };
+        if (toCall <= 0) { if (eq > st.raise || r < st.bluff) this.act(i, 'raise', raiseTo()); else this.act(i, 'call'); }
+        else { if (eq > st.raise + 0.08 && r < 0.75) this.act(i, 'raise', raiseTo()); else if (eq > odds + st.call || r < st.bluff * 0.5) this.act(i, 'call'); else this.act(i, 'fold'); } },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+        if (this.phase === 'show') { if ((this.showT || 0) > 0.4) this.newHand(); return; }
+        if (this.phase !== 'bet' || this.cur !== 0 || this.wait > 0) return; const me = this.P[0], toCall = this.curBet - me.bet, pot = this.pot();
+        if (inB(this.b1[0], p)) this.act(0, 'fold'); else if (inB(this.b1[1], p)) this.act(0, 'call'); else if (inB(this.b1[2], p)) this.act(0, 'raise', me.bet + me.chips);
+        else if (inB(this.b2[0], p)) this.act(0, 'raise', this.curBet + this.minR); else if (inB(this.b2[1], p)) this.act(0, 'raise', this.curBet + Math.max(this.minR, Math.round(pot / 2 / 10) * 10)); else if (inB(this.b2[2], p)) this.act(0, 'raise', this.curBet + Math.max(this.minR, pot + toCall)); }); },
+      key(e) { return false; },
+      tick(dt) { this.decay(dt); if (this.state !== 'run') { if (this.state === 'dead') this.dead += dt; return; } if (this.phase === 'show') { this.showT = (this.showT || 0) + dt; return; } if (this.wait > 0) { this.wait -= dt; return; }
+        if (this.phase === 'runout') { if (this.street < 4) { this.nextStreet(); if (this.phase === 'runout') this.wait = 0.9; } return; }
+        if (this.phase === 'show') { this.showT = (this.showT || 0) + dt; return; }
+        if (this.phase === 'bet' && this.cur > 0) this.botMove(this.cur); },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, cw = this.cw, ch = this.ch, P = this.P; this.geom(); drawBg(c, w, h);
+        c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(w / 2, h * 0.38, w * 0.46, h * 0.24, 0, 0, TAU); c.fill(); c.strokeStyle = sk.pal[3]; c.lineWidth = 3; c.stroke();
+        txt(c, "HOLD'EM", 10, 22, 14, sk.fg, 'left'); txt(c, 'blinds ' + this.bb / 2 + '/' + this.bb + '   hand ' + this.handNo, w - 10, 22, 10, sk.dim, 'right', MONO);
+        const seat = [null, [w * 0.15, h * 0.22], [w * 0.5, 54], [w * 0.85, h * 0.22]], show = this.phase === 'show' && this.sd;
+        for (let i = 1; i < 4; i++) { const p = P[i], [sx, sy] = seat[i], sc = 0.62; const turn = this.phase === 'bet' && this.cur === i;
+          box(c, sx - 38, sy - 4, 76, 30, { fill: turn ? sk.pal[0] : p.out ? 'rgba(0,0,0,.3)' : sk.panel, r: 8, hard: 0, soft: 0, lw: 0 }); txt(c, p.name + (this.dealer === i ? ' (D)' : ''), sx, sy + 9, 11, turn ? onC(sk.pal[0]) : sk.pfg, 'center'); txt(c, p.out ? 'out' : String(p.chips), sx, sy + 22, 10, turn ? onC(sk.pal[0]) : sk.pal[1], 'center', MONO);
+          if (!p.out && p.hole.length && !p.folded) p.hole.forEach((cd, k) => drawCardX(c, sx - cw * sc - 2 + k * (cw * sc + 4), sy + 30, cw * sc, ch * sc, cd, show, sk.pal[2], p.win && show));
+          if (p.last) txt(c, p.last, sx, sy + 34 + ch * sc + 12, 10, p.win ? sk.pal[1] : sk.dim, 'center', MONO); if (show && p.hn && !p.folded) txt(c, p.hn, sx, sy + 34 + ch * sc + 24, 9, sk.fg, 'center', MONO); }
+        const by = h * 0.38 - ch / 2; for (let k = 0; k < 5; k++) { const x = w / 2 - (5 * cw + 16) / 2 + k * (cw + 4); if (this.board[k]) drawCardX(c, x, by, cw, ch, this.board[k], true); else { c.strokeStyle = 'rgba(255,255,255,.15)'; c.lineWidth = 1; c.beginPath(); c.roundRect(x, by, cw, ch, 4); c.stroke(); } }
+        txt(c, 'pot ' + this.pot(), w / 2, by + ch + 18, 13, sk.pal[1], 'center', MONO);
+        const me = P[0], my = h - 98 - ch * 1.15 - 30; me.hole.forEach((cd, k) => drawCardX(c, w / 2 - cw * 1.15 - 3 + k * (cw * 1.15 + 6), my, cw * 1.15, ch * 1.15, cd, true, null, me.win && this.phase === 'show'));
+        txt(c, 'You ' + me.chips + (this.dealer === 0 ? '  (D)' : ''), 12, my + 14, 13, sk.fg, 'left', MONO); if (me.last) txt(c, me.last, 12, my + 30, 10, sk.dim, 'left', MONO);
+        if (me.hole.length && this.board.length >= 3) txt(c, HNAMES[catOf(best7(me.hole.concat(this.board)))], w - 12, my + 14, 11, sk.pal[1], 'right', MONO);
+        if (this.phase === 'show') { txt(c, this.result, w / 2, by - 14, 11, sk.fg, 'center', MONO); cbtn(c, { x: 8, y: h - 46, w: w - 16, h: 40 }, 'NEXT HAND', true, sk); }
+        else { const mine = this.phase === 'bet' && this.cur === 0 && this.wait <= 0, toCall = this.curBet - me.bet, pot = this.pot();
+          cbtn(c, this.b1[0], 'FOLD', false, sk, !mine); cbtn(c, this.b1[1], toCall > 0 ? 'CALL ' + Math.min(toCall, me.chips) : 'CHECK', mine, sk, !mine); cbtn(c, this.b1[2], 'ALL IN', false, sk, !mine);
+          cbtn(c, this.b2[0], 'RAISE ' + (this.curBet + this.minR), false, sk, !mine); cbtn(c, this.b2[1], '½ POT', false, sk, !mine); cbtn(c, this.b2[2], 'POT', false, sk, !mine);
+          if (!mine && this.phase === 'bet') txt(c, P[this.cur].name + ' is thinking...', w / 2, h - 100, 10, sk.dim, 'center', MONO); }
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  /* ---------- Roulette (single zero) ---------- */
+  function makeRoulette(sk) {
+    const WHEEL = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26], RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+    const colOf = n => n === 0 ? '#1f9d55' : RED.has(n) ? '#d62839' : '#16161d';
+    const pays = (k, n) => { if (k[0] === 'n') return +k.slice(1) === n ? 36 : 0; if (n === 0) return 0; if (k === 'red') return RED.has(n) ? 2 : 0; if (k === 'black') return !RED.has(n) ? 2 : 0; if (k === 'odd') return n % 2 ? 2 : 0; if (k === 'even') return n % 2 ? 0 : 2; if (k === 'low') return n <= 18 ? 2 : 0; if (k === 'high') return n >= 19 ? 2 : 0; if (k[0] === 'd') return Math.ceil(n / 12) === +k[1] ? 3 : 0; return 0; };
+    return Object.assign({
+      sk, hold: true, title: 'Roulette', how: 'Pick a chip, tap the table to bet (numbers pay 35 to 1, colors and halves 1 to 1, dozens 2 to 1), then SPIN.',
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [], chips: 1000,
+      geom() { const w = this.w, h = this.h; this.R = Math.min(70, w * 0.22, (h - 420) * 0.5 + 40); this.wy = 18 + this.R; this.ty = this.wy + this.R + 14; this.tw = w - 16; this.cwid = this.tw / 3; this.chh = Math.max(14, Math.floor((h - this.ty - 48 - 100) / 13)); this.oyb = this.ty + this.chh * 13 + 4; this.chipB = brow(8, h - 92, w - 16, 38, 4, 6); this.spinB = brow(8, h - 46, w - 16, 40, 2, 8); },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.bets = {}; this.chip = 25; this.phase = 'bet'; this.wa = 0; this.ba = 0; this.hist = []; this.score = this.chips; this.floats = []; this.state = 'ready'; this.lastBets = null; },
+      enter() { this.reset(); },
+      cellKey(p) { const x = p[0] - 8, y = p[1] - this.ty; if (x < 0 || x > this.tw) return null; if (y >= 0 && y < this.chh) return 'n0'; const r = Math.floor(y / this.chh) - 1; if (r >= 0 && r < 12) return 'n' + (r * 3 + Math.floor(x / this.cwid) + 1);
+        const y2 = p[1] - this.oyb; if (y2 >= 0 && y2 < 24) return ['low', 'even', 'red', 'black', 'odd', 'high'][Math.floor(x / (this.tw / 6))]; if (y2 >= 26 && y2 < 50) return 'd' + (Math.floor(x / (this.tw / 3)) + 1); return null; },
+      total() { return Object.values(this.bets).reduce((a, b) => a + b, 0); },
+      spin() { if (this.phase !== 'bet') return; if (!this.total()) { if (this.lastBets && this.chips >= Object.values(this.lastBets).reduce((a, b) => a + b, 0)) { this.bets = Object.assign({}, this.lastBets); this.chips -= this.total(); } else return; } this.lastBets = Object.assign({}, this.bets); this.res = Math.floor(Math.random() * 37); this.phase = 'spin'; this.st = 0; this.w0 = this.wa; this.b0 = this.ba; sfx(330, 0.3, 0.03, 'sine'); },
+      settle() { const n = this.res; let won = 0; Object.keys(this.bets).forEach(k => { won += this.bets[k] * pays(k, n); }); const bet = this.total(); this.chips += won; this.score = this.chips; this.best = Math.max(this.best, this.chips); this.hist.unshift(n); if (this.hist.length > 10) this.hist.pop();
+        this.floats.push({ t: n + ' ' + (n === 0 ? 'green' : RED.has(n) ? 'red' : 'black') + (won ? '  +' + won : '  no win'), x: this.w / 2, y: this.wy + this.R + 4, age: 0, c: won > bet ? 'good' : 'bad' }); if (won > bet) JING('coin'); this.bets = {}; this.phase = 'bet'; },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e); if (this.phase !== 'bet') return;
+        const vals = [5, 25, 100, 500]; for (let i = 0; i < 4; i++) if (inB(this.chipB[i], p)) { this.chip = vals[i]; sfx(700, 0.03, 0.02, 'sine'); return; }
+        if (inB(this.spinB[0], p)) { this.chips += this.total(); this.bets = {}; sfx(300, 0.05, 0.02, 'sine'); return; } if (inB(this.spinB[1], p)) { if (this.chips < 5 && !this.total()) this.loan(); else this.spin(); return; }
+        const k = this.cellKey(p); if (!k) return; if (this.chips < this.chip) { this.floats.push({ t: 'not enough chips', x: p[0], y: p[1], age: 0, c: 'bad' }); return; } this.chips -= this.chip; this.bets[k] = (this.bets[k] || 0) + this.chip; this.score = this.chips; sfx(820, 0.03, 0.02, 'sine'); }); },
+      key(e) { if (e.type === 'keydown' && e.code === 'Space' && this.state === 'run') { this.spin(); return true; } return false; },
+      tick(dt) { this.decay(dt); if (this.state !== 'run') return; if (this.phase === 'spin') { this.st += dt; const T = 4.2, t = Math.min(1, this.st / T), ease = 1 - Math.pow(1 - t, 3); const idx = WHEEL.indexOf(this.res), pa = idx / 37 * TAU;
+          this.wa = this.w0 + ease * TAU * 2.2; const target = this.w0 + TAU * 2.2 + pa; this.ba = this.b0 + (target - TAU * 5 - this.b0) * ease - TAU * 0; this.ba = target - (1 - ease) * TAU * 6; if (Math.random() < dt * 8 * (1 - t)) sfx(1200 + rand(0, 400), 0.01, 0.01, 'sine'); if (t >= 1) this.settle(); } },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, R = this.R, cx = w / 2, cy = this.wy; this.geom(); drawBg(c, w, h);
+        c.fillStyle = '#5a3a1e'; c.beginPath(); c.arc(cx, cy, R + 6, 0, TAU); c.fill(); for (let i = 0; i < 37; i++) { const a0 = this.wa + (i - 0.5) / 37 * TAU - Math.PI / 2, a1 = a0 + TAU / 37; c.fillStyle = colOf(WHEEL[i]); c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, R, a0, a1); c.closePath(); c.fill(); const am = (a0 + a1) / 2; c.save(); c.translate(cx + Math.cos(am) * R * 0.84, cy + Math.sin(am) * R * 0.84); c.rotate(am + Math.PI / 2); c.fillStyle = '#fff'; c.font = '700 ' + Math.max(7, R * 0.12) + 'px sans-serif'; c.textAlign = 'center'; c.fillText(WHEEL[i], 0, 3); c.restore(); }
+        c.fillStyle = '#7a5230'; c.beginPath(); c.arc(cx, cy, R * 0.66, 0, TAU); c.fill(); c.fillStyle = '#c9a25a'; c.beginPath(); c.arc(cx, cy, R * 0.18, 0, TAU); c.fill();
+        { const t = this.phase === 'spin' ? Math.min(1, this.st / 4.2) : 1, br = R * (0.98 - 0.26 * Math.min(1, t * 1.4) * (t > 0.6 ? 1 : 0.4)), a = this.ba - Math.PI / 2; if (this.hist.length || this.phase === 'spin') dot(c, cx + Math.cos(a) * br, cy + Math.sin(a) * br, Math.max(3, R * 0.07), '#ffffff', { lw: 1 }); }
+        txt(c, this.chips + ' chips', 10, 20, 13, sk.pal[1], 'left', MONO); txt(c, 'bet ' + this.total(), 10, 36, 11, sk.fg, 'left', MONO); this.hist.slice(0, 6).forEach((n, i) => { dot(c, w - 16 - i * 22, 18, 9, colOf(n), { lw: 1 }); txt(c, String(n), w - 16 - i * 22, 22, 9, '#fff', 'center', MONO); });
+        const chh = this.chh, cwid = this.cwid, x0 = 8, ty = this.ty;
+        const cell = (x, y, ww, hh, label, fill, key) => { c.fillStyle = fill; c.fillRect(x, y, ww, hh); c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(x, y, ww, hh); txt(c, label, x + ww / 2, y + hh / 2 + 4, Math.min(12, hh * 0.6), '#fff', 'center', MONO); const b = this.bets[key]; if (b) { dot(c, x + ww - 9, y + hh / 2, Math.min(8, hh * 0.42), sk.pal[1], { lw: 1.5 }); txt(c, b >= 1000 ? Math.round(b / 1000) + 'k' : String(b), x + ww - 9, y + hh / 2 + 3, 7, '#000', 'center', MONO); } };
+        cell(x0, ty, this.tw, chh, '0', '#1f9d55', 'n0'); for (let r = 0; r < 12; r++) for (let k = 0; k < 3; k++) { const n = r * 3 + k + 1; cell(x0 + k * cwid, ty + (r + 1) * chh, cwid, chh, String(n), colOf(n), 'n' + n); }
+        const lab = ['1-18', 'EVEN', 'RED', 'BLACK', 'ODD', '19-36'], keys = ['low', 'even', 'red', 'black', 'odd', 'high'], ow = this.tw / 6; keys.forEach((k, i) => cell(x0 + i * ow, this.oyb, ow, 24, lab[i], k === 'red' ? '#d62839' : k === 'black' ? '#16161d' : 'rgba(0,0,0,.25)', k)); [1, 2, 3].forEach(d => cell(x0 + (d - 1) * this.tw / 3, this.oyb + 26, this.tw / 3, 24, d === 1 ? '1st 12' : d === 2 ? '2nd 12' : '3rd 12', 'rgba(0,0,0,.25)', 'd' + d));
+        [5, 25, 100, 500].forEach((v, i) => cbtn(c, this.chipB[i], String(v), this.chip === v, sk)); cbtn(c, this.spinB[0], 'CLEAR', false, sk, this.phase !== 'bet'); cbtn(c, this.spinB[1], this.chips < 5 && !this.total() ? 'BORROW 500' : this.total() ? 'SPIN' : this.lastBets ? 'SPIN (REPEAT BET)' : 'PLACE A BET', true, sk, this.phase !== 'bet');
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, chipMix, MIX);
+  }
+
+  /* ---------- Slots ---------- */
+  function makeSlots(sk) {
+    const SYM = ['cherry', 'lemon', 'plum', 'bell', 'bar', 'gem', 'seven'], WT = [30, 26, 22, 16, 10, 6, 4], PAY = [12, 17, 23, 44, 90, 175, 450], LINES = [[1, 1, 1], [0, 0, 0], [2, 2, 2], [0, 1, 2], [2, 1, 0]];
+    const roll = () => { let t = Math.random() * WT.reduce((a, b) => a + b, 0); for (let i = 0; i < WT.length; i++) { t -= WT[i]; if (t < 0) return i; } return 0; };
+    const drawSym = (c, s, x, y, r) => { c.save(); c.translate(x, y);
+      if (s === 0) { c.strokeStyle = '#3a8a3a'; c.lineWidth = r * 0.12; c.beginPath(); c.moveTo(-r * 0.3, 0); c.quadraticCurveTo(0, -r * 0.9, r * 0.25, -r * 0.7); c.moveTo(r * 0.3, 0); c.quadraticCurveTo(r * 0.2, -r * 0.5, r * 0.25, -r * 0.7); c.stroke(); dot(c, -r * 0.32, r * 0.2, r * 0.32, '#e02a3a', { lw: 1 }); dot(c, r * 0.32, r * 0.24, r * 0.32, '#e02a3a', { lw: 1 }); }
+      else if (s === 1) { c.fillStyle = '#ffe14d'; c.strokeStyle = '#8a7a10'; c.lineWidth = 2; c.beginPath(); c.ellipse(0, 0, r * 0.62, r * 0.45, 0.3, 0, TAU); c.fill(); c.stroke(); }
+      else if (s === 2) { dot(c, 0, r * 0.05, r * 0.5, '#7a3fb8', { lw: 1.5 }); c.fillStyle = '#3a8a3a'; c.fillRect(-2, -r * 0.62, 4, r * 0.2); }
+      else if (s === 3) { c.fillStyle = '#ffc02e'; c.strokeStyle = '#8a5a10'; c.lineWidth = 2; c.beginPath(); c.moveTo(-r * 0.5, r * 0.4); c.quadraticCurveTo(-r * 0.45, -r * 0.6, 0, -r * 0.6); c.quadraticCurveTo(r * 0.45, -r * 0.6, r * 0.5, r * 0.4); c.closePath(); c.fill(); c.stroke(); dot(c, 0, r * 0.5, r * 0.12, '#8a5a10', { lw: 0 }); }
+      else if (s === 4) { c.fillStyle = '#16161d'; c.fillRect(-r * 0.6, -r * 0.28, r * 1.2, r * 0.56); c.fillStyle = '#fff'; c.font = '900 ' + Math.round(r * 0.42) + 'px sans-serif'; c.textAlign = 'center'; c.fillText('BAR', 0, r * 0.15); }
+      else if (s === 5) { c.fillStyle = '#38b6ff'; c.strokeStyle = '#0a5a8a'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -r * 0.6); c.lineTo(r * 0.55, -r * 0.1); c.lineTo(0, r * 0.6); c.lineTo(-r * 0.55, -r * 0.1); c.closePath(); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,255,255,.6)'; c.fillRect(-r * 0.15, -r * 0.35, r * 0.12, r * 0.3); }
+      else { c.fillStyle = '#e02a3a'; c.strokeStyle = '#ffd23f'; c.lineWidth = 3; c.font = '900 ' + Math.round(r * 1.25) + 'px Georgia,serif'; c.textAlign = 'center'; c.strokeText('7', 0, r * 0.45); c.fillText('7', 0, r * 0.45); }
+      c.restore(); };
+    return Object.assign({
+      sk, hold: true, title: 'Slots', how: 'Pick a bet per line and SPIN. Five lines pay: three in a row across or diagonally. Two cherries from the left pay 2.5x. Three sevens pay 450x.',
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [], chips: 1000,
+      geom() { const w = this.w, h = this.h; this.rw = Math.min(96, (w - 40) / 3); this.rh = Math.min(this.rw, (h - 260) / 3); this.rx = (w - this.rw * 3) / 2; this.ry = 84; this.betB = brow(8, h - 92, w - 16, 38, 4, 6); this.spinB = brow(8, h - 46, w - 16, 40, 2, 8); },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.grid = [[roll(), roll(), roll()], [roll(), roll(), roll()], [roll(), roll(), roll()]]; this.lb = 5; this.phase = 'idle'; this.off = [0, 0, 0]; this.stopAt = [0, 0, 0]; this.win = null; this.auto = false; this.score = this.chips; this.floats = []; this.state = 'ready'; this.t = 0; },
+      enter() { this.reset(); },
+      spin() { if (this.phase !== 'idle') return; const cost = this.lb * 5; if (this.chips < cost) { this.auto = false; if (this.chips < 5) this.loan(); return; } this.chips -= cost; this.score = this.chips; this.next = [0, 1, 2].map(() => [roll(), roll(), roll()]); this.phase = 'spin'; this.st = 0; this.win = null; sfx(400, 0.08, 0.03, 'sine'); },
+      settle() { this.grid = this.next; const g = this.grid; let won = 0; const wl = []; LINES.forEach((L, li) => { const a = g[0][L[0]], b = g[1][L[1]], cc = g[2][L[2]]; if (a === b && b === cc) { won += this.lb * PAY[a]; wl.push(li); } else if (a === 0 && b === 0) { won += Math.floor(this.lb * 2.5); wl.push(li); } });
+        this.chips += won; this.score = this.chips; this.best = Math.max(this.best, this.chips); this.win = { won, wl, t: 0 }; this.phase = 'idle'; if (won >= this.lb * 30) { JING('win'); this.flash = 0.3; } else if (won) JING('coin'); if (won) this.floats.push({ t: '+' + won, x: this.w / 2, y: this.ry + this.rh * 1.5, age: 0, c: 'good' }); if (this.auto) this.autoT = 0.6; },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e); const vals = [1, 5, 10, 25]; for (let i = 0; i < 4; i++) if (inB(this.betB[i], p) && this.phase === 'idle') { this.lb = vals[i]; sfx(700, 0.03, 0.02, 'sine'); return; }
+        if (inB(this.spinB[0], p)) { this.auto = !this.auto; if (this.auto && this.phase === 'idle') this.spin(); return; } if (inB(this.spinB[1], p) || (p[1] > this.ry && p[1] < this.ry + this.rh * 3)) this.spin(); }); },
+      key(e) { if (e.type === 'keydown' && e.code === 'Space' && this.state === 'run') { this.spin(); return true; } return false; },
+      tick(dt) { this.decay(dt); this.t += dt; if (this.state !== 'run') return; if (this.win) this.win.t += dt; if (this.phase === 'spin') { this.st += dt; for (let r = 0; r < 3; r++) if (this.st < 0.7 + r * 0.35) this.off[r] = (this.off[r] + dt * 18) % 1; else if (this.off[r] !== -1) { this.off[r] = -1; this.grid[r] = this.next[r]; sfx(260 + r * 60, 0.06, 0.03, 'sine'); } if (this.st >= 0.7 + 2 * 0.35 + 0.05) { this.off = [0, 0, 0]; this.settle(); } }
+        else if (this.auto && this.autoT != null) { this.autoT -= dt; if (this.autoT <= 0) { this.autoT = null; this.spin(); } } },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, rw = this.rw, rh = this.rh, rx = this.rx, ry = this.ry; this.geom(); drawBg(c, w, h);
+        txt(c, 'LUCKY GREG', w / 2, 34, 24, sk.pal[1], 'center'); txt(c, this.chips + ' chips   bet ' + this.lb * 5 + ' (5 lines x ' + this.lb + ')', w / 2, 56, 11, sk.fg, 'center', MONO);
+        box(c, rx - 10, ry - 10, rw * 3 + 20, rh * 3 + 20, { fill: '#2a1740', r: 14, hard: 0, soft: 0, lw: 3, line: sk.pal[1] });
+        for (let r = 0; r < 3; r++) { c.save(); c.beginPath(); c.rect(rx + r * rw + 2, ry, rw - 4, rh * 3); c.clip(); c.fillStyle = '#fffaf0'; c.fillRect(rx + r * rw + 2, ry, rw - 4, rh * 3);
+          const spinning = this.phase === 'spin' && this.off[r] !== -1; if (spinning) { const o = this.off[r] * rh; for (let k = -1; k < 4; k++) drawSym(c, (k + Math.floor(this.t * 18) + r * 3) % 7, rx + r * rw + rw / 2, ry + k * rh + o + rh / 2, rh * 0.36); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(rx + r * rw, ry, rw, rh * 3); }
+          else for (let k = 0; k < 3; k++) drawSym(c, this.grid[r][k], rx + r * rw + rw / 2, ry + k * rh + rh / 2, rh * 0.36);
+          c.restore(); }
+        if (this.win && this.win.won && this.phase === 'idle') { const pulse = 0.5 + 0.5 * Math.sin(this.win.t * 10); c.strokeStyle = 'rgba(255,210,63,' + (0.5 + pulse * 0.5) + ')'; c.lineWidth = 4; this.win.wl.forEach(li => { const L = LINES[li]; c.beginPath(); L.forEach((k, r) => { const x = rx + r * rw + rw / 2, y = ry + k * rh + rh / 2; r ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); }); }
+        const py = ry + rh * 3 + 24; txt(c, 'PAYS PER LINE BET', w / 2, py, 9, sk.dim, 'center', MONO); for (let i = 0; i < 7; i++) { const x = 18 + (w - 36) * (i + 0.5) / 7; drawSym(c, i, x, py + 18, 9); txt(c, PAY[i] + 'x', x, py + 40, 9, sk.fg, 'center', MONO); }
+        [1, 5, 10, 25].forEach((v, i) => cbtn(c, this.betB[i], v + '/line', this.lb === v, sk, this.phase !== 'idle')); cbtn(c, this.spinB[0], this.auto ? 'AUTO: ON' : 'AUTO: OFF', this.auto, sk); cbtn(c, this.spinB[1], this.chips < 5 ? 'BORROW 500' : 'SPIN', true, sk, this.phase !== 'idle');
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, chipMix, MIX);
+  }
+
+  /* ---------- Crash ---------- */
+  function makeCrash(sk) {
+    const HANDLES = ['jayden_r', 'xx_kayla', 'mike.trades', 'sol_bro', 'nina.k', 'dwayne44', 'lilmoney', 'emma49', 'big_steve', 'cryptokev', 'tia.m', 'hoodiegreg'];
+    const crashPt = () => { const u = Math.random(); return Math.min(1000, Math.max(1, Math.floor(0.97 / (1 - u) * 100) / 100)); };
+    return Object.assign({
+      sk, hold: true, title: 'Crash', how: 'Bet, then watch the multiplier climb. Tap CASH OUT before it crashes. Wait too long and you lose the bet. Set auto cash out if your hands shake.',
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [], chips: 1000,
+      geom() { const w = this.w, h = this.h; this.gx = 40; this.gy = 70; this.gw = w - 56; this.gh = Math.max(150, h - 300); this.betB = brow(8, h - 138, w - 16, 36, 4, 6); this.autoB = brow(8, h - 96, w - 16, 34, 5, 4); this.goB = { x: 8, y: h - 54, w: w - 16, h: 46 }; },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.bet = 50; this.autoX = 0; this.phase = 'idle'; this.m = 1; this.t = 0; this.cp = 2; this.cashed = 0; this.hist = []; this.score = this.chips; this.floats = []; this.state = 'ready'; this.others = []; },
+      enter() { this.reset(); },
+      go() { if (this.phase === 'fly') { this.cashOut(); return; } if (this.chips < this.bet) { if (this.chips < 10) this.loan(); return; } this.chips -= this.bet; this.score = this.chips; this.phase = 'count'; this.cd = 1.2; this.cashed = 0; this.cp = crashPt(); this.m = 1; this.t = 0; this.others = shuf(HANDLES).slice(0, 6).map(n => ({ n, at: crashPt() * rand(0.9, 1.3), out: 0, bet: [10, 25, 50, 100, 250][Math.floor(rand(0, 5))] })); sfx(440, 0.1, 0.03, 'sine'); },
+      cashOut() { if (this.phase !== 'fly' || this.cashed) return; this.cashed = this.m; const win = Math.floor(this.bet * this.m); this.chips += win; this.score = this.chips; this.best = Math.max(this.best, this.chips); this.floats.push({ t: 'cashed out ' + this.m.toFixed(2) + 'x  +' + win, x: this.w / 2, y: this.gy + 40, age: 0, c: 'good' }); JING('coin'); },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+        if (this.phase !== 'fly' && this.phase !== 'count') { const bv = [10, 50, 100, 250]; for (let i = 0; i < 4; i++) if (inB(this.betB[i], p)) { this.bet = bv[i]; sfx(700, 0.03, 0.02, 'sine'); return; } const av = [0, 1.5, 2, 3, 10]; for (let i = 0; i < 5; i++) if (inB(this.autoB[i], p)) { this.autoX = av[i]; sfx(700, 0.03, 0.02, 'sine'); return; } }
+        if (inB(this.goB, p) || (this.phase === 'fly' && p[1] < this.goB.y)) this.go(); }); },
+      key(e) { if (e.type === 'keydown' && e.code === 'Space' && this.state === 'run') { this.go(); return true; } return false; },
+      tick(dt) { this.decay(dt); if (this.state !== 'run') return;
+        if (this.phase === 'count') { this.cd -= dt; if (this.cd <= 0) { this.phase = 'fly'; this.t = 0; } return; }
+        if (this.phase === 'fly') { this.t += dt; this.m = Math.exp(0.12 * this.t); if (Math.random() < dt * 3) sfx(300 + this.m * 40, 0.03, 0.01, 'sine'); this.others.forEach(o => { if (!o.out && this.m >= o.at && o.at < this.cp) o.out = o.at; }); if (this.autoX && !this.cashed && this.m >= this.autoX) { this.m = this.autoX; this.cashOut(); }
+          if (this.m >= this.cp) { this.m = this.cp; this.phase = 'crashed'; this.hist.unshift(this.cp); if (this.hist.length > 8) this.hist.pop(); this.shake = 0.4; this.flash = 0.2; sfx(110, 0.5, 0.06, 'sine'); if (!this.cashed) this.floats.push({ t: 'lost ' + this.bet, x: this.w / 2, y: this.gy + 40, age: 0, c: 'bad' }); } } },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, gx = this.gx, gy = this.gy, gw = this.gw, gh = this.gh; this.geom(); drawBg(c, w, h);
+        txt(c, 'CRASH', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' chips', w - 12, 26, 13, sk.pal[1], 'right', MONO);
+        this.hist.forEach((v, i) => { const x = 12 + i * 44; box(c, x, 38, 40, 18, { fill: v >= 2 ? 'rgba(60,220,140,.25)' : 'rgba(255,80,80,.25)', r: 6, hard: 0, soft: 0, lw: 0 }); txt(c, v.toFixed(2) + 'x', x + 20, 51, 9, v >= 2 ? sk.good : sk.bad, 'center', MONO); });
+        box(c, gx - 30, gy, gw + 38, gh, { fill: 'rgba(0,0,0,.25)', r: 10, hard: 0, soft: 0, lw: 0 });
+        const maxT = Math.max(8, this.t * 1.15), maxM = Math.max(2, this.m * 1.2), X = t => gx + t / maxT * gw, Y = m => gy + gh - 12 - (m - 1) / (maxM - 1) * (gh - 30);
+        c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 1; for (let k = 1; k <= 4; k++) { const m = 1 + (maxM - 1) * k / 4; c.beginPath(); c.moveTo(gx, Y(m)); c.lineTo(gx + gw, Y(m)); c.stroke(); txt(c, m.toFixed(1) + 'x', gx - 4, Y(m) + 3, 8, sk.dim, 'right', MONO); }
+        if (this.phase === 'fly' || this.phase === 'crashed') { const crashed = this.phase === 'crashed'; c.strokeStyle = crashed ? sk.bad : sk.good; c.lineWidth = 3; c.beginPath(); for (let k = 0; k <= 40; k++) { const t = this.t * k / 40, m = Math.min(this.m, Math.exp(0.12 * t)); k ? c.lineTo(X(t), Y(m)) : c.moveTo(X(t), Y(m)); } c.stroke(); dot(c, X(this.t), Y(this.m), 6, crashed ? sk.bad : '#ffffff', { lw: 0 });
+          this.others.forEach((o, i) => { if (o.out) { txt(c, o.n + ' ' + o.out.toFixed(2) + 'x', X(Math.log(o.out) / 0.12), Y(o.out) - 8 - (i % 2) * 10, 8, 'rgba(255,255,255,.55)', 'center', MONO); } }); }
+        const big = this.phase === 'count' ? 'starting...' : this.phase === 'crashed' ? 'CRASHED @ ' + this.cp.toFixed(2) + 'x' : this.m.toFixed(2) + 'x'; txt(c, big, gx + gw / 2 - 10, gy + gh / 2, this.phase === 'crashed' ? 22 : 40, this.phase === 'crashed' ? sk.bad : sk.fg, 'center');
+        if (this.cashed) txt(c, 'you cashed out at ' + this.cashed.toFixed(2) + 'x', gx + gw / 2 - 10, gy + gh / 2 + 24, 11, sk.good, 'center', MONO);
+        const busy = this.phase === 'fly' || this.phase === 'count'; [10, 50, 100, 250].forEach((v, i) => cbtn(c, this.betB[i], 'bet ' + v, this.bet === v, sk, busy)); [0, 1.5, 2, 3, 10].forEach((v, i) => cbtn(c, this.autoB[i], v ? 'auto ' + v + 'x' : 'auto off', this.autoX === v, sk, busy));
+        cbtn(c, this.goB, this.phase === 'fly' ? (this.cashed ? 'CASHED' : 'CASH OUT ' + Math.floor(this.bet * this.m)) : this.phase === 'count' ? '...' : this.chips < 10 ? 'BORROW 500' : 'BET ' + this.bet, true, sk, this.phase === 'count' || (this.phase === 'fly' && this.cashed));
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, chipMix, MIX);
+  }
+
+  /* ---------- Mines ---------- */
+  function makeMines(sk) {
+    const N = 25, mult = (m, k) => { let x = 0.97; for (let i = 0; i < k; i++) x *= (N - i) / (N - m - i); return x; };
+    return Object.assign({
+      sk, hold: true, title: 'Mines', how: 'Pick how many mines and your bet, then START. Every gem you flip raises the multiplier. CASH OUT any time. Hit a mine and you lose the bet.',
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [], chips: 1000,
+      geom() { const w = this.w, h = this.h; this.S = Math.floor(Math.min(w - 24, h - 250) / 5); this.gx = (w - this.S * 5) / 2; this.gy = 70; this.mB = brow(8, h - 138, w - 16, 36, 4, 6); this.bB = brow(8, h - 96, w - 16, 34, 4, 6); this.goB = { x: 8, y: h - 54, w: w - 16, h: 46 }; },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.mines = 3; this.bet = 50; this.phase = 'idle'; this.cells = Array(N).fill(0).map(() => ({ mine: false, open: false })); this.k = 0; this.score = this.chips; this.floats = []; this.state = 'ready'; this.fx = []; },
+      enter() { this.reset(); },
+      start() { if (this.chips < this.bet) { if (this.chips < 10) this.loan(); return; } this.chips -= this.bet; this.score = this.chips; this.cells = Array(N).fill(0).map(() => ({ mine: false, open: false })); shuf([...Array(N).keys()]).slice(0, this.mines).forEach(i => { this.cells[i].mine = true; }); this.k = 0; this.phase = 'play'; sfx(440, 0.08, 0.03, 'sine'); },
+      cash() { if (this.phase !== 'play' || !this.k) return; const win = Math.floor(this.bet * mult(this.mines, this.k)); this.chips += win; this.score = this.chips; this.best = Math.max(this.best, this.chips); this.phase = 'done'; this.cells.forEach(c2 => { c2.show = true; }); this.floats.push({ t: 'cashed out +' + win, x: this.w / 2, y: this.gy + this.S * 2.5, age: 0, c: 'good' }); JING('coin'); },
+      flip(i) { const cl = this.cells[i]; if (cl.open || this.phase !== 'play') return; cl.open = true; if (cl.mine) { this.phase = 'done'; this.cells.forEach(c2 => { c2.show = true; }); this.shake = 0.5; this.flash = 0.3; sfx(110, 0.5, 0.06, 'sine'); this.floats.push({ t: 'BOOM  -' + this.bet, x: this.w / 2, y: this.gy + this.S * 2.5, age: 0, c: 'bad' }); return; } this.k++; sfx(600 + this.k * 40, 0.08, 0.03, 'sine'); this.fx.push({ i, t: 0 }); if (this.k === N - this.mines) this.cash(); },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+        if (this.phase !== 'play') { const mv = [1, 3, 5, 10]; for (let i = 0; i < 4; i++) if (inB(this.mB[i], p)) { this.mines = mv[i]; sfx(700, 0.03, 0.02, 'sine'); return; } const bv = [10, 50, 100, 250]; for (let i = 0; i < 4; i++) if (inB(this.bB[i], p)) { this.bet = bv[i]; sfx(700, 0.03, 0.02, 'sine'); return; } }
+        if (inB(this.goB, p)) { if (this.phase === 'play') this.cash(); else this.start(); return; }
+        const cx = Math.floor((p[0] - this.gx) / this.S), cy = Math.floor((p[1] - this.gy) / this.S); if (cx >= 0 && cx < 5 && cy >= 0 && cy < 5) { if (this.phase !== 'play') this.start(); else this.flip(cy * 5 + cx); } }); },
+      key(e) { return false; },
+      tick(dt) { this.decay(dt); this.fx.forEach(f => f.t += dt); this.fx = this.fx.filter(f => f.t < 0.4); },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, S = this.S; this.geom(); drawBg(c, w, h);
+        txt(c, 'MINES', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' chips', w - 12, 26, 13, sk.pal[1], 'right', MONO);
+        const nx = this.phase === 'play' ? mult(this.mines, this.k + 1) : mult(this.mines, 1); txt(c, this.phase === 'play' ? 'now ' + mult(this.mines, this.k).toFixed(2) + 'x   next gem ' + nx.toFixed(2) + 'x' : this.mines + ' mines   first gem pays ' + nx.toFixed(2) + 'x', w / 2, 52, 11, sk.dim, 'center', MONO);
+        for (let i = 0; i < N; i++) { const cl = this.cells[i], x = this.gx + (i % 5) * S + 3, y = this.gy + Math.floor(i / 5) * S + 3, s = S - 6, shown = cl.open || cl.show; const f = this.fx.find(q => q.i === i), pop = f ? 1 + Math.sin(f.t / 0.4 * Math.PI) * 0.12 : 1;
+          c.save(); c.translate(x + s / 2, y + s / 2); c.scale(pop, pop); box(c, -s / 2, -s / 2, s, s, { fill: shown ? (cl.mine ? (cl.open ? '#5a1620' : '#2a1a20') : (cl.open ? '#1b4a3a' : '#16302a')) : sk.panel, r: 8, hard: 0, soft: 0, lw: 0 });
+          if (shown) { c.globalAlpha = cl.open ? 1 : 0.45; if (cl.mine) { dot(c, 0, 0, s * 0.26, '#16161d', { lw: 2 }); c.strokeStyle = '#16161d'; c.lineWidth = 3; for (let a = 0; a < 4; a++) { c.beginPath(); c.moveTo(Math.cos(a * Math.PI / 4) * s * 0.36, Math.sin(a * Math.PI / 4) * s * 0.36); c.lineTo(-Math.cos(a * Math.PI / 4) * s * 0.36, -Math.sin(a * Math.PI / 4) * s * 0.36); c.stroke(); } dot(c, -s * 0.08, -s * 0.08, s * 0.06, '#ff5a5a', { lw: 0 }); } else { c.fillStyle = '#3ddc84'; c.beginPath(); c.moveTo(0, -s * 0.3); c.lineTo(s * 0.28, -s * 0.05); c.lineTo(0, s * 0.3); c.lineTo(-s * 0.28, -s * 0.05); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,255,255,.5)'; c.fillRect(-s * 0.06, -s * 0.18, s * 0.06, s * 0.14); } c.globalAlpha = 1; }
+          c.restore(); }
+        const busy = this.phase === 'play'; [1, 3, 5, 10].forEach((v, i) => cbtn(c, this.mB[i], v + (v === 1 ? ' mine' : ' mines'), this.mines === v, sk, busy)); [10, 50, 100, 250].forEach((v, i) => cbtn(c, this.bB[i], 'bet ' + v, this.bet === v, sk, busy));
+        cbtn(c, this.goB, busy ? (this.k ? 'CASH OUT ' + Math.floor(this.bet * mult(this.mines, this.k)) : 'PICK A TILE') : this.chips < 10 ? 'BORROW 500' : 'START  (bet ' + this.bet + ')', true, sk, busy && !this.k);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, chipMix, MIX);
+  }
+
+  skin('klondike', { bg: ['#1f6b3a', '#165530'], pat: 'dots', patc: 'rgba(0,0,0,.08)', fg: '#ffffff', dim: '#bfe0c8', panel: '#0f3f22', pfg: '#ffffff', dark: true, line: '#d9b45a', lw: 0, r: 8, pal: ['#d9b45a', '#1f4fbf', '#ffffff', '#d9b45a'], good: '#ffe08a', bad: '#ff6b6b', font: '"Playfair Display","Georgia",serif', fw: 800, fs: 1, mono: '"Lato","Arial",sans-serif', mw: 700, ms: 0.9, veil: 'rgba(22,85,48,.86)', vfg: '#ffffff', slide: '#165530', sbgc: '#165530', sfg: '#ffffff', sdim: '#cfe8d6', stag: '#ffe08a', tsize: 27, tfw: 800, tls: '0', frame: '' });
+  skin('bjred', { bg: ['#7a1420', '#5a0e18'], pat: 'none', fg: '#fff4e6', dim: '#e8b8b8', panel: '#3a070d', pfg: '#fff4e6', dark: true, line: '#e8c46a', lw: 0, r: 10, pal: ['#e8c46a', '#ffe08a', '#ffffff', '#1a2a6c'], good: '#ffe08a', bad: '#ff8a8a', font: '"Cinzel","Georgia",serif', fw: 800, fs: 1, mono: '"Lato","Arial",sans-serif', mw: 700, ms: 0.9, veil: 'rgba(90,14,24,.86)', vfg: '#fff4e6', slide: '#5a0e18', sbgc: '#5a0e18', sfg: '#fff4e6', sdim: '#f0c8c8', stag: '#e8c46a', tsize: 27, tfw: 800, tls: '.04em', frame: '' });
+  skin('pokerroom', { bg: ['#0f3b2e', '#0a2a20'], pat: 'none', fg: '#f2f6f1', dim: '#9fc4b4', panel: '#123f33', pfg: '#f2f6f1', dark: true, line: '#2a6b56', lw: 0, r: 10, pal: ['#ffb000', '#ffe14d', '#7a1d2e', '#5a3a1e'], good: '#ffe14d', bad: '#ff7a7a', font: '"Oswald","Arial Narrow",sans-serif', fw: 500, fs: 1.05, mono: '"Roboto Mono","Courier New",monospace', mw: 500, ms: 0.9, veil: 'rgba(10,42,32,.86)', vfg: '#f2f6f1', slide: '#0a2a20', sbgc: '#0a2a20', sfg: '#f2f6f1', sdim: '#b4d4c6', stag: '#ffb000', tsize: 27, tfw: 500, tls: '.03em', tcase: 'uppercase', frame: '' });
+  skin('roulette', { bg: ['#1c120c', '#2a1a10'], pat: 'none', fg: '#f6ead8', dim: '#c2a888', panel: '#3a2616', pfg: '#f6ead8', dark: true, line: '#c9a25a', lw: 0, r: 8, pal: ['#c9a25a', '#ffd700', '#1f9d55', '#d62839'], good: '#ffd700', bad: '#ff7a7a', font: '"Playfair Display","Georgia",serif', fw: 800, fs: 1, mono: '"Lato","Arial",sans-serif', mw: 700, ms: 0.85, veil: 'rgba(28,18,12,.86)', vfg: '#f6ead8', slide: '#2a1a10', sbgc: '#2a1a10', sfg: '#f6ead8', sdim: '#d8c0a0', stag: '#c9a25a', tsize: 27, tfw: 800, tls: '0', frame: '' });
+  skin('slotneon', { bg: ['#1a0b2e', '#2d0f4a'], pat: 'none', fg: '#ffffff', dim: '#c9a6ff', panel: '#3b1a63', pfg: '#ffffff', dark: true, line: '#ff4fd8', lw: 0, r: 12, pal: ['#ff4fd8', '#ffd23f', '#38b6ff', '#3ddc84'], good: '#ffd23f', bad: '#ff5a7a', font: '"Bungee","Impact",sans-serif', fw: 400, fs: 0.95, mono: '"Nunito",system-ui,sans-serif', mw: 800, ms: 0.9, veil: 'rgba(26,11,46,.86)', vfg: '#ffffff', slide: '#2d0f4a', sbgc: '#2d0f4a', sfg: '#ffffff', sdim: '#d8bfff', stag: '#ffd23f', tsize: 25, tfw: 400, tls: '.02em', frame: '' });
+  skin('crashnight', { bg: ['#0b1020', '#111a33'], pat: 'grid', patc: 'rgba(120,160,255,.05)', fg: '#eef3ff', dim: '#8b98c0', panel: '#1a2448', pfg: '#eef3ff', dark: true, line: '#2f6bff', lw: 0, r: 10, pal: ['#2f6bff', '#3ddc84', '#ffb000', '#ff5a5a'], good: '#3ddc84', bad: '#ff5a5a', font: '"Space Grotesk","Arial",sans-serif', fw: 700, fs: 1, mono: '"JetBrains Mono","Courier New",monospace', mw: 500, ms: 0.85, veil: 'rgba(11,16,32,.86)', vfg: '#eef3ff', slide: '#111a33', sbgc: '#111a33', sfg: '#eef3ff', sdim: '#a8b4d8', stag: '#3ddc84', tsize: 27, tfw: 700, tls: '-.01em', frame: '' });
+  skin('minefield', { bg: ['#0e1a22', '#13242e'], pat: 'none', fg: '#e8f6f0', dim: '#8ab0a4', panel: '#1f3a46', pfg: '#e8f6f0', dark: true, line: '#3ddc84', lw: 0, r: 10, pal: ['#3ddc84', '#ffd23f', '#38b6ff', '#ff5a5a'], good: '#3ddc84', bad: '#ff5a5a', font: '"Rubik","Arial",sans-serif', fw: 800, fs: 1, mono: '"Rubik","Arial",sans-serif', mw: 600, ms: 0.85, veil: 'rgba(14,26,34,.86)', vfg: '#e8f6f0', slide: '#13242e', sbgc: '#13242e', sfg: '#e8f6f0', sdim: '#a8c8bc', stag: '#3ddc84', tsize: 27, tfw: 800, tls: '0', frame: '' });
+
+  NEW_SLIDES.push(
+    mk(makeSolitaire(SKINS.klondike), 'Solitaire', SKINS.klondike, 'Klondike, draw one. Tap or drag cards. Undo is free.', '#solitaire #cards #classic', 6.9e9, 1.4e9, 520e6, 'solitaire'),
+    mk(makeBlackjack(SKINS.bjred), 'Blackjack', SKINS.bjred, 'Beat the dealer to 21. Double, split, and borrow from Greg when it goes badly.', '#blackjack #casino #21', 12.4e9, 4.4e9, 2.2e9, 'blackjack'),
+    mk(makeHoldem(SKINS.pokerroom), "Hold'em", SKINS.pokerroom, "No-limit Texas Hold'em vs three bots with different styles. Take every chip.", '#poker #holdem #allin', 10.2e9, 3.6e9, 1.4e9, 'holdem'),
+    mk(makeRoulette(SKINS.roulette), 'Roulette', SKINS.roulette, 'Single zero wheel. Bet numbers, colors, halves or dozens.', '#roulette #casino #red', 7.8e9, 2.1e9, 940e6, 'roulette'),
+    mk(makeSlots(SKINS.slotneon), 'Slots', SKINS.slotneon, 'Three reels, five lines, three sevens pay 450x. Auto spin for the brave.', '#slots #jackpot #spin', 16.1e9, 3.9e9, 2.8e9, 'slots'),
+    mk(makeCrash(SKINS.crashnight), 'Crash', SKINS.crashnight, 'The multiplier climbs until it does not. Cash out in time.', '#crash #multiplier #cashout', 13.3e9, 5.2e9, 3.1e9, 'crash'),
+    mk(makeMines(SKINS.minefield), 'Mines', SKINS.minefield, 'Flip tiles for gems, avoid the mines, cash out whenever you want.', '#mines #gems #risk', 11.7e9, 3.3e9, 2.0e9, 'mines')
+  );
 
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
