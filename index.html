@@ -6939,7 +6939,7 @@ const SUMMIT_LEVELS = [
   const chipMix = {
     bank() { return this.chips; },
     pay(n) { this.chips += n; this.best = Math.max(this.best, this.chips); this.score = this.chips; },
-    loan() { this.chips += 500; this.loans = (this.loans || 0) + 1; this.score = this.chips; this.floats.push({ t: 'Greg loaned you 500 ' + (this.casino ? 'galaxies' : 'chips'), x: this.w / 2, y: this.h * 0.4, age: 0, c: 'good' }); sfx(520, 0.15, 0.04, 'sine'); }
+    loan() { if (this.casino) { this.floats.push({ t: 'Out of galaxies. Open a crate to get more.', x: this.w / 2, y: this.h * 0.4, age: 0, c: 'bad' }); sfx(200, 0.12, 0.03, 'sine'); try { window.__toCrate && window.__toCrate(); } catch (_) {} return; } this.chips += 500; this.loans = (this.loans || 0) + 1; this.score = this.chips; this.floats.push({ t: 'Greg loaned you 500 ' + (this.casino ? 'galaxies' : 'chips'), x: this.w / 2, y: this.h * 0.4, age: 0, c: 'good' }); sfx(520, 0.15, 0.04, 'sine'); }
   };
 
   /* ---------- Solitaire (Klondike, draw one) ---------- */
@@ -7042,7 +7042,7 @@ const SUMMIT_LEVELS = [
         this.hands.forEach((H, hi) => { const cxh = 10 + hw * hi + hw / 2, step = Math.min(cw * 0.55, (hw - cw - 6) / Math.max(1, H.c.length - 1)); H.c.forEach((cd, i) => drawCardX(c, cxh - (cw + step * (H.c.length - 1)) / 2 + i * step, py + i * 6, cw, ch, cd, true, null, this.phase === 'play' && hi === this.cur && n > 1)); const v = val(H.c); txt(c, (v.soft && v.t < 21 ? 'soft ' : '') + v.t + '  bet ' + H.bet, cxh, py + ch + 22 + H.c.length * 6, 11, sk.fg, 'center', MONO); });
         if (this.res) txt(c, this.res, w / 2, h - 118, 15, sk.pal[1], 'center');
         if (this.phase === 'play') { const H = this.hand(), canD = H.c.length === 2 && this.chips >= H.bet, cv = x => x.r === 14 ? 11 : Math.min(10, x.r), canS = H.c.length === 2 && cv(H.c[0]) === cv(H.c[1]) && this.chips >= H.bet && this.hands.length < 4; cbtn(c, this.actB[0], 'HIT', true, sk); cbtn(c, this.actB[1], 'STAND', false, sk); cbtn(c, this.actB[2], 'DOUBLE', false, sk, !canD); cbtn(c, this.actB[3], 'SPLIT', false, sk, !canS); }
-        else if (this.phase !== 'dealer') { [10, 50, 100, 500].forEach((v, i) => cbtn(c, this.chipB[i], String(v), this.bet === v, sk, this.chips < v && this.chips >= 10)); const broke = this.chips < 10; cbtn(c, { x: this.actB[0].x, y: this.actB[0].y, w: this.actB[3].x + this.actB[3].w - this.actB[0].x, h: this.actB[0].h }, broke ? 'BORROW 500 FROM GREG' : this.phase === 'done' ? 'DEAL AGAIN' : 'DEAL', true, sk); }
+        else if (this.phase !== 'dealer') { [10, 50, 100, 500].forEach((v, i) => cbtn(c, this.chipB[i], String(v), this.bet === v, sk, this.chips < v && this.chips >= 10)); const broke = this.chips < 10; cbtn(c, { x: this.actB[0].x, y: this.actB[0].y, w: this.actB[3].x + this.actB[3].w - this.actB[0].x, h: this.actB[0].h }, broke ? (this.casino ? 'GET GALAXIES IN THE CRATE' : 'BORROW 500 FROM GREG') : this.phase === 'done' ? 'DEAL AGAIN' : 'DEAL', true, sk); }
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, chipMix, MIX);
@@ -7180,7 +7180,7 @@ const SUMMIT_LEVELS = [
         const cell = (x, y, ww, hh, label, fill, key) => { c.fillStyle = fill; c.fillRect(x, y, ww, hh); c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(x, y, ww, hh); txt(c, label, x + ww / 2, y + hh / 2 + 4, Math.min(12, hh * 0.6), '#fff', 'center', MONO); const b = this.bets[key]; if (b) { dot(c, x + ww - 9, y + hh / 2, Math.min(8, hh * 0.42), sk.pal[1], { lw: 1.5 }); txt(c, b >= 1000 ? Math.round(b / 1000) + 'k' : String(b), x + ww - 9, y + hh / 2 + 3, 7, '#000', 'center', MONO); } };
         cell(x0, ty, this.tw, chh, '0', '#1f9d55', 'n0'); for (let r = 0; r < 12; r++) for (let k = 0; k < 3; k++) { const n = r * 3 + k + 1; cell(x0 + k * cwid, ty + (r + 1) * chh, cwid, chh, String(n), colOf(n), 'n' + n); }
         const lab = ['1-18', 'EVEN', 'RED', 'BLACK', 'ODD', '19-36'], keys = ['low', 'even', 'red', 'black', 'odd', 'high'], ow = this.tw / 6; keys.forEach((k, i) => cell(x0 + i * ow, this.oyb, ow, 24, lab[i], k === 'red' ? '#d62839' : k === 'black' ? '#16161d' : 'rgba(0,0,0,.25)', k)); [1, 2, 3].forEach(d => cell(x0 + (d - 1) * this.tw / 3, this.oyb + 26, this.tw / 3, 24, d === 1 ? '1st 12' : d === 2 ? '2nd 12' : '3rd 12', 'rgba(0,0,0,.25)', 'd' + d));
-        [5, 25, 100, 500].forEach((v, i) => cbtn(c, this.chipB[i], String(v), this.chip === v, sk)); cbtn(c, this.spinB[0], 'CLEAR', false, sk, this.phase !== 'bet'); cbtn(c, this.spinB[1], this.chips < 5 && !this.total() ? 'BORROW 500' : this.total() ? 'SPIN' : this.lastBets ? 'SPIN (REPEAT BET)' : 'PLACE A BET', true, sk, this.phase !== 'bet');
+        [5, 25, 100, 500].forEach((v, i) => cbtn(c, this.chipB[i], String(v), this.chip === v, sk)); cbtn(c, this.spinB[0], 'CLEAR', false, sk, this.phase !== 'bet'); cbtn(c, this.spinB[1], this.chips < 5 && !this.total() ? (this.casino ? 'GET GALAXIES' : 'BORROW 500') : this.total() ? 'SPIN' : this.lastBets ? 'SPIN (REPEAT BET)' : 'PLACE A BET', true, sk, this.phase !== 'bet');
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, chipMix, MIX);
@@ -7224,7 +7224,7 @@ const SUMMIT_LEVELS = [
           c.restore(); }
         if (this.win && this.win.won && this.phase === 'idle') { const pulse = 0.5 + 0.5 * Math.sin(this.win.t * 10); c.strokeStyle = 'rgba(255,210,63,' + (0.5 + pulse * 0.5) + ')'; c.lineWidth = 4; this.win.wl.forEach(li => { const L = LINES[li]; c.beginPath(); L.forEach((k, r) => { const x = rx + r * rw + rw / 2, y = ry + k * rh + rh / 2; r ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); }); }
         const py = ry + rh * 3 + 24; txt(c, 'PAYS PER LINE BET', w / 2, py, 9, sk.dim, 'center', MONO); for (let i = 0; i < 7; i++) { const x = 18 + (w - 36) * (i + 0.5) / 7; drawSym(c, i, x, py + 18, 9); txt(c, PAY[i] + 'x', x, py + 40, 9, sk.fg, 'center', MONO); }
-        [1, 5, 10, 25].forEach((v, i) => cbtn(c, this.betB[i], v + '/line', this.lb === v, sk, this.phase !== 'idle')); cbtn(c, this.spinB[0], this.auto ? 'AUTO: ON' : 'AUTO: OFF', this.auto, sk); cbtn(c, this.spinB[1], this.chips < 5 ? 'BORROW 500' : 'SPIN', true, sk, this.phase !== 'idle');
+        [1, 5, 10, 25].forEach((v, i) => cbtn(c, this.betB[i], v + '/line', this.lb === v, sk, this.phase !== 'idle')); cbtn(c, this.spinB[0], this.auto ? 'AUTO: ON' : 'AUTO: OFF', this.auto, sk); cbtn(c, this.spinB[1], this.chips < 5 ? (this.casino ? 'GET GALAXIES' : 'BORROW 500') : 'SPIN', true, sk, this.phase !== 'idle');
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, chipMix, MIX);
@@ -7263,7 +7263,7 @@ const SUMMIT_LEVELS = [
         const big = this.phase === 'count' ? 'starting...' : this.phase === 'crashed' ? 'CRASHED @ ' + this.cp.toFixed(2) + 'x' : this.m.toFixed(2) + 'x'; txt(c, big, gx + gw / 2 - 10, gy + gh / 2, this.phase === 'crashed' ? 22 : 40, this.phase === 'crashed' ? sk.bad : sk.fg, 'center');
         if (this.cashed) txt(c, 'you cashed out at ' + this.cashed.toFixed(2) + 'x', gx + gw / 2 - 10, gy + gh / 2 + 24, 11, sk.good, 'center', MONO);
         const busy = this.phase === 'fly' || this.phase === 'count'; [10, 50, 100, 250].forEach((v, i) => cbtn(c, this.betB[i], 'bet ' + v, this.bet === v, sk, busy)); [0, 1.5, 2, 3, 10].forEach((v, i) => cbtn(c, this.autoB[i], v ? 'auto ' + v + 'x' : 'auto off', this.autoX === v, sk, busy));
-        cbtn(c, this.goB, this.phase === 'fly' ? (this.cashed ? 'CASHED' : 'CASH OUT ' + Math.floor(this.bet * this.m)) : this.phase === 'count' ? '...' : this.chips < 10 ? 'BORROW 500' : 'BET ' + this.bet, true, sk, this.phase === 'count' || (this.phase === 'fly' && this.cashed));
+        cbtn(c, this.goB, this.phase === 'fly' ? (this.cashed ? 'CASHED' : 'CASH OUT ' + Math.floor(this.bet * this.m)) : this.phase === 'count' ? '...' : this.chips < 10 ? (this.casino ? 'GET GALAXIES' : 'BORROW 500') : 'BET ' + this.bet, true, sk, this.phase === 'count' || (this.phase === 'fly' && this.cashed));
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, chipMix, MIX);
@@ -7297,7 +7297,7 @@ const SUMMIT_LEVELS = [
           if (shown) { c.globalAlpha = cl.open ? 1 : 0.45; if (cl.mine) { dot(c, 0, 0, s * 0.26, '#16161d', { lw: 2 }); c.strokeStyle = '#16161d'; c.lineWidth = 3; for (let a = 0; a < 4; a++) { c.beginPath(); c.moveTo(Math.cos(a * Math.PI / 4) * s * 0.36, Math.sin(a * Math.PI / 4) * s * 0.36); c.lineTo(-Math.cos(a * Math.PI / 4) * s * 0.36, -Math.sin(a * Math.PI / 4) * s * 0.36); c.stroke(); } dot(c, -s * 0.08, -s * 0.08, s * 0.06, '#ff5a5a', { lw: 0 }); } else { c.fillStyle = '#3ddc84'; c.beginPath(); c.moveTo(0, -s * 0.3); c.lineTo(s * 0.28, -s * 0.05); c.lineTo(0, s * 0.3); c.lineTo(-s * 0.28, -s * 0.05); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,255,255,.5)'; c.fillRect(-s * 0.06, -s * 0.18, s * 0.06, s * 0.14); } c.globalAlpha = 1; }
           c.restore(); }
         const busy = this.phase === 'play'; [1, 3, 5, 10].forEach((v, i) => cbtn(c, this.mB[i], v + (v === 1 ? ' mine' : ' mines'), this.mines === v, sk, busy)); [10, 50, 100, 250].forEach((v, i) => cbtn(c, this.bB[i], 'bet ' + v, this.bet === v, sk, busy));
-        cbtn(c, this.goB, busy ? (this.k ? 'CASH OUT ' + Math.floor(this.bet * mult(this.mines, this.k)) : 'PICK A TILE') : this.chips < 10 ? 'BORROW 500' : 'START  (bet ' + this.bet + ')', true, sk, busy && !this.k);
+        cbtn(c, this.goB, busy ? (this.k ? 'CASH OUT ' + Math.floor(this.bet * mult(this.mines, this.k)) : 'PICK A TILE') : this.chips < 10 ? (this.casino ? 'GET GALAXIES' : 'BORROW 500') : 'START  (bet ' + this.bet + ')', true, sk, busy && !this.k);
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, chipMix, MIX);
@@ -8113,6 +8113,7 @@ const SUMMIT_LEVELS = [
       const k = b.dataset.tab; if (k === 'crate') { body.hidden = false; gp.hidden = true; bal.hidden = true; active = null; crateEl.classList.remove('big'); return; }
       body.hidden = true; gp.hidden = false; bal.hidden = false; crateEl.classList.add('big'); Object.values(inst).forEach(g => { g.cv.style.display = 'none'; });
       requestAnimationFrame(() => { const g = inst[k] || build(k); g.cv.style.display = 'block'; active = g; if (g.enter && !g.entered) { g.entered = true; } }); });
+    window.__toCrate = () => setTimeout(() => { const b = tabs.querySelector('button[data-tab="crate"]'); if (b) b.click(); }, 900);
     const loop = t => { const dt = Math.min(0.05, ((t - lastT) / 1000) || 0.016); lastT = t; upd();
       if (active && crateEl.classList.contains('open') && active.w) { SK = active.sk; GM = active; try { if (active.tick) active.tick(dt); active.draw(); } catch (err) { console.error(err); } }
       requestAnimationFrame(loop); };
