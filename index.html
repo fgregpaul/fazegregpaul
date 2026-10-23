@@ -5742,6 +5742,36 @@ body{
     }, true);
   })();
 
+
+  /* ===== search ===== */
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = '#sbtn{position:absolute;top:14px;right:98px;z-index:30;width:30px;height:30px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--hdc,#fff);color:var(--hdi,#111);cursor:pointer;pointer-events:auto;padding:0}#sbtn svg{width:16px;height:16px}' +
+      '#sov{position:absolute;inset:0;z-index:60;background:rgba(10,10,14,.92);backdrop-filter:blur(10px);display:none;flex-direction:column;padding:16px 16px 0;color:#fff}#sov.on{display:flex}' +
+      '#sov .sr{display:flex;gap:8px;align-items:center}#sin{flex:1;min-width:0;height:42px;border-radius:21px;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font:500 16px system-ui,sans-serif;padding:0 16px;outline:none}#sin:focus{border-color:#fff}' +
+      '#sx{border:0;background:none;color:#fff;font:600 14px system-ui,sans-serif;padding:8px;cursor:pointer}#sl{flex:1;overflow:auto;margin:12px -16px 0;padding:0 16px 24px}' +
+      '#sl button{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid rgba(255,255,255,.1);color:#fff;padding:11px 2px;cursor:pointer}#sl b{display:block;font:700 16px system-ui,sans-serif}#sl span{display:block;font:400 12px system-ui,sans-serif;opacity:.65;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#sl p{opacity:.6;font:400 14px system-ui,sans-serif;padding:20px 2px}';
+    document.head.appendChild(st);
+    const btn = document.createElement('button'); btn.id = 'sbtn'; btn.type = 'button'; btn.setAttribute('aria-label', 'Search games');
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>';
+    const ov = document.createElement('div'); ov.id = 'sov';
+    ov.innerHTML = '<div class="sr"><input id="sin" type="search" placeholder="Search games" autocomplete="off" aria-label="Search games"><button id="sx" type="button">Cancel</button></div><div id="sl"></div>';
+    phone.appendChild(btn); phone.appendChild(ov);
+    const inp = ov.querySelector('#sin'), list = ov.querySelector('#sl');
+    const render = () => {
+      const q = inp.value.trim().toLowerCase(), toks = q.split(/\s+/).filter(Boolean), rows = [];
+      SLIDES.forEach((s, i) => { const hay = (s.title + ' ' + s.tags + ' ' + s.desc + ' ' + s.handle).toLowerCase(); if (toks.every(t => hay.indexOf(t) >= 0)) rows.push([i, s, s.title.toLowerCase().indexOf(q) === 0 ? 0 : s.title.toLowerCase().indexOf(q) > 0 ? 1 : 2]); });
+      rows.sort((a, b) => a[2] - b[2] || (a[1].title < b[1].title ? -1 : 1));
+      list.innerHTML = '';
+      if (!rows.length) { const p = document.createElement('p'); p.textContent = 'No games match "' + inp.value.trim() + '". Try a different word.'; list.appendChild(p); return; }
+      rows.slice(0, 60).forEach(r => { const b = document.createElement('button'); b.type = 'button'; const t = document.createElement('b'); t.textContent = r[1].title; const d = document.createElement('span'); d.textContent = r[1].tags + '  by @' + r[1].handle; b.appendChild(t); b.appendChild(d); b.addEventListener('click', () => { close(); feed.scrollTo({ top: r[0] * feed.clientHeight }); }); list.appendChild(b); });
+    };
+    const open = () => { ov.classList.add('on'); inp.value = ''; render(); setTimeout(() => { try { inp.focus(); } catch (_) {} }, 50); };
+    const close = () => { ov.classList.remove('on'); inp.blur(); };
+    btn.addEventListener('click', open); ov.querySelector('#sx').addEventListener('click', close); inp.addEventListener('input', render);
+    ['keydown', 'keyup'].forEach(t => ov.addEventListener(t, e => { e.stopPropagation(); if (t === 'keydown' && e.key === 'Escape') close(); }));
+  })();
+
 })();
 </script>
 
