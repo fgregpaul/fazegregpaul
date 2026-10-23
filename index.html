@@ -6284,7 +6284,7 @@ const SUMMIT_LEVELS = [
   function makeSummit(sk) {
     const H = 1 / 60;
     return Object.assign({
-      sk, hold: true, title: 'Summit', how: 'Climb to the top of each screen. Left pad: drag to move and aim. JUMP to jump, and jump off walls. DASH once in the air in the direction you aim. Landing refills your dash.',
+      sk, hold: true, title: 'Summit', how: 'Climb to the top of each screen. Phone: drag the left pad, tap JUMP and DASH. PC: WASD or arrows to move, Space to jump, Shift to dash. One dash in the air, landing refills it.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], ptr: {}, joy: null,
       geom() { this.T = Math.floor(Math.min(this.w / 16, (this.h - 150) / 16)); this.mx = Math.floor((this.w - this.T * 16) / 2); this.my = 26; const cy = this.my + this.T * 16 + 10; this.cy = cy; this.ch = this.h - cy; const bs = Math.min(70, this.ch - 16); this.bJ = { x: this.w - bs - 10, y: cy + (this.ch - bs) / 2, w: bs, h: bs }; this.bD = { x: this.w - 2 * bs - 22, y: cy + (this.ch - bs) / 2, w: bs, h: bs }; this.pad = { x: 10, y: cy + 4, w: this.w * 0.46, h: this.ch - 8 }; },
       layout() { this.geom(); },
@@ -6300,7 +6300,7 @@ const SUMMIT_LEVELS = [
           if (p[0] < this.w * 0.55) { this.joy = { id: e.pointerId, ox: p[0], oy: p[1], x: p[0], y: p[1] }; this.ptr[e.pointerId] = 'm'; } });
         cv.addEventListener('pointermove', e => { if (this.joy && this.joy.id === e.pointerId) { const p = ptrPos(cv, e); this.joy.x = p[0]; this.joy.y = p[1]; } });
         ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => { delete this.ptr[e.pointerId]; if (this.joy && this.joy.id === e.pointerId) this.joy = null; })); },
-      key(e) { const d = e.type === 'keydown', m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd', KeyA: 'l', KeyD: 'r', KeyW: 'u', KeyS: 'd', KeyC: 'j', KeyZ: 'j', Space: 'j', KeyX: 'x', ShiftLeft: 'x', KeyK: 'x', KeyJ: 'j' }[e.code]; if (!m) return false; this.keys = this.keys || {};
+      key(e) { const d = e.type === 'keydown', m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'u', ArrowDown: 'd', KeyA: 'l', KeyD: 'r', KeyW: 'u', KeyS: 'd', KeyC: 'j', KeyZ: 'j', Space: 'j', KeyX: 'x', ShiftLeft: 'x', ShiftRight: 'x', KeyK: 'x', KeyL: 'x', KeyJ: 'j' }[e.code]; if (!m) return false; this.keys = this.keys || {}; if (this.state !== 'run') { if (d) this.kick(); return true; }
         if (m === 'x') { if (d && !this.keys.x) this.dp = true; this.keys.x = d; return true; } if (m === 'j' && d && !this.keys.j) this.jp = true; this.keys[m] = d; return true; },
       tick(dt) {
         this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.time += dt; this.banner -= dt;
@@ -6384,39 +6384,75 @@ const SUMMIT_LEVELS = [
   }
 
   function makeAim(sk) {
-    const MODES = [{ n: 'GRIDSHOT', d: 'Three targets at once. Hit as many as you can.' }, { n: 'MICROFLICK', d: 'One small target. Pure reaction speed.' }], DUR = 30;
+    const MODES = [{ n: 'GRIDSHOT', d: 'Three targets on the wall. Clear them fast.' }, { n: 'MICROFLICK', d: 'One small target anywhere. Flick to it.' }, { n: 'TRACKING', d: 'Keep your crosshair on the moving orb.' }], DUR = 30;
+    const RX = 11, RY0 = -3, RY1 = 5, RZ0 = -11, RZ1 = 13;
     return Object.assign({
-      sk, hold: true, title: 'Aim Lab', how: 'Pick a drill, then tap or click targets as fast as you can for 30 seconds. Misses hurt your accuracy.',
+      sk, hold: true, title: 'Aim Lab', how: 'A 3D aim trainer. PC: click to lock the mouse, move to aim, click to shoot, Esc to unlock. Phone: drag to aim, tap or press FIRE to shoot.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
       layout() {},
-      reset() { this.sub = 'menu'; this.mode = 0; this.tg = []; this.hits = 0; this.miss = 0; this.rts = []; this.t = 0; this.cd = 0; this.fx = []; this.score = 0; this.floats = []; this.state = 'ready'; this.bests = this.bests || [0, 0]; this.cur = null; },
+      reset() { this.sub = 'menu'; this.mode = 0; this.tg = []; this.hits = 0; this.miss = 0; this.rts = []; this.t = 0; this.cd = 0; this.fx = []; this.score = 0; this.floats = []; this.state = 'ready'; this.bests = this.bests || [0, 0, 0]; this.yaw = 0; this.pitch = 0; this.drag = null; this.on = 0; this.recoil = 0; },
       enter() { this.reset(); },
-      field() { return { x: 16, y: 70, w: this.w - 32, h: this.h - 90 }; },
-      spawn() { const f = this.field(); if (this.mode === 0) { const cs = Math.min(f.w, f.h) / 3.4, ox = f.x + (f.w - cs * 3) / 2, oy = f.y + (f.h - cs * 3) / 2, taken = this.tg.map(t => t.cell); const free = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(k => taken.indexOf(k) < 0); const k = pick(free); this.tg.push({ cell: k, x: ox + (k % 3) * cs + cs / 2, y: oy + Math.floor(k / 3) * cs + cs / 2, r: cs * 0.3, born: this.t }); }
-        else { const r = Math.max(13, Math.min(f.w, f.h) * 0.045); this.tg.push({ x: rand(f.x + r, f.x + f.w - r), y: rand(f.y + r, f.y + f.h - r), r, born: this.t }); } },
-      begin(m) { this.mode = m; this.sub = 'count'; this.cd = 3; this.tg = []; this.hits = 0; this.miss = 0; this.rts = []; this.t = 0; this.score = 0; },
-      bind(cv) { cv.style.cursor = 'crosshair'; cv.addEventListener('pointermove', e => { this.cur = ptrPos(cv, e); });
-        cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = ptrPos(cv, e); this.cur = p;
-          if (this.sub === 'menu') { MODES.forEach((m, i) => { const y = 130 + i * 110; if (p[1] > y && p[1] < y + 96 && p[0] > 20 && p[0] < this.w - 20) { this.begin(i); sfx(600, 0.08, 0.03, 'sine'); } }); return; }
-          if (this.sub === 'res') { if (this.t > 0.8) this.sub = 'menu'; return; } if (this.sub !== 'play') return;
-          const i = this.tg.findIndex(t => Math.hypot(p[0] - t.x, p[1] - t.y) <= t.r + 3);
-          if (i >= 0) { const t = this.tg[i]; this.tg.splice(i, 1); this.hits++; const rt = this.t - t.born; this.rts.push(rt); this.score += Math.round(100 + Math.max(0, 1 - rt) * 150); this.fx.push({ x: t.x, y: t.y, r: t.r, t: 0 }); sfx(900 + rand(-60, 60), 0.05, 0.035, 'sine'); this.spawn(); }
-          else { this.miss++; this.score = Math.max(0, this.score - 50); this.fx.push({ x: p[0], y: p[1], r: 6, t: 0, miss: true }); sfx(220, 0.05, 0.03, 'sine'); } }); },
+      // camera
+      cam(p) { const dx = p[0], dy = p[1] - 1.6, dz = p[2], cy = Math.cos(-this.yaw), sy = Math.sin(-this.yaw); const x1 = dx * cy + dz * sy, z1 = -dx * sy + dz * cy; const cp = Math.cos(-this.pitch), sp = Math.sin(-this.pitch); const y2 = dy * cp - z1 * sp, z2 = dy * sp + z1 * cp; return [x1, y2, z2]; },
+      F() { return (this.h / 2) / Math.tan(36 * Math.PI / 180); },
+      proj(q) { const f = this.F(); return [this.w / 2 + f * q[0] / q[2], this.h / 2 - f * q[1] / q[2]]; },
+      seg(c, a, b) { let A = this.cam(a), B = this.cam(b); const N = 0.15; if (A[2] < N && B[2] < N) return; if (A[2] < N) { const t = (N - A[2]) / (B[2] - A[2]); A = [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, N]; } if (B[2] < N) { const t = (N - B[2]) / (A[2] - B[2]); B = [B[0] + (A[0] - B[0]) * t, B[1] + (A[1] - B[1]) * t, N]; } const p = this.proj(A), q = this.proj(B); c.moveTo(p[0], p[1]); c.lineTo(q[0], q[1]); },
+      dir() { const cp = Math.cos(this.pitch); return [Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp]; },
+      rayHit(t) { const d = this.dir(), o = [0, 1.6, 0], v = [t.x - o[0], t.y - o[1], t.z - o[2]], k = v[0] * d[0] + v[1] * d[1] + v[2] * d[2]; if (k < 0) return false; const px = v[0] - d[0] * k, py = v[1] - d[1] * k, pz = v[2] - d[2] * k; return Math.hypot(px, py, pz) <= t.r * 1.04; },
+      spawn() { if (this.mode === 0) { const taken = this.tg.map(t => t.cell), free = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter(k => taken.indexOf(k) < 0), k = pick(free); this.tg.push({ cell: k, x: ((k % 3) - 1) * 1.7, y: 1.6 + (1 - Math.floor(k / 3)) * 1.5, z: 10, r: 0.5, born: this.t }); }
+        else if (this.mode === 1) { const a = rand(-0.85, 0.85), e = rand(-0.25, 0.42), d = 10; this.tg.push({ x: Math.sin(a) * Math.cos(e) * d, y: 1.6 + Math.sin(e) * d, z: Math.cos(a) * Math.cos(e) * d, r: 0.3, born: this.t }); }
+        else { this.tg.push({ x: 0, y: 2.2, z: 10, r: 0.55, born: this.t, ph: rand(0, 6), vx: 0 }); } },
+      begin(m) { this.mode = m; this.sub = 'count'; this.cd = 3; this.tg = []; this.hits = 0; this.miss = 0; this.rts = []; this.t = 0; this.score = 0; this.on = 0; this.yaw = 0; this.pitch = 0; },
+      fire() { if (this.sub !== 'play' || this.mode === 2) return; this.recoil = 0.08; const i = this.tg.findIndex(t => this.rayHit(t));
+        if (i >= 0) { const t = this.tg[i]; this.tg.splice(i, 1); this.hits++; const rt = this.t - t.born; this.rts.push(rt); this.score += Math.round(100 + Math.max(0, 1 - rt) * 150); this.fx.push({ p: [t.x, t.y, t.z], r: t.r, t: 0 }); sfx(900 + rand(-60, 60), 0.05, 0.035, 'sine'); this.spawn(); }
+        else { this.miss++; this.score = Math.max(0, this.score - 40); sfx(220, 0.04, 0.025, 'sine'); } },
+      look(dx, dy, k) { this.yaw = clamp(this.yaw + dx * k, -1.35, 1.35); this.pitch = clamp(this.pitch - dy * k, -0.7, 0.8); },
+      fireBtn() { return { x: this.w - 86, y: this.h - 96, r: 36 }; },
+      bind(cv) { this.cv = cv;
+        document.addEventListener('mousemove', e => { if (document.pointerLockElement === cv) this.look(e.movementX, e.movementY, 0.0024); });
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = ptrPos(cv, e);
+          if (this.sub === 'menu') { MODES.forEach((m, i) => { const y = 120 + i * 100; if (p[1] > y && p[1] < y + 88 && p[0] > 20 && p[0] < this.w - 20) { this.begin(i); sfx(600, 0.08, 0.03, 'sine'); if (e.pointerType === 'mouse' && cv.requestPointerLock) { try { cv.requestPointerLock(); } catch (_) {} } } }); return; }
+          if (this.sub === 'res') { if (this.t > 0.8) this.sub = 'menu'; return; }
+          if (document.pointerLockElement === cv) { this.fire(); return; }
+          if (e.pointerType === 'mouse' && this.sub === 'play' && cv.requestPointerLock) { try { cv.requestPointerLock(); } catch (_) {} }
+          const fb = this.fireBtn(); if (e.pointerType !== 'mouse' && Math.hypot(p[0] - fb.x, p[1] - fb.y) < fb.r + 10) { this.fire(); return; }
+          this.drag = { id: e.pointerId, x: p[0], y: p[1], sx: p[0], sy: p[1], t: performance.now() }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => { if (!this.drag || this.drag.id !== e.pointerId) return; const p = ptrPos(cv, e); this.look(p[0] - this.drag.x, p[1] - this.drag.y, 0.0055); this.drag.x = p[0]; this.drag.y = p[1]; });
+        const up = e => { if (!this.drag || this.drag.id !== e.pointerId) return; const d = this.drag; this.drag = null; if (Math.hypot(d.x - d.sx, d.y - d.sy) < 8 && performance.now() - d.t < 260) this.fire(); };
+        cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', e => { if (this.drag && this.drag.id === e.pointerId) this.drag = null; }); },
       key(e) { return false; },
-      tick(dt) { this.decay(dt); this.fx.forEach(f => f.t += dt); this.fx = this.fx.filter(f => f.t < 0.35); if (this.state !== 'run') return;
+      tick(dt) { this.decay(dt); this.recoil = Math.max(0, this.recoil - dt); this.fx.forEach(f => f.t += dt); this.fx = this.fx.filter(f => f.t < 0.35); if (this.state !== 'run') return;
         if (this.sub === 'count') { this.cd -= dt; if (this.cd <= 0) { this.sub = 'play'; this.t = 0; const n = this.mode === 0 ? 3 : 1; for (let i = 0; i < n; i++) this.spawn(); } return; }
-        this.t += dt; if (this.sub === 'play' && this.t >= DUR) { this.sub = 'res'; this.t = 0; this.tg = []; const acc = this.hits / Math.max(1, this.hits + this.miss); this.final = Math.round(this.score * (0.5 + acc / 2)); this.bests[this.mode] = Math.max(this.bests[this.mode], this.final); this.best = Math.max(this.best, this.final); this.score = this.final; JING('win'); } },
+        this.t += dt;
+        if (this.sub === 'play' && this.mode === 2 && this.tg[0]) { const o = this.tg[0]; o.ph += dt; o.x = Math.sin(o.ph * 0.9) * 4.2 + Math.sin(o.ph * 2.3) * 1.2; o.y = 2.2 + Math.sin(o.ph * 1.3) * 1.3; if (this.rayHit(o)) { this.on += dt; this.score = Math.round(this.on * 100); o.lit = true; if (Math.random() < dt * 8) sfx(1200, 0.02, 0.012, 'sine'); } else o.lit = false; }
+        if (this.sub === 'play' && this.t >= DUR) { this.sub = 'res'; this.t = 0; this.tg = []; if (document.pointerLockElement === this.cv) { try { document.exitPointerLock(); } catch (_) {} } const acc = this.mode === 2 ? this.on / DUR : this.hits / Math.max(1, this.hits + this.miss); this.final = this.mode === 2 ? Math.round(this.on * 100) : Math.round(this.score * (0.5 + acc / 2)); this.bests[this.mode] = Math.max(this.bests[this.mode], this.final); this.best = Math.max(this.best, this.final); this.score = this.final; JING('win'); } },
+      scene(c) { const w = this.w, h = this.h; c.save(); c.beginPath(); c.rect(0, 0, w, h); c.clip();
+        const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#0d2a33'); g.addColorStop(1, '#06161b'); c.fillStyle = g; c.fillRect(-GM.ox, -GM.oy, GM.W, GM.H);
+        c.strokeStyle = 'rgba(47,211,255,.14)'; c.lineWidth = 1; c.beginPath();
+        for (let x = -RX; x <= RX; x += 2) { this.seg(c, [x, RY0 + 3, RZ0], [x, RY0 + 3, RZ1]); this.seg(c, [x, RY1, RZ0], [x, RY1, RZ1]); this.seg(c, [x, RY0 + 3, RZ1], [x, RY1, RZ1]); }
+        for (let z = RZ0; z <= RZ1; z += 2) { this.seg(c, [-RX, 0, z], [RX, 0, z]); this.seg(c, [-RX, RY1, z], [RX, RY1, z]); this.seg(c, [-RX, 0, z], [-RX, RY1, z]); this.seg(c, [RX, 0, z], [RX, RY1, z]); }
+        for (let y = 0; y <= RY1; y += 1) { this.seg(c, [-RX, y, RZ1], [RX, y, RZ1]); this.seg(c, [-RX, y, RZ0], [-RX, y, RZ1]); this.seg(c, [RX, y, RZ0], [RX, y, RZ1]); }
+        c.stroke();
+        const list = this.tg.map(t => ({ t, q: this.cam([t.x, t.y, t.z]) })).filter(o => o.q[2] > 0.3).sort((a, b) => b.q[2] - a.q[2]);
+        list.forEach(({ t, q }) => { const p = this.proj(q), r = this.F() * t.r / q[2]; c.fillStyle = 'rgba(0,0,0,.25)'; const fl = this.cam([t.x, 0.01, t.z]); if (fl[2] > 0.3) { const fp = this.proj(fl); c.beginPath(); c.ellipse(fp[0], fp[1], r, r * 0.25, 0, 0, TAU); c.fill(); }
+          const gr = c.createRadialGradient(p[0] - r * 0.35, p[1] - r * 0.4, r * 0.08, p[0], p[1], r); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.3, t.lit ? '#7CFFB2' : '#2fd3ff'); gr.addColorStop(1, t.lit ? '#1f8a55' : '#075a78'); c.fillStyle = gr; c.beginPath(); c.arc(p[0], p[1], r, 0, TAU); c.fill(); });
+        this.fx.forEach(f => { const q = this.cam(f.p); if (q[2] < 0.3) return; const p = this.proj(q), r = this.F() * f.r / q[2], k = f.t / 0.35; c.globalAlpha = 1 - k; c.strokeStyle = '#ffffff'; c.lineWidth = 2; c.beginPath(); c.arc(p[0], p[1], r * (1 + k * 1.2), 0, TAU); c.stroke(); c.globalAlpha = 1; });
+        // off-screen indicator for flicks
+        if (this.mode === 1 && list.length === 0 && this.tg[0]) { const q = this.cam([this.tg[0].x, this.tg[0].y, this.tg[0].z]), a = Math.atan2(-q[1], q[0]); c.fillStyle = 'rgba(47,211,255,.7)'; c.beginPath(); const cx = w / 2 + Math.cos(a) * Math.min(w, h) * 0.38, cy = h / 2 + Math.sin(a) * Math.min(w, h) * 0.38; c.arc(cx, cy, 6, 0, TAU); c.fill(); }
+        const cx = w / 2, cy = h / 2 - this.recoil * 40; c.strokeStyle = '#7CFFB2'; c.lineWidth = 2; c.beginPath(); c.moveTo(cx - 11, cy); c.lineTo(cx - 4, cy); c.moveTo(cx + 4, cy); c.lineTo(cx + 11, cy); c.moveTo(cx, cy - 11); c.lineTo(cx, cy - 4); c.moveTo(cx, cy + 4); c.lineTo(cx, cy + 11); c.stroke(); dot(c, cx, cy, 1.5, '#7CFFB2', { lw: 0 });
+        c.restore(); },
       draw() {
-        const c = this.ctx, w = this.w, h = this.h, sk = SK; drawBg(c, w, h); const f = this.field();
-        c.strokeStyle = 'rgba(255,255,255,.06)'; c.lineWidth = 1; for (let x = f.x; x <= f.x + f.w; x += 32) { c.beginPath(); c.moveTo(x, f.y); c.lineTo(x, f.y + f.h); c.stroke(); } for (let y = f.y; y <= f.y + f.h; y += 32) { c.beginPath(); c.moveTo(f.x, y); c.lineTo(f.x + f.w, y); c.stroke(); }
-        if (this.sub === 'menu') { txt(c, 'AIM LAB', w / 2, 40, 24, sk.fg, 'center'); txt(c, 'choose a drill', w / 2, 62, 11, sk.dim, 'center', MONO); MODES.forEach((m, i) => { const y = 130 + i * 110; box(c, 20, y, w - 40, 96, { fill: sk.panel, r: sk.r + 4, hard: 0, soft: 0, lw: 2, line: sk.pal[0] }); txt(c, m.n, 38, y + 38, 20, sk.pfg, 'left'); txt(c, m.d, 38, y + 60, 11, sk.dim, 'left', MONO); txt(c, 'best ' + this.bests[i], 38, y + 80, 11, sk.pal[0], 'left', MONO); }); }
-        else if (this.sub === 'count') { txt(c, MODES[this.mode].n, w / 2, h / 2 - 40, 16, sk.dim, 'center', MONO); txt(c, String(Math.ceil(this.cd)), w / 2, h / 2 + 20, 64, sk.fg, 'center'); }
-        else if (this.sub === 'play') { txt(c, String(this.score), 16, 40, 24, sk.fg, 'left'); txt(c, Math.ceil(DUR - this.t) + 's', w - 16, 40, 20, sk.fg, 'right', MONO); const acc = this.hits / Math.max(1, this.hits + this.miss); txt(c, 'hits ' + this.hits + '   acc ' + Math.round(acc * 100) + '%', w / 2, 60, 11, sk.dim, 'center', MONO);
-          this.tg.forEach(t => { const g = c.createRadialGradient(t.x - t.r * 0.35, t.y - t.r * 0.35, t.r * 0.1, t.x, t.y, t.r); g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, sk.pal[0]); g.addColorStop(1, sk.pal[1]); c.fillStyle = g; c.beginPath(); c.arc(t.x, t.y, t.r, 0, TAU); c.fill(); }); }
-        else if (this.sub === 'res') { const acc = this.hits / Math.max(1, this.hits + this.miss), avg = this.rts.length ? this.rts.reduce((a, b) => a + b, 0) / this.rts.length : 0; txt(c, MODES[this.mode].n + ' RESULTS', w / 2, 110, 16, sk.dim, 'center', MONO); txt(c, String(this.final), w / 2, 170, 48, sk.fg, 'center');
-          [['hits', this.hits], ['misses', this.miss], ['accuracy', Math.round(acc * 100) + '%'], ['avg time to hit', Math.round(avg * 1000) + ' ms'], ['best', this.bests[this.mode]]].forEach(([k, v], i) => { txt(c, k, w / 2 - 10, 220 + i * 28, 13, sk.dim, 'right', MONO); txt(c, String(v), w / 2 + 10, 220 + i * 28, 13, sk.fg, 'left', MONO); }); txt(c, 'tap to choose another drill', w / 2, 220 + 5 * 28 + 20, 11, sk.dim, 'center', MONO); }
-        this.fx.forEach(q => { const k = q.t / 0.35; c.globalAlpha = 1 - k; c.strokeStyle = q.miss ? sk.bad : '#ffffff'; c.lineWidth = 2; c.beginPath(); c.arc(q.x, q.y, q.r * (1 + k), 0, TAU); c.stroke(); c.globalAlpha = 1; });
-        if (this.cur && this.sub === 'play' && matchMedia('(pointer:fine)').matches) { const [x, y] = this.cur; c.strokeStyle = '#7CFFB2'; c.lineWidth = 2; c.beginPath(); c.moveTo(x - 10, y); c.lineTo(x - 3, y); c.moveTo(x + 3, y); c.lineTo(x + 10, y); c.moveTo(x, y - 10); c.lineTo(x, y - 3); c.moveTo(x, y + 3); c.lineTo(x, y + 10); c.stroke(); }
+        const c = this.ctx, w = this.w, h = this.h, sk = SK; drawBg(c, w, h);
+        if (this.sub === 'menu') { this.scene(c); c.fillStyle = 'rgba(6,22,27,.78)'; c.fillRect(-GM.ox, -GM.oy, GM.W, GM.H); txt(c, 'AIM LAB', w / 2, 44, 26, sk.fg, 'center'); txt(c, 'choose a drill', w / 2, 66, 11, sk.dim, 'center', MONO);
+          MODES.forEach((m, i) => { const y = 120 + i * 100; box(c, 20, y, w - 40, 88, { fill: sk.panel, r: sk.r + 4, hard: 0, soft: 0, lw: 2, line: sk.pal[0] }); txt(c, m.n, 38, y + 34, 20, sk.pfg, 'left'); txt(c, m.d, 38, y + 56, 11, sk.dim, 'left', MONO); txt(c, 'best ' + this.bests[i], 38, y + 74, 11, sk.pal[0], 'left', MONO); }); }
+        else if (this.sub === 'count') { this.scene(c); txt(c, MODES[this.mode].n, w / 2, h / 2 - 60, 16, sk.dim, 'center', MONO); txt(c, String(Math.ceil(this.cd)), w / 2, h / 2 - 14, 54, sk.fg, 'center'); }
+        else if (this.sub === 'play') { this.scene(c); txt(c, String(this.score), 16, 34, 24, sk.fg, 'left'); txt(c, Math.ceil(DUR - this.t) + 's', w - 16, 34, 20, sk.fg, 'right', MONO);
+          const acc = this.mode === 2 ? this.on / Math.max(0.01, this.t) : this.hits / Math.max(1, this.hits + this.miss); txt(c, (this.mode === 2 ? 'on target ' : 'hits ' + this.hits + '   acc ') + Math.round(acc * 100) + '%', w / 2, 56, 11, sk.dim, 'center', MONO);
+          if (matchMedia('(pointer:coarse)').matches && this.mode !== 2) { const fb = this.fireBtn(); dot(c, fb.x, fb.y, fb.r, 'rgba(47,211,255,.25)', { lw: 2 }); txt(c, 'FIRE', fb.x, fb.y + 4, 12, '#ffffff', 'center', MONO); }
+          if (this.cv && document.pointerLockElement !== this.cv && matchMedia('(pointer:fine)').matches) txt(c, 'click to lock the mouse', w / 2, h - 18, 11, sk.dim, 'center', MONO); }
+        else if (this.sub === 'res') { this.scene(c); c.fillStyle = 'rgba(6,22,27,.85)'; c.fillRect(-GM.ox, -GM.oy, GM.W, GM.H); const acc = this.mode === 2 ? this.on / DUR : this.hits / Math.max(1, this.hits + this.miss), avg = this.rts.length ? this.rts.reduce((a, b) => a + b, 0) / this.rts.length : 0; txt(c, MODES[this.mode].n + ' RESULTS', w / 2, 100, 16, sk.dim, 'center', MONO); txt(c, String(this.final), w / 2, 160, 48, sk.fg, 'center');
+          const rows = this.mode === 2 ? [['time on target', this.on.toFixed(1) + 's'], ['accuracy', Math.round(acc * 100) + '%'], ['best', this.bests[2]]] : [['hits', this.hits], ['misses', this.miss], ['accuracy', Math.round(acc * 100) + '%'], ['avg time to hit', Math.round(avg * 1000) + ' ms'], ['best', this.bests[this.mode]]];
+          rows.forEach(([k, v], i) => { txt(c, k, w / 2 - 10, 210 + i * 28, 13, sk.dim, 'right', MONO); txt(c, String(v), w / 2 + 10, 210 + i * 28, 13, sk.fg, 'left', MONO); }); txt(c, 'tap to choose another drill', w / 2, 210 + rows.length * 28 + 24, 11, sk.dim, 'center', MONO); }
         drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, MIX);
@@ -6433,7 +6469,7 @@ const SUMMIT_LEVELS = [
     mk(makeTTT(SKINS.graph), 'Tic Tac Toe', SKINS.graph, 'You are X. Easy, normal, or impossible. Impossible is actually impossible.', '#tictactoe #classic #brain', 4.2e9, 1.3e9, 380e6, 'ttt'),
     mk(makeSummit(SKINS.peak), 'Summit', SKINS.peak, 'Eight screens of climbing. Jump, wall jump and dash your way to the top.', '#platformer #precision #climb', 7.7e9, 2.6e9, 1.2e9, 'summit'),
     mk(makeBeat(SKINS.beatpink), 'Circle Beat', SKINS.beatpink, 'Tap the circles on the beat. One minute song, ranks from D to SS.', '#rhythm #circles #aim', 10.9e9, 3.9e9, 1.6e9, 'circles'),
-    mk(makeAim(SKINS.range), 'Aim Lab', SKINS.range, 'Gridshot and Microflick drills. 30 seconds each. Track your hits, accuracy and reaction time.', '#aimtrainer #fps #reaction', 6.3e9, 1.7e9, 900e6, 'aim')
+    mk(makeAim(SKINS.range), 'Aim Lab', SKINS.range, 'A 3D aim trainer. Gridshot, Microflick and Tracking drills, 30 seconds each.', '#aimtrainer #fps #reaction', 6.3e9, 1.7e9, 900e6, 'aim')
   );
 
 
@@ -7203,6 +7239,8 @@ const SUMMIT_LEVELS = [
   })();
 
   { const u = document.getElementById('navUp'), d = document.getElementById('navDn'); if (u) u.addEventListener('click', () => go(-1)); if (d) d.addEventListener('click', () => go(1)); }
+
+  addEventListener('keyup', e => { const g = games[cur]; if (g && g.key && !paused && /e\.type === 'keydown'/.test(String(g.key))) { if (g.key(e)) e.preventDefault(); } });
 
 })();
 </script>
