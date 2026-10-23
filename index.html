@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>GregSnap</title>
+<meta name="theme-color" content="#050a0a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><title>GregSnap</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -200,6 +200,47 @@ body{
   .mq span{padding-left:0}
   .sheet{transition:none}
 }
+
+/* ---- layout v2: true full-screen on phones, TikTok-style card on desktop ---- */
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--railw:62px}
+html,body{height:100%;height:100dvh}
+html{background:var(--stage)}
+body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
+.top{box-sizing:border-box;height:calc(60px + var(--sat));padding:var(--sat) max(16px,var(--sar)) 0 max(16px,var(--sal))}
+.top::before{content:"";position:absolute;left:0;right:0;top:0;height:var(--sat);background:linear-gradient(rgba(0,0,0,.24),transparent);pointer-events:none}
+.cap{height:auto;min-height:0;box-sizing:border-box;padding:30px max(18px,var(--sar)) calc(var(--sab) + 8px) max(18px,var(--sal));gap:7px;background:linear-gradient(to bottom,transparent,var(--capbg,transparent) 30%)}
+.cap .who{min-height:26px}
+.cap .desc{line-height:1.38}
+.cap .music{min-height:18px}
+.gp{margin-top:1px;text-align:center;font:500 10px/14px var(--mono);letter-spacing:.08em;color:var(--sfg,#fff);opacity:.5;pointer-events:none;user-select:none}
+.rail{bottom:calc(var(--caph,170px) + 8px);right:max(8px,var(--sar));gap:15px}
+.sheet{padding-bottom:var(--sab)}
+.navs{display:none}
+
+@media (max-width:699px){
+  body{display:block;padding:0}
+  .phone{position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;aspect-ratio:auto;border-radius:0;box-shadow:none;background:transparent}
+  .rbtn[data-act="next"]{display:none}
+}
+@media (max-width:699px) and (max-height:700px){ .cap .desc{-webkit-line-clamp:1} }
+
+@media (min-width:700px){
+  :root{--railw:0px}
+  html,body{background:var(--stage)}
+  body{padding:0;display:flex;justify-content:center;align-items:center}
+  .phone{--cardh:min(calc(100dvh - 28px),1040px);--cardw:min(calc(var(--cardh) * 9 / 16),calc(100vw - 200px));
+    width:var(--cardw);height:var(--cardh);max-width:none;max-height:none;aspect-ratio:auto;border-radius:16px;
+    box-shadow:0 0 0 1px rgba(255,255,255,.09),0 24px 70px rgba(0,0,0,.55)}
+  .rail{--sfg:#fff;position:fixed;right:auto;top:auto;
+    left:calc(50vw + var(--cardw) / 2 + 18px);bottom:calc((100dvh - var(--cardh)) / 2 + 22px);gap:16px;z-index:6}
+  .slide:not(.is-cur) .rail{visibility:hidden}
+  .rbtn[data-act="next"]{display:none}
+  .navs{display:flex;flex-direction:column;gap:12px;position:fixed;right:28px;top:50%;transform:translateY(-50%);z-index:6}
+  .navb{width:46px;height:46px;border-radius:50%;border:0;background:rgba(255,255,255,.12);color:#fff;display:grid;place-items:center;cursor:pointer}
+  .navb:hover{background:rgba(255,255,255,.2)}
+  .navb:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+  .navb svg{width:22px;height:22px}
+}
 </style>
 
 <main class="phone" id="phone">
@@ -208,6 +249,7 @@ body{
     <button type="button" class="galchip" id="galchip" aria-label="Open Galaxy Crate"><span id="galIcon"></span><span id="galn">0</span><span class="plus">+</span></button>
   </div>
   <div class="feed" id="feed" tabindex="0" aria-label="GregSnap game feed"></div>
+  <div class="navs"><button type="button" class="navb" id="navUp" aria-label="Previous game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button><button type="button" class="navb" id="navDn" aria-label="Next game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
   <div class="scrim" id="scrim" hidden></div>
   <section class="sheet" id="sheet" aria-label="Comments">
     <header><span id="sheetTitle">Comments</span><button type="button" data-closeall>Close</button></header>
@@ -547,17 +589,20 @@ body{
     g.ctx.drawImage(g._ovc, 0, 0, g.W, g.H);
   }
   function veil(c, w, h, l1, l2) {
-    const sk = SK;
+    const sk = SK, bwid = Math.min(w - 40, 300), per = Math.max(14, Math.floor((bwid - 32) / (12 * 0.62)));
+    const wrap = s => { const out = []; let cur = ''; String(s || '').split(' ').forEach(t => { if ((cur + ' ' + t).trim().length > per && cur) { out.push(cur); cur = t; } else cur = (cur + ' ' + t).trim(); }); if (cur) out.push(cur); return out; };
+    const L = wrap(l2);
     c.fillStyle = sk.veil; c.fillRect(-GM.ox, -GM.oy, GM.W, GM.H);
     if (sk.hard || sk.bevel || sk.soft) {
-      const bw = Math.min(w - 40, 300), bh = 112, bx = (w - bw) / 2, by = h / 2 - bh / 2;
+      const bw = bwid, bh = 74 + L.length * 17, bx = (w - bw) / 2, by = h / 2 - bh / 2;
       box(c, bx, by, bw, bh, { fill: sk.panel, soft: sk.soft });
       if (sk.bevel) { c.fillStyle = sk.pal[0]; c.fillRect(bx + 3, by + 3, bw - 6, 18); txt(c, 'GregSnap', bx + 9, by + 12, 11, '#fff', 'left'); }
-      txt(c, l1, w / 2, by + (sk.bevel ? 56 : 44), 24, sk.pfg, 'center');
-      txt(c, l2, w / 2, by + (sk.bevel ? 86 : 80), 12, sk.pfg, 'center', MONO);
+      txt(c, l1, w / 2, by + (sk.bevel ? 54 : 42), 24, sk.pfg, 'center');
+      L.forEach((s, i) => txt(c, s, w / 2, by + (sk.bevel ? 82 : 70) + i * 17, 12, sk.pfg, 'center', MONO));
     } else {
-      txt(c, l1, w / 2, h / 2 - 14, 26, sk.vfg, 'center');
-      txt(c, l2, w / 2, h / 2 + 20, 12, sk.vfg, 'center', MONO);
+      const bh = 40 + L.length * 17, top = h / 2 - bh / 2;
+      txt(c, l1, w / 2, top + 14, 26, sk.vfg, 'center');
+      L.forEach((s, i) => txt(c, s, w / 2, top + 46 + i * 17, 12, sk.vfg, 'center', MONO));
     }
   }
   const col = k => (typeof k === 'string' && SK[k] && k.length < 6) ? SK[k] : k;
@@ -594,7 +639,12 @@ body{
   const games = [];
   let cur = 0;
   let paused = false;
-  const TOPI = 58, BOTI = 150, RAILI = 58;
+  const insets = canvas => {
+    const sl = canvas.closest && canvas.closest('.slide'), top = document.querySelector('.top'), cap = sl && sl.querySelector('.cap');
+    const rw = parseFloat(getComputedStyle(canvas).getPropertyValue('--railw'));
+    return [top ? Math.round(top.offsetHeight) || 58 : 58, cap ? Math.round(cap.offsetHeight) || 150 : 150, isNaN(rw) ? 58 : rw, sl, cap];
+  };
+  const TOPI = 58;
   function mount(canvas, g) {
     g.canvas = canvas; g.ctx = canvas.getContext('2d'); g.w = 0; g.h = 0; g.W = 0; g.H = 0; g.ox = 0; g.oy = TOPI; g.d = 1;
     const realRect = canvas.getBoundingClientRect.bind(canvas);
@@ -620,7 +670,8 @@ body{
       const d = Math.min(window.devicePixelRatio || 1, 2);
       g.W = Math.round(r.width); g.H = Math.round(r.height);
       if (!g.W || !g.H) return;
-      g.d = d; g.ox = 0; g.oy = TOPI; g.w = g.W - RAILI; g.h = Math.max(120, g.H - TOPI - BOTI);
+      const ins = insets(canvas); if (ins[3]) ins[3].style.setProperty('--caph', ins[1] + 'px');
+      g.d = d; g.ox = 0; g.oy = ins[0]; g.w = g.W - ins[2]; g.h = Math.max(120, g.H - ins[0] - ins[1]);
       canvas.width = g.W * d; canvas.height = g.H * d;
       g.ctx.setTransform(d, 0, 0, d, 0, 0);
       g._bgc = null; g._ovc = null;
@@ -628,7 +679,7 @@ body{
       if (g.layout) g.layout();
       if (g.inited) g.draw();
     };
-    new ResizeObserver(fit).observe(canvas);
+    { const ro = new ResizeObserver(fit); ro.observe(canvas); const cp = canvas.closest && canvas.closest('.slide') && canvas.closest('.slide').querySelector('.cap'); if (cp) ro.observe(cp); }
     fit();
     SK = g.sk || SKINS.comic; GM = g;
     g.reset(); g.inited = true; g.draw();
@@ -4491,7 +4542,7 @@ body{
     return Object.assign({
       sk, hold: true, title: 'Darts', how: 'Hold to steady your aim, let go to throw. 5 rounds of 3 darts.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], darts: [], round: 1, left: 3, hold: false, steady: 0, t: 0, cx: 0, cy: 0, pause: 0,
-      geom() { this.R = Math.min(this.w * 0.44, (this.h - 210) / 2); this.bx = this.w / 2; this.by = 74 + this.R + 20; },
+      geom() { this.R = Math.min(this.w * 0.4, (this.h - 210) / 2); this.bx = this.w / 2; this.by = 74 + this.R + 20; },
       layout() { this.geom(); },
       reset() { this.geom(); this.darts = []; this.round = 1; this.left = 3; this.holdOn = false; this.steady = 0; this.t = 0; this.score = 0; this.pause = 0; this.floats = []; this.state = 'ready'; },
       enter() { this.reset(); },
@@ -5374,7 +5425,7 @@ body{
   /* ===== stage 5f: boost ball (car soccer), hot time (time-stop shooter) ===== */
 
   function makeBoostBall(sk) {
-    const GOALH = 110, BR = 17;
+    const GOALH = 118, GAP = 46, BR = 17;
     const mkCar = (x, face, ai) => ({ x, y: 0, vx: 0, vy: 0, a: face > 0 ? 0 : Math.PI, face, on: true, boost: 60, jumps: 2, ai, cool: 0, flip: 0, inp: { l: false, r: false, j: false, b: false }, jp: false });
     return Object.assign({
       sk, hold: true, title: 'Boost Ball', how: 'Drive, jump and boost to knock the ball into the right goal. Jump again in the air to flip. In the air, left/right tilt the car.',
@@ -5414,7 +5465,7 @@ body{
         if (this.demo) this.ai(me, B, op, 1); else { me.inp.l = this.held('l'); me.inp.r = this.held('r'); me.inp.j = this.held('j'); me.inp.b = this.held('b'); } this.ai(op, B, me, -1);
         const steps = 3, h2 = dt / steps; for (let s = 0; s < steps; s++) { this.stepCar(me, h2); this.stepCar(op, h2);
           B.vy += 520 * h2; B.x += B.vx * h2; B.y += B.vy * h2; B.vx *= 1 - 0.1 * h2; if (B.y > fy - BR) { B.y = fy - BR; B.vy = -Math.abs(B.vy) * 0.72; B.vx *= 0.985; if (Math.abs(B.vy) < 30) B.vy = 0; } if (B.y < this.top + BR) { B.y = this.top + BR; B.vy = Math.abs(B.vy) * 0.8; }
-          const inGoalY = B.y > fy - GOALH; if (!inGoalY) { if (B.x < BR) { B.x = BR; B.vx = Math.abs(B.vx) * 0.8; } if (B.x > w - BR) { B.x = w - BR; B.vx = -Math.abs(B.vx) * 0.8; } } else { if (B.y < fy - GOALH + BR && (B.x < BR || B.x > w - BR)) { B.y = fy - GOALH + BR; B.vy = Math.abs(B.vy) * 0.6; } if (B.x < -4) { this.goal(false); return; } if (B.x > w + 4) { this.goal(true); return; } }
+          const mt = fy - GAP - GOALH, mb = fy - GAP, inGoalY = B.y > mt + 10 && B.y < mb - 6; if (!inGoalY) { if (B.x < BR) { B.x = BR; B.vx = Math.abs(B.vx) * 0.8; } if (B.x > w - BR) { B.x = w - BR; B.vx = -Math.abs(B.vx) * 0.8; } } else { if (B.x < -4) { this.goal(false); return; } if (B.x > w + 4) { this.goal(true); return; } }
           [me, op].forEach(c => { this.carCircles(c).forEach(q => { const dx = B.x - q[0], dy = B.y - q[1], d = Math.hypot(dx, dy), R = BR + 11; if (d < R && d > 0.01) { const nx = dx / d, ny = dy / d; B.x = q[0] + nx * R; B.y = q[1] + ny * R; const rv = (B.vx - c.vx) * nx + (B.vy - c.vy) * ny; if (rv < 0) { const e = 0.85; B.vx -= (1 + e) * rv * nx; B.vy -= (1 + e) * rv * ny; B.vx += c.vx * 0.25; B.vy += c.vy * 0.25 - 20; if (c.flip > 0) { B.vx += nx * 160; B.vy += ny * 160; } sfx(160 + Math.min(300, -rv), 0.08, 0.05, 'sine'); this.shake = Math.max(this.shake, Math.min(0.3, -rv / 900)); } } }); });
           const sp = Math.hypot(B.vx, B.vy); if (sp > 900) { B.vx *= 900 / sp; B.vy *= 900 / sp; } }
         if (this.left <= 0 && this.cel <= 0) { this.cel = 0.8; this.floats.push({ t: 'Time!', x: w / 2, y: this.h * 0.4, age: 0, c: 'good' }); }
@@ -5426,7 +5477,7 @@ body{
         const c = this.ctx, w = this.w, h = this.h, sk = SK, fy = this.fy; drawBg(c, w, h);
         c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(0, this.top, w, fy - this.top); c.fillStyle = sk.panel; c.fillRect(0, fy, w, h - fy); c.fillStyle = sk.line; c.fillRect(0, fy, w, 3);
         c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(w / 2 - 1, this.top, 2, fy - this.top); c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 2; c.beginPath(); c.arc(w / 2, fy, 50, Math.PI, 0); c.stroke();
-        c.fillStyle = sk.pal[3]; c.globalAlpha = 0.35; c.fillRect(0, fy - GOALH, 14, GOALH); c.globalAlpha = 1; c.fillStyle = sk.pal[0]; c.globalAlpha = 0.35; c.fillRect(w - 14, fy - GOALH, 14, GOALH); c.globalAlpha = 1; c.fillStyle = sk.pal[3]; c.fillRect(0, fy - GOALH - 3, 14, 3); c.fillStyle = sk.pal[0]; c.fillRect(w - 14, fy - GOALH - 3, 14, 3);
+        [[0, sk.pal[3]], [w - 16, sk.pal[0]]].forEach(g => { const gx = g[0], mt = fy - GAP - GOALH; c.fillStyle = g[1]; c.globalAlpha = 0.3; c.fillRect(gx, mt, 16, GOALH); c.globalAlpha = 0.5; c.strokeStyle = g[1]; c.lineWidth = 1; for (let k = 0; k <= GOALH; k += 10) { c.beginPath(); c.moveTo(gx, mt + k); c.lineTo(gx + 16, mt + k); c.stroke(); } for (let k = 0; k <= 16; k += 8) { c.beginPath(); c.moveTo(gx + k, mt); c.lineTo(gx + k, mt + GOALH); c.stroke(); } c.globalAlpha = 1; c.fillStyle = g[1]; c.fillRect(gx, mt - 4, 20, 5); c.fillRect(gx, mt + GOALH - 1, 20, 5); });
         this.pads.forEach(p => { c.fillStyle = p.t > 0 ? 'rgba(255,255,255,.15)' : sk.pal[1]; c.fillRect(p.x - (p.big ? 18 : 10), fy - 3, p.big ? 36 : 20, 5); });
         this.parts.forEach(p => { c.globalAlpha = clamp(p.l * 3, 0, 1); dot(c, p.x, p.y, 3, sk.pal[1], { lw: 0 }); c.globalAlpha = 1; });
         this.drawCar(this.op, sk.pal[0]); this.drawCar(this.me, sk.pal[3]); const B = this.ball; c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(B.x, fy, BR * 0.9, 4, 0, 0, TAU); c.fill(); dot(c, B.x, B.y, BR, '#f5f5f5', { lw: 2 }); c.strokeStyle = '#555'; c.lineWidth = 1.5; c.beginPath(); c.arc(B.x, B.y, BR * 0.5, 0, TAU); c.stroke();
@@ -6364,6 +6415,7 @@ body{
     phone.style.setProperty('--hdc', dark ? '#ffffff' : '#111111');
     phone.style.setProperty('--hdi', dark ? '#111111' : '#ffffff');
     phone.style.setProperty('--hdd', dark ? 'rgba(255,255,255,.72)' : 'rgba(0,0,0,.62)');
+    try { if (window.matchMedia('(max-width:699px)').matches) { document.documentElement.style.background = sk.bg[0]; document.body.style.background = sk.bg[0]; const tc = document.querySelector('meta[name=theme-color]'); if (tc) tc.setAttribute('content', sk.bg[0]); } } catch (_) {}
   };
   const io = new IntersectionObserver(es => {
     es.forEach(e => {
@@ -6371,6 +6423,7 @@ body{
         const i = +e.target.dataset.i;
         if (i !== cur || !games[i].entered) { cur = i; games[i].entered = true; if (games[i].enter) games[i].enter(); }
         theme(SLIDES[i].sk);
+        feed.querySelectorAll('.is-cur').forEach(x => x.classList.remove('is-cur')); e.target.classList.add('is-cur');
         try { musicSwitch(i); } catch (_) {}
         ensureAhead(i + 3);
       }
@@ -6398,6 +6451,7 @@ body{
         '<div class="ttl">' + s.title + '</div>' +
         '<p class="desc">' + s.desc + ' <span class="tag">' + s.tags + '</span></p>' +
         '<div class="music"><span>&#9835;</span><div class="mq"><span>' + s.music + '</span></div></div>' +
+        '<div class="gp">a Greg Paul production</div>' +
       '</footer>';
     const av = el.querySelector('.av'); av.style.background = sk.pal[0]; av.style.color = onC(sk.pal[0]);
     feed.appendChild(el);
@@ -6707,6 +6761,8 @@ body{
     btn.addEventListener('click', open); ov.querySelector('#sx').addEventListener('click', close); inp.addEventListener('input', render);
     ['keydown', 'keyup'].forEach(t => ov.addEventListener(t, e => { e.stopPropagation(); if (t === 'keydown' && e.key === 'Escape') close(); }));
   })();
+
+  { const u = document.getElementById('navUp'), d = document.getElementById('navDn'); if (u) u.addEventListener('click', () => go(-1)); if (d) d.addEventListener('click', () => go(1)); }
 
 })();
 </script>
