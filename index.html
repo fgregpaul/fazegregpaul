@@ -5415,7 +5415,7 @@ body{
   SLIDES.push(...NEW_SLIDES);
   const BASEK = ['wire', 'orbit', 'raise', 'swipe', 'servers', 'stack', 'popup', 'dash', 'snake', 'break', 'simon', 'hl', 'beat', 'sling'];
   SLIDES.forEach((s, i) => { s.cm = genComments(s.kind || BASEK[i]); });
-  { const rnd = mulberry(20261022); for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
+  { const rnd = Math.random; for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
 
   const feed = document.getElementById('feed'), phone = document.getElementById('phone');
   const loadedFonts = {};
