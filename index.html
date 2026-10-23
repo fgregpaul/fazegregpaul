@@ -5434,7 +5434,7 @@ body{
   function makeHotTime(sk) {
     const rects = (w, h) => { const out = [], n = 3 + Math.floor(Math.random() * 3); for (let i = 0; i < n; i++) { const rw = rand(40, 80), rh = rand(30, 70); out.push({ x: rand(30, w - 30 - rw), y: rand(120, h - 140 - rh), w: rw, h: rh }); } return out; };
     return Object.assign({
-      sk, hold: true, title: 'Hot Time', how: 'Time only moves when you move. Drag to move, tap to shoot. Stand still to dodge.',
+      sk, hold: true, title: 'Hot Time', how: 'Time only moves when you move. Drag to move. Tap quickly to shoot where you tap, or tap with a second finger while moving. Stand still to dodge.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], p: null, en: [], pb: [], eb: [], obs: [], tx: 0, ty: 0, down: null, stage: 0, ts: 0.05, gt: 0, shootCd: 0, kills: 0, msgT: 0, banner: '', parts: [], keep: false,
       layout() {},
       setup() { const w = this.w, h = this.h; this.stage++; this.obs = rects(w, h); this.p = { x: w / 2, y: h - 90, vx: 0, vy: 0 }; this.tx = this.p.x; this.ty = this.p.y; this.pb = []; this.eb = []; this.en = []; const n = 1 + Math.min(6, this.stage); for (let i = 0; i < n; i++) { let x, y, tries = 0; do { x = rand(30, w - 30); y = rand(80, h * 0.5); tries++; } while (tries < 30 && this.obs.some(o => x > o.x - 14 && x < o.x + o.w + 14 && y > o.y - 14 && y < o.y + o.h + 14)); this.en.push({ x, y, cd: rand(1.2, 3), mv: rand(0, TAU), hp: 1 }); } this.banner = this.stage > 1 ? 'STAGE ' + this.stage : ''; this.msgT = 1.2; },
@@ -5442,7 +5442,7 @@ body{
       enter() { this.reset(); },
       hitObs(x, y, r) { return this.obs.some(o => x > o.x - r && x < o.x + o.w + r && y > o.y - r && y < o.y + o.h + r); },
       shoot(tx, ty) { if (this.shootCd > 0 || this.state !== 'run') return; const P = this.p, dx = tx - P.x, dy = ty - P.y, d = Math.hypot(dx, dy) || 1; this.pb.push({ x: P.x, y: P.y, vx: dx / d * 520, vy: dy / d * 520 }); this.shootCd = 0.45; this.boost = 0.25; sfx(500, 0.07, 0.04, 'sine'); },
-      bind(cv) { const mv = e => { const p = ptrPos(cv, e); this.tx = p[0]; this.ty = p[1] - 40; }; cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.down = { t: performance.now(), x: ptrPos(cv, e)[0], y: ptrPos(cv, e)[1] }; mv(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', e => { if (this.down) mv(e); });
+      bind(cv) { const mv = e => { const p = ptrPos(cv, e); this.tx = p[0]; this.ty = p[1] - 40; }; cv.addEventListener('pointerdown', e => { if (this.kick()) return; if (this.down) { const q = ptrPos(cv, e); this.shoot(q[0], q[1]); return; } this.down = { t: performance.now(), x: ptrPos(cv, e)[0], y: ptrPos(cv, e)[1] }; mv(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', e => { if (this.down) mv(e); });
         const up = e => { if (!this.down) return; const p = ptrPos(cv, e), d = this.down; this.down = null; if (performance.now() - d.t < 230 && Math.hypot(p[0] - d.x, p[1] - d.y) < 14) this.shoot(p[0], p[1]); this.tx = this.p.x; this.ty = this.p.y; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { this.down = null; }); },
       die() { this.msg = 'YOU ARE DEAD - stage ' + this.stage; for (let i = 0; i < 14; i++) this.parts.push({ x: this.p.x, y: this.p.y, vx: rand(-100, 100), vy: rand(-100, 100), l: 1, c: '#222' }); this.shake = 0.5; buzz(60); this.finish(); this.msg = 'YOU ARE DEAD - stage ' + this.stage; },
       tick(dt) {
