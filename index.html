@@ -1402,6 +1402,12 @@ body{
     wordsearch: ['found PIXEL instantly', 'diagonal words get me every time', 'ran out of time with one left', 'dragging in a line is smooth', 'the backwards ones are evil'],
     tycoon: ['greg moon base is the move', 'ended with 40K', 'tapping is faster early on', 'the factory pays off', 'bought the bank way too late'],
     boss: ['phase 3 is insane', 'the circle bullets are nasty', 'auto shoot makes it playable', 'beat boss 2 once', 'i keep hiding in the corner'],
+    factory: ['belts everywhere and nothing arrives', 'drills pay for themselves fast', 'i just made a spaghetti line', 'the factory tile is hungry', 'one more drill and i am done'],
+    cards: ['pair pal carried me', 'x1.5 mult joker is broken', 'flush fan plus a flush is so good', 'lost by 20 points', 'round 6 is where it gets hard'],
+    dash: ['78% and then the double spike', 'this one is actually fair', 'i hate the block into spike part', 'attempt 63', 'the pit part got me every time'],
+    gate: ['the first portal always goes on the wrong wall', 'light walls only is a good rule', 'cleared 4 rooms', 'brain hurts in a good way', 'metal walls are evil'],
+    under: ['the dash blast boon is great', 'the boss room came fast', 'archers are annoying', 'i love when the room clears', 'reached room 7'],
+    hollow: ['the guardian hits so hard', 'slashing flies is satisfying', 'on screen buttons work fine', 'died to the crawlers in the dark', 'so close to the end'],
     sling: ['angry birds who', 'why does the target move', 'the aim line helps a lot', 'i keep overshooting']
   };
   const MORECM = {
@@ -3030,7 +3036,7 @@ body{
     mk(makeQuest(SKINS.parchment), 'Dungeon Greg', SKINS.parchment, 'Find the key, unlock the door, beat the boss. Swing your sword at everything that moves.', '#adventure #dungeon #rpg', 8.8e9, 3.1e9, 1.4e9, 'quest'),
     mk(makeWorm(SKINS.midnight), 'Glow Worm', SKINS.midnight, 'Steer your worm. Eat the glowing dots. Make other worms crash into you.', '#io #worm #multiplayer', 12.3e9, 4.2e9, 1.9e9, 'worm'),
     mk(makeBlobs(SKINS.mint), 'Blob Party', SKINS.mint, 'Eat smaller blobs and get big. Bigger blobs will eat you.', '#io #blobs #eatorbeeaten', 9.9e9, 3.6e9, 1.1e9, 'blobs'),
-    mk(makeHole(SKINS.sunset, ['SOFA', 'FRIDGE', 'VAN', 'BIN', 'SHED', 'BENCH']), 'Hole Hunter', SKINS.sunset, 'Drag the hole around town. Swallow things smaller than you. Get huge in 75 seconds.', '#hole #satisfying #minigames', 10.6e9, 3.9e9, 1.6e9, 'hole')
+    mk(makeHole(SKINS.sunset, ['SOFA', 'FRIDGE', 'VAN', 'BIN', 'SHED', 'BENCH']), 'Hole Hunter', SKINS.sunset, 'Drag the hole around town. Swallow things smaller than you. Get huge in 75 seconds. Inspired by Donut County.', '#hole #satisfying #minigames', 10.6e9, 3.9e9, 1.6e9, 'hole')
   );
 
   /* ===== stage 4b: gregle, blockfall, sweeper, drop four, void run ===== */
@@ -5009,6 +5015,318 @@ body{
     mk(makeWordSearch(SKINS.highlighter), 'Word Search', SKINS.highlighter, 'Six hidden words, ninety seconds. Drag across the letters to circle them.', '#wordsearch #words #chill', 3.2e9, 720e6, 140e6, 'wordsearch'),
     mk(makeInc(SKINS.bank), 'Greg Inc.', SKINS.bank, 'Tap, invest, expand. Turn a lemonade stand into a moon base in 60 seconds.', '#tycoon #idle #money', 5.7e9, 1.3e9, 330e6, 'tycoon'),
     mk(makeBoss(SKINS.crimson), 'Boss Rush', SKINS.crimson, 'One boss, three phases, endless bullets. Drag to dodge, the ship does the shooting.', '#boss #bullethell #hard', 8.1e9, 2.4e9, 700e6, 'boss')
+  );
+
+  /* ===== stage 5d: belt works, high card, beat dash ===== */
+
+  function makeFactory(sk) {
+    const COLS = 6, ROWS = 9, DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]], ARW = ['>', 'v', '<', '^'];
+    const ORE = [[0, 0], [1, 0], [3, 0], [5, 0], [6, 0], [8, 0], [0, 1], [4, 1], [8, 1]];
+    return Object.assign({
+      sk, hold: true, title: 'Belt Works', how: 'Drills mine ore on the brown tiles. Drag belts to carry it to the factory on the right. Spend plates on more drills.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], grid: null, money: 0, left: 90, tool: 0, drills: 0, deliv: 0, last: null, down: false, tcool: 0,
+      geom() { this.cs = Math.floor(Math.min((this.w - 16) / COLS, (this.h - 160) / ROWS)); this.gx = Math.floor((this.w - this.cs * COLS) / 2); this.gy = 56; this.by = this.gy + this.cs * ROWS + 14; },
+      layout() { this.geom(); },
+      reset() { this.geom(); this.grid = []; for (let r = 0; r < ROWS; r++) { this.grid.push([]); for (let c = 0; c < COLS; c++) this.grid[r].push({ t: null, d: 0, ore: false, item: false, p: 0, cd: 0 }); } ORE.forEach(o => { this.grid[o[0]][o[1]].ore = true; }); this.grid[4][COLS - 1].t = 'fac'; this.money = 22; this.left = 90; this.tool = 0; this.drills = 0; this.deliv = 0; this.score = 0; this.last = null; this.floats = []; this.state = 'ready'; },
+      enter() { this.reset(); },
+      dcost() { return 10 + this.drills * 6; },
+      at(r, c) { return r >= 0 && c >= 0 && r < ROWS && c < COLS ? this.grid[r][c] : null; },
+      cellAt(p) { const c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs); return c >= 0 && r >= 0 && c < COLS && r < ROWS ? [r, c] : null; },
+      tapCell(rc, dir) {
+        const t = this.grid[rc[0]][rc[1]];
+        if (this.tool === 0) { if (t.t === 'belt') { if (dir == null) t.d = (t.d + 1) % 4; else t.d = dir; sfx(380, 0.03, 0.03); } else if (!t.t && this.money >= 1) { t.t = 'belt'; t.d = dir == null ? 0 : dir; this.money -= 1; sfx(300, 0.03, 0.03); } }
+        else if (this.tool === 1) { if (!t.t && t.ore) { const k = this.dcost(); if (this.money >= k) { this.money -= k; t.t = 'drill'; this.drills++; sfx(220, 0.12, 0.06, 'square'); } else this.floats.push({ t: 'need $' + k, x: this.gx + rc[1] * this.cs + this.cs / 2, y: this.gy + rc[0] * this.cs, age: 0, c: 'bad' }); } }
+        else if (t.t === 'belt' || t.t === 'drill') { if (t.t === 'drill') this.drills--; t.t = null; t.item = false; sfx(150, 0.05, 0.04); }
+      },
+      bind(cv) {
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; if (this.state !== 'run') return; const p = ptrPos(cv, e); if (p[1] > this.by) { const k = Math.floor((p[0] - 10) / ((this.w - 20) / 3)); if (k >= 0 && k < 3) { this.tool = k; sfx(500, 0.03, 0.03); } return; } const rc = this.cellAt(p); if (!rc) return; this.down = true; this.last = rc; this.tapCell(rc, null); try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => { if (!this.down || this.tool !== 0) return; const rc = this.cellAt(ptrPos(cv, e)); if (!rc || (rc[0] === this.last[0] && rc[1] === this.last[1])) return; const dr = rc[0] - this.last[0], dc = rc[1] - this.last[1]; if (Math.abs(dr) + Math.abs(dc) !== 1) { this.last = rc; return; } const dir = DIRS.findIndex(d => d[0] === dr && d[1] === dc), lt = this.grid[this.last[0]][this.last[1]]; if (lt.t === 'belt') lt.d = dir; this.tapCell(rc, dir); this.last = rc; });
+        ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { this.down = false; }));
+      },
+      tick(dt) {
+        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.left -= dt; if (this.left <= 0) { this.msg = this.deliv + ' plates made'; this.state = 'dead'; this.dead = 0; JING(this.score > 300 ? 'win' : 'over'); return; }
+        for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+          const t = this.grid[r][c];
+          if (t.t === 'drill') { t.cd -= dt; if (t.cd <= 0) { for (let k = 0; k < 4; k++) { const d = DIRS[k], n = this.at(r + d[0], c + d[1]); if (n && n.t === 'belt' && !n.item) { const nd = DIRS[n.d]; if (r + d[0] + nd[0] === r && c + d[1] + nd[1] === c) continue; n.item = true; n.p = 0.2; t.cd = 1.1; break; } } if (t.cd <= 0) t.cd = 0.2; } }
+          else if (t.t === 'belt' && t.item) { t.p += dt * 2.4; if (t.p >= 1) { const d = DIRS[t.d], n = this.at(r + d[0], c + d[1]); if (n && n.t === 'fac') { t.item = false; this.deliv++; this.money += 4; this.score += 10; this.best = Math.max(this.best, this.score); sfx(640 + Math.random() * 80, 0.05, 0.04, 'triangle'); if (this.deliv % 10 === 0) this.floats.push({ t: this.deliv + ' plates', x: this.gx + (COLS - 1) * this.cs, y: this.gy + 4 * this.cs, age: 0, c: 'good' }); } else if (n && n.t === 'belt' && !n.item) { const nd = DIRS[n.d]; if (!(nd[0] === -d[0] && nd[1] === -d[1])) { n.item = true; n.p = t.p - 1; t.item = false; } else t.p = 1; } else t.p = 1; } }
+        }
+      },
+      draw() {
+        const c = this.ctx, w = this.w, sk = SK, cs = this.cs, gx = this.gx, gy = this.gy; drawBg(c, w, this.h);
+        txt(c, '$' + this.money, 14, 28, 24, sk.fg, 'left'); txt(c, String(this.score), w / 2, 26, 18, sk.dim, 'center', MONO); txt(c, Math.ceil(this.left) + 's', w - 14, 28, 20, this.left < 10 ? sk.bad : sk.fg, 'right', MONO);
+        c.fillStyle = sk.panel; c.fillRect(gx, gy, cs * COLS, cs * ROWS);
+        for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) {
+          const t = this.grid[r][q], X = gx + q * cs, Y = gy + r * cs; c.strokeStyle = 'rgba(255,255,255,.07)'; c.lineWidth = 1; c.strokeRect(X, Y, cs, cs);
+          if (t.ore) { c.fillStyle = sk.pal[2]; for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(X + cs * (0.25 + (i * 0.37) % 0.55), Y + cs * (0.28 + (i * 0.23) % 0.5), cs * 0.09, 0, TAU); c.fill(); } }
+          if (t.t === 'belt') { const cx = X + cs / 2, cy = Y + cs / 2, a = t.d * Math.PI / 2; c.save(); c.translate(cx, cy); c.rotate(a); c.fillStyle = sk.pal[3]; c.fillRect(-cs / 2 + 3, -cs * 0.28, cs - 6, cs * 0.56); c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.moveTo(cs * 0.18, 0); c.lineTo(-cs * 0.06, -cs * 0.17); c.lineTo(-cs * 0.06, cs * 0.17); c.fill(); if (t.item) { dot(c, (t.p - 0.5) * cs * 0.9, 0, cs * 0.14, sk.pal[1], { lw: 0 }); } c.restore(); }
+          else if (t.t === 'drill') { box(c, X + 5, Y + 5, cs - 10, cs - 10, { fill: sk.pal[0], r: 6, hard: 0, soft: 0, lw: sk.lw ? 2 : 0 }); dot(c, X + cs / 2, Y + cs / 2, cs * 0.14, sk.fg, { lw: 0 }); }
+          else if (t.t === 'fac') { box(c, X + 2, Y + 2, cs - 4, cs - 4, { fill: sk.pal[1], r: 6, hard: Math.min(sk.hard, 3), soft: 0, lw: sk.lw }); txt(c, 'FAC', X + cs / 2, Y + cs / 2 + 5, 12, '#000000', 'center', MONO); }
+        }
+        const bw = (w - 20) / 3, labs = ['BELT $1', 'DRILL $' + this.dcost(), 'ERASE']; for (let k = 0; k < 3; k++) { box(c, 10 + k * bw + 3, this.by, bw - 6, 40, { fill: this.tool === k ? sk.pal[1] : sk.panel, r: Math.min(sk.r, 10), hard: Math.min(sk.hard, 2), soft: 0, lw: sk.lw ? 2 : 0 }); txt(c, labs[k], 10 + k * bw + bw / 2, this.by + 26, 12, this.tool === k ? '#000000' : sk.fg, 'center', MONO); }
+        txt(c, 'drag belts from drills to FAC', w / 2, this.by + 60, 11, sk.dim, 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  function makeHighCard(sk) {
+    const SUITS = ['♠', '♥', '♣', '♦'], RANKS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' }, rk = r => RANKS[r] || String(r);
+    const BASE = { 'High Card': [5, 1], 'Pair': [10, 2], 'Two Pair': [20, 2], 'Three of a Kind': [30, 3], 'Straight': [30, 4], 'Flush': [35, 4], 'Full House': [40, 4], 'Four of a Kind': [60, 7], 'Straight Flush': [100, 8] };
+    const TARGET = [250, 400, 600, 850, 1200, 1700, 2400, 3300, 4600];
+    const cv_ = r => r === 14 ? 11 : r > 10 ? 10 : r;
+    const JOK = [
+      { n: 'Plain Joker', d: '+4 mult', f: x => { x.m += 4; } },
+      { n: 'Pair Pal', d: '+8 mult on a pair+', f: x => { if (x.name !== 'High Card') x.m += 8; } },
+      { n: 'Flush Fan', d: '+40 chips on flush', f: x => { if (x.name.indexOf('Flush') >= 0) x.c += 40; } },
+      { n: 'Red Rule', d: '+3 mult per red card', f: x => { x.m += 3 * x.cards.filter(k => k.s === 1 || k.s === 3).length; } },
+      { n: 'Ace Eater', d: '+25 chips per ace', f: x => { x.c += 25 * x.cards.filter(k => k.r === 14).length; } },
+      { n: 'Big Spender', d: 'x1.5 mult', f: x => { x.m *= 1.5; } },
+      { n: 'Straight Edge', d: '+30 chips, +3 mult on straight', f: x => { if (x.name.indexOf('Straight') >= 0) { x.c += 30; x.m += 3; } } },
+      { n: 'Face Value', d: '+15 chips per face card', f: x => { x.c += 15 * x.cards.filter(k => k.r >= 11 && k.r <= 13).length; } },
+      { n: 'Lone Wolf', d: '+20 mult if 1 card played', f: x => { if (x.n === 1) x.m += 20; } }
+    ];
+    const evalH = cards => {
+      const n = cards.length; if (!n) return null; const cnt = {}; cards.forEach(k => { cnt[k.r] = (cnt[k.r] || 0) + 1; }); const g = Object.keys(cnt).map(Number).sort((a, b) => cnt[b] - cnt[a] || b - a), top = cnt[g[0]], sec = g[1] ? cnt[g[1]] : 0;
+      const flush = n === 5 && cards.every(k => k.s === cards[0].s), rs = cards.map(k => k.r).sort((a, b) => a - b), uniq = new Set(rs).size === 5, str = n === 5 && uniq && (rs[4] - rs[0] === 4 || (rs.join() === '2,3,4,5,14'));
+      let name, sc = cards;
+      if (str && flush) name = 'Straight Flush'; else if (top === 4) { name = 'Four of a Kind'; sc = cards.filter(k => cnt[k.r] === 4); } else if (top === 3 && sec === 2) name = 'Full House'; else if (flush) name = 'Flush'; else if (str) name = 'Straight'; else if (top === 3) { name = 'Three of a Kind'; sc = cards.filter(k => cnt[k.r] === 3); } else if (top === 2 && sec === 2) { name = 'Two Pair'; sc = cards.filter(k => cnt[k.r] === 2); } else if (top === 2) { name = 'Pair'; sc = cards.filter(k => cnt[k.r] === 2); } else { name = 'High Card'; sc = [cards.slice().sort((a, b) => b.r - a.r)[0]]; }
+      return { name, scoring: sc, cards, n };
+    };
+    return Object.assign({
+      sk, hold: true, title: 'High Card', how: 'Select up to 5 cards and play a poker hand. Chips x mult beats the target. Pick jokers between rounds.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], deck: [], hand: [], sel: [], jok: [], round: 0, pts: 0, hands: 4, disc: 3, mode: 'play', offer: [], total: 0, info: '', anim: 0, over: false,
+      layout() {},
+      newDeck() { const d = []; for (let s = 0; s < 4; s++) for (let r = 2; r <= 14; r++) d.push({ r, s }); this.deck = shuf(d); },
+      draw_() { while (this.hand.length < 8 && this.deck.length) this.hand.push(this.deck.pop()); this.hand.sort((a, b) => b.r - a.r || a.s - b.s); },
+      startRound() { this.newDeck(); this.hand = []; this.sel = []; this.pts = 0; this.hands = 4; this.disc = 3; this.mode = 'play'; this.draw_(); this.info = ''; },
+      reset() { this.round = 0; this.total = 0; this.jok = []; this.score = 0; this.floats = []; this.startRound(); this.state = 'ready'; },
+      enter() { this.reset(); },
+      target() { return TARGET[Math.min(this.round, TARGET.length - 1)] * (this.round >= TARGET.length ? 1 + (this.round - TARGET.length + 1) * 0.5 : 1); },
+      preview() { const cs = this.sel.map(i => this.hand[i]); const h = evalH(cs); if (!h) return null; const b = BASE[h.name], x = { name: h.name, c: b[0] + h.scoring.reduce((s, k) => s + cv_(k.r), 0), m: b[1], cards: h.scoring, n: h.n }; this.jok.forEach(j => j.f(x)); return { name: h.name, c: x.c, m: x.m, total: Math.round(x.c * x.m) }; },
+      play() { const p = this.preview(); if (!p || this.hands <= 0) return; this.hands--; this.pts += p.total; this.total += p.total; this.score = this.round * 100 + this.total; this.best = Math.max(this.best, this.score); this.floats.push({ t: p.name + ' ' + p.c + ' x ' + (Math.round(p.m * 10) / 10) + ' = ' + p.total, x: this.w / 2, y: 200, age: 0, c: 'good' }); sfx(400 + Math.min(500, p.total / 2), 0.2, 0.07, 'triangle'); buzz(12);
+        this.sel.sort((a, b) => b - a).forEach(i => this.hand.splice(i, 1)); this.sel = []; this.draw_();
+        if (this.pts >= this.target()) { this.round++; this.score = this.round * 100 + this.total; this.best = Math.max(this.best, this.score); JING('win'); if (this.jok.length < 4) { this.offer = shuf(JOK.filter(j => !this.jok.includes(j))).slice(0, 3); this.mode = 'shop'; } else this.startRound(); }
+        else if (this.hands <= 0 || !this.hand.length) { this.msg = 'Cleared ' + this.round + ' round' + (this.round === 1 ? '' : 's'); this.finish(); this.msg = 'Cleared ' + this.round + ' round' + (this.round === 1 ? '' : 's'); } },
+      discard() { if (this.disc <= 0 || !this.sel.length) return; this.disc--; this.sel.sort((a, b) => b - a).forEach(i => this.hand.splice(i, 1)); this.sel = []; this.draw_(); sfx(250, 0.08, 0.05, 'square'); },
+      geom() { const w = this.w; this.cw = Math.floor((w - 20) / 4) - 6; this.ch = Math.floor(this.cw * 1.28); this.cy0 = 250; this.byy = this.cy0 + this.ch * 2 + 22; },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; if (this.state !== 'run') return; this.geom(); const p = ptrPos(cv, e), w = this.w;
+        if (this.mode === 'shop') { this.offer.forEach((j, i) => { const x = 14 + i * ((w - 28) / 3), bw = (w - 28) / 3 - 6; if (p[0] > x && p[0] < x + bw && p[1] > 150 && p[1] < 340) { this.jok.push(j); this.startRound(); sfx(700, 0.15, 0.06, 'triangle'); } }); if (p[1] > 360 && p[1] < 410) this.startRound(); return; }
+        if (p[1] > this.byy && p[1] < this.byy + 44) { if (p[0] < w / 2) this.play(); else this.discard(); return; }
+        for (let i = 0; i < this.hand.length; i++) { const col = i % 4, row = Math.floor(i / 4), x = 10 + col * (this.cw + 6) + 3, y = this.cy0 + row * (this.ch + 6) - (this.sel.includes(i) ? 12 : 0); if (p[0] > x && p[0] < x + this.cw && p[1] > y && p[1] < y + this.ch) { const k = this.sel.indexOf(i); if (k >= 0) this.sel.splice(k, 1); else if (this.sel.length < 5) this.sel.push(i); sfx(420, 0.03, 0.03); return; } } }); },
+      tick(dt) { this.decay(dt); if (this.state === 'dead') this.dead += dt; },
+      draw() {
+        const c = this.ctx, w = this.w, sk = SK; this.geom(); drawBg(c, w, this.h);
+        txt(c, 'ROUND ' + (this.round + 1), 14, 26, 14, sk.fg, 'left', MONO); txt(c, 'TARGET ' + Math.round(this.target()), w - 14, 26, 14, sk.fg, 'right', MONO);
+        box(c, 14, 36, w - 28, 14, { fill: 'rgba(0,0,0,.3)', r: 7, hard: 0, soft: 0, lw: 0 }); box(c, 14, 36, Math.max(8, (w - 28) * Math.min(1, this.pts / this.target())), 14, { fill: sk.pal[1], r: 7, hard: 0, soft: 0, lw: 0 }); txt(c, this.pts + ' pts', w / 2, 47, 10, '#000000', 'center', MONO);
+        txt(c, 'HANDS ' + this.hands + '   DISCARDS ' + this.disc, w / 2, 70, 11, sk.dim, 'center', MONO);
+        for (let i = 0; i < 4; i++) { const x = 14 + i * ((w - 28) / 4), bw = (w - 28) / 4 - 5, j = this.jok[i]; box(c, x, 82, bw, 64, { fill: j ? sk.panel : 'rgba(0,0,0,.2)', r: 6, hard: j ? Math.min(sk.hard, 2) : 0, soft: 0, lw: j ? sk.lw : 0 }); if (j) { txt(c, j.n, x + bw / 2, 100, 10, sk.pfg, 'center'); const ws = j.d.split(' '); let l1 = '', l2 = ''; ws.forEach(q => { if ((l1 + ' ' + q).length < 11 && !l2) l1 += (l1 ? ' ' : '') + q; else l2 += (l2 ? ' ' : '') + q; }); txt(c, l1, x + bw / 2, 118, 9, sk.dim, 'center', MONO); txt(c, l2, x + bw / 2, 130, 9, sk.dim, 'center', MONO); } else txt(c, 'joker', x + bw / 2, 118, 10, sk.dim, 'center', MONO); }
+        if (this.mode === 'shop') {
+          txt(c, 'Round cleared! Pick a joker', w / 2, 140, 18, sk.fg, 'center'); this.offer.forEach((j, i) => { const x = 14 + i * ((w - 28) / 3), bw = (w - 28) / 3 - 6; box(c, x, 160, bw, 180, { fill: sk.panel, r: Math.min(sk.r + 4, 14), hard: Math.min(sk.hard, 3), soft: 0, lw: sk.lw }); txt(c, '★', x + bw / 2, 210, 36, sk.pal[1], 'center'); txt(c, j.n, x + bw / 2, 240, 12, sk.pfg, 'center'); const ws = j.d.split(' '); let ls = ['']; ws.forEach(q => { if ((ls[ls.length - 1] + ' ' + q).length > 11) ls.push(q); else ls[ls.length - 1] += (ls[ls.length - 1] ? ' ' : '') + q; }); ls.forEach((s, k) => txt(c, s, x + bw / 2, 262 + k * 14, 10, sk.dim, 'center', MONO)); });
+          box(c, w / 2 - 50, 362, 100, 40, { fill: sk.panel, r: 10, hard: 0, soft: 0, lw: sk.lw ? 2 : 0 }); txt(c, 'SKIP', w / 2, 388, 13, sk.pfg, 'center', MONO);
+        } else {
+          const p = this.preview(); if (p) { txt(c, p.name, w / 2, 180, 20, sk.fg, 'center'); txt(c, p.c + ' x ' + (Math.round(p.m * 10) / 10), w / 2, 204, 15, sk.pal[1], 'center', MONO); txt(c, '= ' + p.total, w / 2, 226, 16, sk.fg, 'center', MONO); } else txt(c, 'select up to 5 cards', w / 2, 200, 13, sk.dim, 'center', MONO);
+          this.hand.forEach((k, i) => { const col = i % 4, row = Math.floor(i / 4), x = 10 + col * (this.cw + 6) + 3, y = this.cy0 + row * (this.ch + 6) - (this.sel.includes(i) ? 12 : 0), red = k.s === 1 || k.s === 3; box(c, x, y, this.cw, this.ch, { fill: '#fdfaf0', r: 8, hard: this.sel.includes(i) ? 3 : 0, soft: 0, lw: 2, line: this.sel.includes(i) ? sk.pal[1] : '#555' }); txt(c, rk(k.r), x + 8, y + 24, 22, red ? '#d62839' : '#1a1a1a', 'left'); txt(c, SUITS[k.s], x + this.cw / 2, y + this.ch * 0.72, this.cw * 0.5, red ? '#d62839' : '#1a1a1a', 'center'); });
+          const by = this.byy; box(c, 14, by, w / 2 - 20, 44, { fill: this.sel.length ? sk.good : sk.panel, r: 10, hard: Math.min(sk.hard, 2), soft: 0, lw: sk.lw ? 2 : 0 }); txt(c, 'PLAY', 14 + (w / 2 - 20) / 2, by + 28, 14, this.sel.length ? '#000000' : sk.dim, 'center', MONO); box(c, w / 2 + 6, by, w / 2 - 20, 44, { fill: this.sel.length && this.disc ? sk.bad : sk.panel, r: 10, hard: Math.min(sk.hard, 2), soft: 0, lw: sk.lw ? 2 : 0 }); txt(c, 'DISCARD', w / 2 + 6 + (w / 2 - 20) / 2, by + 28, 14, this.sel.length && this.disc ? '#ffffff' : sk.dim, 'center', MONO);
+        }
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  function makeDash(sk) {
+    const LEN = 6200, P = 30;
+    return Object.assign({
+      sk, hold: true, title: 'Beat Dash', how: 'Tap to jump. Spikes and walls end the run. Reach 100%.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], lv: null, px: 0, py: 0, vy: 0, rot: 0, air: false, jump: false, attempt: 1, pct: 0, parts: [], t: 0, win: false,
+      geom() { this.gy = Math.floor(this.h * 0.74); this.sx = this.w * 0.24; this.sp = 300; },
+      layout() { this.geom(); },
+      build() { const L = []; let x = 700; while (x < LEN) { const k = Math.floor(rand(0, 8)), g = rand(150, 260); if (k <= 2) { L.push({ t: 's', x, w: P, h: P }); x += P; } else if (k === 3) { L.push({ t: 's', x, w: P, h: P }, { t: 's', x: x + P, w: P, h: P }); x += P * 2; } else if (k === 4) { const bh = Math.random() < 0.5 ? 30 : 60, bw = Math.floor(rand(2, 4)) * 30; L.push({ t: 'b', x, w: bw, h: bh }); x += bw; if (Math.random() < 0.5) { L.push({ t: 's', x: x + 10, w: P, h: P }); x += 40; } } else if (k === 5) { const gw = Math.floor(rand(3, 5)) * 30; L.push({ t: 'g', x, w: gw }); x += gw; } else if (k === 6) { L.push({ t: 'b', x, w: 60, h: 30 }, { t: 's', x: x + 60, w: P, h: P }, { t: 'b', x: x + 90, w: 60, h: 60 }); x += 150; } else { L.push({ t: 's', x, w: P, h: P }, { t: 's', x: x + 100, w: P, h: P }); x += 130; } x += g; } this.lv = L; },
+      reset() { this.geom(); if (!this.lv) this.build(); this.px = 0; this.py = this.gy - P; this.vy = 0; this.rot = 0; this.air = false; this.jump = false; this.pct = 0; this.parts = []; this.win = false; this.t = 0; this.floats = []; this.state = 'ready'; },
+      enter() { this.lv = null; this.attempt = 1; this.score = 0; this.reset(); },
+      bind(cv) { cv.addEventListener('pointerdown', () => { if (this.kick()) return; this.jump = true; }); ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { this.jump = false; })); },
+      key(e) { if (e.code !== 'Space' && e.code !== 'ArrowUp') return false; if (e.type === 'keydown') { if (this.state === 'run') this.jump = true; } else this.jump = false; return true; },
+      die() { this.pct = Math.min(99, Math.floor(this.px / LEN * 100)); this.score = Math.max(this.score, this.pct); this.best = Math.max(this.best, this.score); for (let i = 0; i < 16; i++) { const a = rand(0, TAU), s = rand(60, 260); this.parts.push({ x: this.px, y: this.py + P / 2, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: rand(0.3, 0.7) }); } this.shake = 0.6; this.flash = 0.3; buzz(50); sfx(120, 0.3, 0.07, 'sawtooth'); this.attempt++; const sc = this.score; this.msg = this.pct + '% - attempt ' + (this.attempt - 1); this.finish(); this.msg = this.pct + '% - attempt ' + (this.attempt - 1); this.score = sc; },
+      tick(dt) {
+        this.decay(dt); this.parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.l -= dt; }); this.parts = this.parts.filter(p => p.l > 0); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.t += dt;
+        const prevB = this.py + P; this.px += this.sp * dt; this.vy += 2300 * dt; this.py += this.vy * dt; let ground = null;
+        if (this.px > LEN) { this.score = 100; this.best = 100; this.msg = 'LEVEL COMPLETE'; this.state = 'dead'; this.dead = 0; JING('win'); return; }
+        const inGap = this.lv.some(o => o.t === 'g' && this.px + P * 0.5 > o.x && this.px + P * 0.5 < o.x + o.w);
+        if (!inGap && this.py + P >= this.gy) ground = this.gy;
+        for (const o of this.lv) { if (o.x > this.px + 120 || o.x + o.w < this.px - 10) continue;
+          if (o.t === 's') { if (this.px + P - 7 > o.x + 6 && this.px + 7 < o.x + o.w - 6 && this.py + P - 4 > this.gy - o.h + 8) { this.die(); return; } }
+          else if (o.t === 'b') { const top = this.gy - o.h; if (this.px + P > o.x + 2 && this.px < o.x + o.w - 2 && this.py + P > top) { if (prevB <= top + 12 && this.vy >= 0) ground = ground == null ? top : Math.min(ground, top); else { this.die(); return; } } } }
+        if (ground != null && this.vy >= 0 && this.py + P >= ground) { this.py = ground - P; this.vy = 0; if (this.air) { this.air = false; this.rot = Math.round(this.rot / (Math.PI / 2)) * (Math.PI / 2); } if (this.jump) { this.vy = -760; this.air = true; sfx(520, 0.06, 0.04, 'square'); } } else if (ground == null) { this.air = true; }
+        if (this.air) this.rot += dt * 7.5;
+        if (this.py > this.gy + 220) { this.die(); return; }
+        this.pct = Math.floor(this.px / LEN * 100); this.score = Math.max(this.score, this.pct); this.best = Math.max(this.best, this.score);
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, cam = this.px - this.sx, gy = this.gy; drawBg(c, w, h);
+        c.fillStyle = 'rgba(255,255,255,' + (0.05 + 0.04 * Math.sin(this.t * 6)) + ')'; c.fillRect(-GM.ox, -GM.oy, GM.W, GM.H);
+        c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; for (let x = -((cam * 0.5) % 60); x < w; x += 60) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, gy); c.stroke(); }
+        c.fillStyle = sk.panel; this.lv.forEach(o => { if (o.t !== 'g') return; }); 
+        c.fillStyle = sk.panel; c.fillRect(0, gy, w, h - gy); c.fillStyle = sk.line; c.fillRect(0, gy - 3, w, 3); this.lv.forEach(o => { if (o.t === 'g' && o.x + o.w > cam && o.x < cam + w) { c.fillStyle = sk.bg[1]; c.fillRect(o.x - cam, gy - 3, o.w, h - gy + 3); } });
+        this.lv.forEach(o => { const X = o.x - cam; if (X > w + 40 || X + o.w < -40) return; if (o.t === 's') { c.fillStyle = sk.pal[0]; c.strokeStyle = sk.fg; c.lineWidth = 2; c.beginPath(); c.moveTo(X, gy - 3); c.lineTo(X + o.w / 2, gy - o.h); c.lineTo(X + o.w, gy - 3); c.closePath(); c.fill(); c.stroke(); } else if (o.t === 'b') { c.fillStyle = sk.pal[2]; c.strokeStyle = sk.fg; c.lineWidth = 2; c.fillRect(X, gy - o.h - 3, o.w, o.h); c.strokeRect(X, gy - o.h - 3, o.w, o.h); } });
+        c.fillStyle = sk.pal[1]; c.fillRect((LEN - cam), 0, 10, gy);
+        this.parts.forEach(p => { c.fillStyle = sk.pal[1]; c.fillRect(p.x - cam, p.y, 6, 6); });
+        if (this.state !== 'dead' || this.win) { c.save(); c.translate(this.sx + P / 2, this.py + P / 2); c.rotate(this.rot); c.fillStyle = sk.pal[1]; c.strokeStyle = sk.fg; c.lineWidth = 3; c.fillRect(-P / 2, -P / 2, P, P); c.strokeRect(-P / 2, -P / 2, P, P); c.fillStyle = sk.fg; c.fillRect(-P / 2 + 6, -P / 2 + 7, 6, 6); c.fillRect(P / 2 - 12, -P / 2 + 7, 6, 6); c.restore(); }
+        box(c, 20, 26, w - 40, 8, { fill: 'rgba(0,0,0,.35)', r: 4, hard: 0, soft: 0, lw: 0 }); box(c, 20, 26, Math.max(6, (w - 40) * this.px / LEN), 8, { fill: sk.pal[1], r: 4, hard: 0, soft: 0, lw: 0 }); txt(c, this.pct + '%', w / 2, 56, 18, sk.fg, 'center'); txt(c, 'attempt ' + this.attempt, 16, 56, 11, sk.dim, 'left', MONO);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  skin('rustbelt', { bg: ['#3b2f2a', '#2a211d'], pat: 'diamonds', patc: 'rgba(255,160,60,.07)', fg: '#f2e4d0', dim: '#a89580', panel: '#4a3a32', pfg: '#f2e4d0', dark: true, line: '#d98a2b', lw: 2, hard: 2, sh: '#000000', r: 4, pal: ['#e07a1f', '#ffd447', '#a0713f', '#5a5a64'], good: '#9bd16b', bad: '#e0533a', font: '"Rubik Mono One","Impact",sans-serif', fw: 400, fs: 0.78, mono: '"Roboto Mono","Courier New",monospace', mw: 700, ms: 0.9, dcase: 'upper', veil: 'rgba(42,33,29,.86)', vfg: '#f2e4d0', slide: '#2a211d', sbgc: '#2a211d', sfg: '#f2e4d0', sdim: '#b8a48e', stag: '#ffd447', tsize: 22, tfw: 400, tls: '.02em', tcase: 'uppercase', frame: 'box-shadow:0 0 0 3px #d98a2b,0 0 0 6px #2a211d' });
+  skin('casino', { bg: ['#3a0a1a', '#5a1226'], pat: 'diamonds', patc: 'rgba(255,215,100,.08)', fg: '#fff0c8', dim: '#d6a8a0', panel: '#7a1c34', pfg: '#fff0c8', dark: true, line: '#f2c14e', lw: 2, hard: 2, sh: '#1a0008', r: 10, pal: ['#e63946', '#f2c14e', '#3ac0a0', '#4a7bd6'], good: '#3ac0a0', bad: '#ff5a5a', font: '"Abril Fatface","Georgia",serif', fw: 400, fs: 1, mono: '"Courier Prime","Courier New",monospace', mw: 700, ms: 0.92, veil: 'rgba(58,10,26,.88)', vfg: '#fff0c8', slide: '#3a0a1a', sbgc: '#3a0a1a', sfg: '#fff0c8', sdim: '#e0b8b0', stag: '#f2c14e', tsize: 28, tfw: 400, tls: '0', frame: 'border-radius:20px;box-shadow:0 0 0 3px #f2c14e,0 10px 28px rgba(0,0,0,.5)' });
+  skin('geometric', { bg: ['#1a6bff', '#0b2f8a'], pat: 'grid', patc: 'rgba(255,255,255,.1)', fg: '#ffffff', dim: '#bcd4ff', panel: '#0a1f5c', pfg: '#ffffff', dark: true, line: '#ffffff', lw: 2, r: 2, pal: ['#ff3b5c', '#ffe24a', '#3bd9a0', '#7a4dff'], good: '#3bd9a0', bad: '#ff3b5c', font: '"Pusab","Fredoka One","Impact",sans-serif', fw: 400, fs: 1, mono: '"Fredoka","Courier New",monospace', mw: 700, ms: 0.95, veil: 'rgba(11,47,138,.85)', vfg: '#ffffff', slide: '#0b2f8a', sbgc: '#0b2f8a', sfg: '#ffffff', sdim: '#c6dbff', stag: '#ffe24a', tsize: 28, tfw: 400, tls: '.01em', frame: 'box-shadow:0 0 0 3px #fff,0 0 30px rgba(120,160,255,.6)' });
+
+  NEW_SLIDES.push(
+    mk(makeFactory(SKINS.rustbelt), 'Belt Works', SKINS.rustbelt, 'Mine ore, lay belts, feed the factory. Build a tiny production line in 90 seconds.', '#automation #factory #builder', 5.2e9, 1.2e9, 300e6, 'factory'),
+    mk(makeHighCard(SKINS.casino), 'High Card', SKINS.casino, 'Play poker hands for chips x mult. Beat each round target and collect jokers that break the math.', '#cards #roguelike #poker', 9.9e9, 3.3e9, 1.1e9, 'cards'),
+    mk(makeDash(SKINS.geometric), 'Beat Dash', SKINS.geometric, 'Tap to jump over spikes and walls. One mistake and you restart. Reach 100%.', '#rhythm #dash #impossible', 12.4e9, 4.6e9, 1.9e9, 'dash')
+  );
+
+  /* ===== stage 5e: portal rooms, underworld, hollow path ===== */
+
+  function makeGate(sk) {
+    const COLS = 7, ROWS = 9, DIRS = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    return Object.assign({
+      sk, hold: true, title: 'Gate Hop', how: 'Tap a floor tile to step toward it. Tap the top or bottom half of a light wall to open a portal. Blue and orange link. Reach the exit.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], map: null, pr: [null, null], nextP: 0, pl: [0, 0], goal: [0, 0], left: 90, rooms: 0, steps: 0,
+      geom() { this.cs = Math.floor(Math.min((this.w - 12) / COLS, (this.h - 110) / ROWS)); this.gx = Math.floor((this.w - this.cs * COLS) / 2); this.gy = 70; },
+      layout() { this.geom(); },
+      gen() {
+        const m = []; for (let r = 0; r < ROWS; r++) { m.push([]); for (let c = 0; c < COLS; c++) m[r].push(r === 0 || c === 0 || r === ROWS - 1 || c === COLS - 1 ? (Math.random() < 0.3 ? 'M' : 'W') : '.'); }
+        const dv = Math.random() < 0.5 ? 4 : 5; for (let c = 1; c < COLS - 1; c++) m[dv][c] = 'M'; for (let k = 0; k < 3; k++) { const r = Math.floor(rand(1, ROWS - 1)), c = Math.floor(rand(1, COLS - 1)); if (r !== dv && r > 1 && r < ROWS - 2 && c > 1) m[r][c] = Math.random() < 0.5 ? 'M' : 'W'; }
+        for (let c = 1; c < COLS - 1; c += 2) { m[ROWS - 1][c] = 'W'; m[0][c] = 'W'; } m[3][0] = 'W'; m[ROWS - 3][COLS - 1] = 'W';
+        const sc = Math.floor(rand(1, COLS - 1)), gc = Math.floor(rand(1, COLS - 1)); m[ROWS - 2][sc] = '.'; m[1][gc] = '.'; this.map = m; this.pl = [ROWS - 2, sc]; this.goal = [1, gc]; this.pr = [null, null]; this.nextP = 0;
+      },
+      reset() { this.geom(); this.gen(); this.left = 90; this.rooms = 0; this.score = 0; this.steps = 0; this.floats = []; this.state = 'ready'; },
+      enter() { this.reset(); },
+      solid(r, c) { return this.map[r][c] !== '.'; },
+      portalAt(r, c) { return this.pr[0] && this.pr[0].r === r && this.pr[0].c === c ? 0 : this.pr[1] && this.pr[1].r === r && this.pr[1].c === c ? 1 : -1; },
+      step(dr, dc) {
+        if (this.state !== 'run') return; const nr = this.pl[0] + dr, nc = this.pl[1] + dc; if (nr < 0 || nc < 0 || nr >= ROWS || nc >= COLS) return; const pi = this.portalAt(nr, nc);
+        if (pi >= 0 && this.pr[0] && this.pr[1]) { const o = this.pr[1 - pi]; if (o && this.pr[pi].nr === this.pl[0] && this.pr[pi].nc === this.pl[1]) { this.pl = [o.nr, o.nc]; this.steps++; sfx(880, 0.15, 0.06, 'sine'); this.flash = 0.12; this.check(); return; } }
+        if (this.solid(nr, nc)) return; this.pl = [nr, nc]; this.steps++; sfx(330, 0.03, 0.03, 'triangle'); this.check();
+      },
+      check() { if (this.pl[0] === this.goal[0] && this.pl[1] === this.goal[1]) { const pts = 100 + Math.max(0, 40 - this.steps); this.rooms++; this.score += pts; this.best = Math.max(this.best, this.score); this.floats.push({ t: 'Room clear +' + pts, x: this.w / 2, y: this.h * 0.4, age: 0, c: 'good' }); JING('coin'); this.gen(); this.steps = 0; } },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; if (this.state !== 'run') return; const p = ptrPos(cv, e), cs = this.cs, c = Math.floor((p[0] - this.gx) / cs), r = Math.floor((p[1] - this.gy) / cs); if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return;
+        const t = this.map[r][c]; if (t === 'W') { const fx = (p[0] - this.gx) / cs - c - 0.5, fy = (p[1] - this.gy) / cs - r - 0.5; const opts = DIRS.map(d => ({ d, r: r + d[0], c: c + d[1] })).filter(o => o.r >= 0 && o.c >= 0 && o.r < ROWS && o.c < COLS && this.map[o.r][o.c] === '.'); if (!opts.length) return; opts.sort((a, b) => (-(a.d[1] * fx + a.d[0] * fy)) - (-(b.d[1] * fx + b.d[0] * fy))); const o = opts[0]; const slot = this.nextP; this.pr[slot] = { r, c, nr: o.r, nc: o.c, d: o.d }; this.nextP = 1 - slot; sfx(slot ? 700 : 520, 0.1, 0.06, 'sine'); return; }
+        if (t === 'M') { sfx(120, 0.08, 0.04, 'square'); this.floats.push({ t: 'no portals here', x: p[0], y: p[1] - 10, age: 0, c: 'bad' }); return; }
+        const dr = r - this.pl[0], dc = c - this.pl[1]; if (!dr && !dc) return; if (Math.abs(dr) >= Math.abs(dc)) this.step(Math.sign(dr), 0); else this.step(0, Math.sign(dc)); }); },
+      key(e) { if (e.type !== 'keydown') return false; const m = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.code]; if (!m) return false; this.step(m[0], m[1]); return true; },
+      tick(dt) { this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.left -= dt; if (this.left <= 0) { this.msg = this.rooms + ' room' + (this.rooms === 1 ? '' : 's') + ' cleared'; this.state = 'dead'; this.dead = 0; JING(this.rooms > 2 ? 'win' : 'over'); } },
+      draw() {
+        const c = this.ctx, w = this.w, sk = SK, cs = this.cs, gx = this.gx, gy = this.gy; drawBg(c, w, this.h);
+        txt(c, String(this.score), 14, 28, 26, sk.fg, 'left'); txt(c, 'ROOMS ' + this.rooms, w / 2, 26, 12, sk.dim, 'center', MONO); txt(c, Math.ceil(this.left) + 's', w - 14, 28, 20, this.left < 10 ? sk.bad : sk.fg, 'right', MONO); txt(c, 'steps ' + this.steps, w / 2, 46, 10, sk.dim, 'center', MONO);
+        for (let r = 0; r < ROWS; r++) for (let q = 0; q < COLS; q++) { const t = this.map[r][q], X = gx + q * cs, Y = gy + r * cs; if (t === '.') { c.fillStyle = (r + q) % 2 ? '#f2f4f6' : '#e6e9ed'; c.fillRect(X, Y, cs, cs); } else if (t === 'W') { c.fillStyle = '#c5ccd6'; c.fillRect(X, Y, cs, cs); c.strokeStyle = '#a0a8b4'; c.lineWidth = 1; c.strokeRect(X + 0.5, Y + 0.5, cs - 1, cs - 1); } else { c.fillStyle = '#4a4f58'; c.fillRect(X, Y, cs, cs); c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(X + 4, Y + 4, cs - 8, 3); c.fillRect(X + 4, Y + cs - 7, cs - 8, 3); } }
+        const gX = gx + this.goal[1] * cs, gY = gy + this.goal[0] * cs; c.fillStyle = sk.good; c.globalAlpha = 0.35; c.fillRect(gX, gY, cs, cs); c.globalAlpha = 1; txt(c, 'EXIT', gX + cs / 2, gY + cs / 2 + 4, 11, sk.good, 'center', MONO);
+        this.pr.forEach((p, i) => { if (!p) return; const X = gx + p.c * cs, Y = gy + p.r * cs, col = i ? '#ff8a1f' : '#2f9bff'; c.fillStyle = col; const th = cs * 0.22; if (p.d[0] === -1) c.fillRect(X + 3, Y - th / 2, cs - 6, th); else if (p.d[0] === 1) c.fillRect(X + 3, Y + cs - th / 2, cs - 6, th); else if (p.d[1] === -1) c.fillRect(X - th / 2, Y + 3, th, cs - 6); else c.fillRect(X + cs - th / 2, Y + 3, th, cs - 6); c.globalAlpha = 0.25; c.fillRect(gx + p.nc * cs, gy + p.nr * cs, cs, cs); c.globalAlpha = 1; });
+        const px = gx + this.pl[1] * cs + cs / 2, py = gy + this.pl[0] * cs + cs / 2; dot(c, px, py, cs * 0.3, sk.pal[0], { lw: sk.lw ? 2 : 0 }); dot(c, px - cs * 0.1, py - cs * 0.06, cs * 0.06, '#fff', { lw: 0 }); dot(c, px + cs * 0.1, py - cs * 0.06, cs * 0.06, '#fff', { lw: 0 });
+        txt(c, 'tap light walls for portals', w / 2, gy + cs * ROWS + 22, 11, sk.dim, 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  function makeUnder(sk) {
+    const BOONS = [['Power', '+1 damage', g => { g.dmg += 1; }], ['Swift', '+15% speed', g => { g.spd *= 1.15; }], ['Vitality', '+3 max health', g => { g.mhp += 3; g.hp = Math.min(g.mhp, g.hp + 3); }], ['Reach', '+20 range', g => { g.rng += 20; }], ['Quick Hands', 'attack faster', g => { g.acd *= 0.8; }], ['Dash Blast', 'dash hurts foes', g => { g.blast = true; }], ['Second Wind', 'heal 4 now', g => { g.hp = Math.min(g.mhp, g.hp + 4); }]];
+    return Object.assign({
+      sk, hold: true, title: 'Underworld', how: 'Drag to move. Tap quickly to dash. You strike nearby foes on your own. Clear rooms and pick boons.',
+      state: 'ready', score: 0, best: 0, lives: 1, dead: 0, shake: 0, flash: 0, floats: [], p: null, en: [], eb: [], room: 0, mode: 'fight', offer: [], tx: 0, ty: 0, down: null, t: 0, slash: 0, parts: [],
+      layout() {},
+      reset() { this.p = { x: this.w / 2, y: this.h * 0.75, hp: 8, dash: 0, dvx: 0, dvy: 0, inv: 0, cd: 0 }; this.hp = 8; this.mhp = 8; this.dmg = 2; this.spd = 150; this.rng = 62; this.acd = 0.5; this.blast = false; this.en = []; this.eb = []; this.room = 0; this.score = 0; this.mode = 'fight'; this.floats = []; this.parts = []; this.tx = this.p.x; this.ty = this.p.y; this.spawnRoom(); this.state = 'ready'; },
+      enter() { this.reset(); },
+      spawnRoom() { this.room++; const n = this.room, boss = n % 5 === 0, w = this.w, h = this.h; this.en = []; if (boss) { this.en.push({ k: 'boss', x: w / 2, y: h * 0.2, hp: 30 + n * 4, mh: 30 + n * 4, cd: 1.2, ph: 0, r: 26 }); } else { const cnt = 2 + n + Math.floor(n / 2); for (let i = 0; i < cnt; i++) { const a = (i / cnt) * TAU + rand(0, 1), kind = Math.random() < 0.25 + n * 0.03 ? 'archer' : Math.random() < 0.15 + n * 0.02 ? 'brute' : 'imp'; this.en.push({ k: kind, x: clamp(w / 2 + Math.cos(a) * w * 0.38, 20, w - 20), y: clamp(h * 0.3 + Math.sin(a) * h * 0.2, 60, h * 0.5), hp: kind === 'brute' ? 7 : kind === 'archer' ? 3 : 3, mh: 0, cd: rand(0.8, 2), r: kind === 'brute' ? 16 : 11, born: 0.6 }); } } this.eb = []; if (this.room > 1) this.floats.push({ t: boss ? 'BOSS ROOM' : 'Room ' + n, x: w / 2, y: h * 0.45, age: 0, c: boss ? 'bad' : 'good' }); },
+      bind(cv) { const mv = e => { const p = ptrPos(cv, e); this.tx = p[0]; this.ty = p[1] - 46; };
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = ptrPos(cv, e), w = this.w;
+          if (this.mode === 'boon') { this.offer.forEach((b, i) => { const x = 14 + i * ((w - 28) / 3), bw = (w - 28) / 3 - 6; if (p[0] > x && p[0] < x + bw && p[1] > 200 && p[1] < 380) { b[2](this); this.spawnRoom(); this.mode = 'fight'; this.p.inv = 1; sfx(700, 0.15, 0.06, 'triangle'); } }); return; }
+          this.down = { x: p[0], y: p[1], t: performance.now() }; mv(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => { if (this.down) mv(e); });
+        const up = e => { if (!this.down) return; const p = ptrPos(cv, e), d = this.down; this.down = null; if (performance.now() - d.t < 220 && Math.hypot(p[0] - d.x, p[1] - d.y) < 14 && this.mode === 'fight' && this.state === 'run') this.dash(p[0], p[1]); this.tx = this.p.x; this.ty = this.p.y; };
+        cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', () => { this.down = null; }); },
+      dash(x, y) { const P = this.p; if (P.dash > 0 || P.cd > 0.0 && P.dash > 0) return; let dx = x - P.x, dy = y - P.y, l = Math.hypot(dx, dy) || 1; P.dvx = dx / l * 520; P.dvy = dy / l * 520; P.dash = 0.2; P.inv = 0.3; sfx(300, 0.1, 0.05, 'sawtooth'); if (this.blast) this.en.forEach(e => { if (Math.hypot(e.x - P.x, e.y - P.y) < 70) this.hit(e, this.dmg); }); },
+      hit(e, dm) { e.hp -= dm; e.flash = 0.1; sfx(200, 0.05, 0.05, 'square'); if (e.hp <= 0 && !e.dead) { e.dead = true; this.score += e.k === 'boss' ? 300 : 10; this.best = Math.max(this.best, this.score); for (let i = 0; i < 8; i++) this.parts.push({ x: e.x, y: e.y, vx: rand(-120, 120), vy: rand(-120, 120), l: 0.5 }); sfx(150, 0.12, 0.05, 'sawtooth'); } },
+      tick(dt) {
+        this.decay(dt); this.parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.l -= dt; }); this.parts = this.parts.filter(p => p.l > 0); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run' || this.mode !== 'fight') return;
+        const P = this.p, w = this.w, h = this.h; this.t += dt; P.inv = Math.max(0, P.inv - dt); P.cd -= dt; this.slash = Math.max(0, this.slash - dt);
+        if (P.dash > 0) { P.dash -= dt; P.x += P.dvx * dt; P.y += P.dvy * dt; } else { const dx = this.tx - P.x, dy = this.ty - P.y, d = Math.hypot(dx, dy); if (d > 6) { const s = Math.min(d * 6, this.spd); P.x += dx / d * s * dt; P.y += dy / d * s * dt; } } P.x = clamp(P.x, 12, w - 12); P.y = clamp(P.y, 60, h - 12);
+        if (P.cd <= 0) { const near = this.en.filter(e => !e.dead && Math.hypot(e.x - P.x, e.y - P.y) < this.rng + e.r); if (near.length) { P.cd = this.acd; this.slash = 0.12; this.sa = Math.atan2(near[0].y - P.y, near[0].x - P.x); near.forEach(e => this.hit(e, this.dmg)); } }
+        this.en.forEach(e => { e.flash = Math.max(0, (e.flash || 0) - dt); if (e.born > 0) { e.born -= dt; return; } const dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1; e.cd -= dt;
+          if (e.k === 'imp') { e.x += dx / d * 70 * dt; e.y += dy / d * 70 * dt; } else if (e.k === 'brute') { e.x += dx / d * 42 * dt; e.y += dy / d * 42 * dt; } else if (e.k === 'archer') { const want = d < 170 ? -1 : d > 230 ? 1 : 0; e.x += dx / d * 50 * want * dt; e.y += dy / d * 50 * want * dt; if (e.cd <= 0) { e.cd = 1.8; this.eb.push({ x: e.x, y: e.y, vx: dx / d * 150, vy: dy / d * 150 }); } }
+          else { e.x = w / 2 + Math.sin(this.t * 0.7) * w * 0.3; e.cd -= 0; if (e.cd <= 0) { e.cd = e.hp < e.mh / 2 ? 1.0 : 1.5; e.ph++; const n = 10, off = e.ph * 0.4; for (let i = 0; i < n; i++) { const a = off + i / n * TAU; this.eb.push({ x: e.x, y: e.y, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110 }); } const a0 = Math.atan2(dy, dx); this.eb.push({ x: e.x, y: e.y, vx: Math.cos(a0) * 190, vy: Math.sin(a0) * 190 }); } }
+          if (!P.inv && d < e.r + 9) { this.hurtP(e.k === 'brute' ? 2 : 1); } });
+        this.en = this.en.filter(e => !e.dead); this.eb.forEach(b => { b.x += b.vx * dt; b.y += b.vy * dt; if (!P.inv && Math.hypot(b.x - P.x, b.y - P.y) < 9) { b.dead = true; this.hurtP(1); } }); this.eb = this.eb.filter(b => !b.dead && b.x > -10 && b.x < w + 10 && b.y > -10 && b.y < h + 10);
+        if (this.state === 'run' && !this.en.length) { this.score += 50; this.best = Math.max(this.best, this.score); this.eb = []; this.offer = shuf(BOONS).slice(0, 3); this.mode = 'boon'; JING('win'); }
+      },
+      hurtP(n) { const P = this.p; this.hp -= n; P.inv = 1; this.flash = 0.4; this.shake = 0.5; buzz(40); sfx(110, 0.25, 0.06, 'sawtooth'); if (this.hp <= 0) { this.msg = 'Reached room ' + this.room; this.finish(); this.msg = 'Reached room ' + this.room; } },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, P = this.p; drawBg(c, w, h);
+        c.strokeStyle = sk.line; c.lineWidth = 4; c.strokeRect(6, 56, w - 12, h - 62); c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(8, 58, w - 16, h - 66);
+        this.eb.forEach(b => { dot(c, b.x, b.y, 5, sk.pal[1], { lw: 0 }); });
+        this.en.forEach(e => { c.globalAlpha = e.born > 0 ? 0.4 : 1; const col = e.flash > 0 ? '#ffffff' : e.k === 'boss' ? sk.pal[0] : e.k === 'brute' ? sk.pal[3] : e.k === 'archer' ? sk.pal[2] : sk.pal[1]; dot(c, e.x, e.y, e.r, col, { lw: sk.lw ? 2 : 0 }); if (e.k === 'boss') { dot(c, e.x - 8, e.y - 4, 4, '#000', { lw: 0 }); dot(c, e.x + 8, e.y - 4, 4, '#000', { lw: 0 }); box(c, 30, 66, w - 60, 8, { fill: 'rgba(0,0,0,.4)', r: 4, hard: 0, soft: 0, lw: 0 }); box(c, 30, 66, Math.max(4, (w - 60) * e.hp / e.mh), 8, { fill: sk.pal[0], r: 4, hard: 0, soft: 0, lw: 0 }); } else { dot(c, e.x - e.r * 0.3, e.y - e.r * 0.15, e.r * 0.18, '#000', { lw: 0 }); dot(c, e.x + e.r * 0.3, e.y - e.r * 0.15, e.r * 0.18, '#000', { lw: 0 }); } c.globalAlpha = 1; });
+        if (this.slash > 0) { c.strokeStyle = sk.fg; c.lineWidth = 5; c.beginPath(); c.arc(P.x, P.y, this.rng, this.sa - 0.9, this.sa + 0.9); c.stroke(); }
+        if (!(this.state === 'dead')) { c.globalAlpha = P.inv > 0 && Math.floor(P.inv * 12) % 2 ? 0.4 : 1; if (P.dash > 0) { c.fillStyle = sk.fg; c.globalAlpha = 0.3; c.beginPath(); c.arc(P.x - P.dvx * 0.04, P.y - P.dvy * 0.04, 11, 0, TAU); c.fill(); c.globalAlpha = 1; } dot(c, P.x, P.y, 11, sk.pal[2], { lw: sk.lw ? 2 : 0 }); dot(c, P.x, P.y - 12, 6, sk.pal[1], { lw: 0 }); c.globalAlpha = 1; }
+        this.parts.forEach(q => { c.globalAlpha = clamp(q.l * 2, 0, 1); dot(c, q.x, q.y, 3, sk.pal[0], { lw: 0 }); c.globalAlpha = 1; });
+        for (let i = 0; i < this.mhp; i++) { c.fillStyle = i < this.hp ? sk.pal[0] : 'rgba(255,255,255,.18)'; c.fillRect(14 + i * 14, 28, 11, 11); } txt(c, 'ROOM ' + this.room, w - 14, 26, 12, sk.dim, 'right', MONO); txt(c, String(this.score), w - 14, 48, 14, sk.fg, 'right');
+        if (this.mode === 'boon') { c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(0, 56, w, h); txt(c, 'Choose a boon', w / 2, 170, 22, sk.fg, 'center'); this.offer.forEach((b, i) => { const x = 14 + i * ((w - 28) / 3), bw = (w - 28) / 3 - 6; box(c, x, 200, bw, 180, { fill: sk.panel, r: Math.min(sk.r + 4, 14), hard: Math.min(sk.hard, 3), soft: 0, lw: sk.lw }); txt(c, b[0], x + bw / 2, 260, 15, sk.pfg, 'center'); const ws = b[1].split(' '); let ls = ['']; ws.forEach(q => { if ((ls[ls.length - 1] + ' ' + q).length > 11) ls.push(q); else ls[ls.length - 1] += (ls[ls.length - 1] ? ' ' : '') + q; }); ls.forEach((s, k) => txt(c, s, x + bw / 2, 290 + k * 15, 11, sk.dim, 'center', MONO)); }); }
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  function makeHollow(sk) {
+    const LEN = 2600;
+    return Object.assign({
+      sk, hold: true, title: 'Hollow Path', how: 'Walk with the arrows, JUMP and SLASH on the buttons. Cross the caverns and defeat the guardian.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], p: null, en: [], pf: [], ptr: {}, hp: 5, cam: 0, kills: 0, boss: null, t: 0, win: false, jprev: false, sprev: false, parts: [],
+      geom() { this.gy = Math.floor(this.h * 0.72); const bs = 54, by = this.h - 72; this.btn = { l: { x: 10, y: by, w: bs, h: bs }, r: { x: 10 + bs + 8, y: by, w: bs, h: bs }, j: { x: this.w - 2 * bs - 18, y: by, w: bs, h: bs }, s: { x: this.w - bs - 10, y: by, w: bs, h: bs } }; },
+      layout() { this.geom(); },
+      reset() { this.geom(); const g = this.gy; this.p = { x: 60, y: g - 30, vx: 0, vy: 0, f: 1, on: true, inv: 0, atk: 0, acd: 0 }; this.hp = 5; this.kills = 0; this.cam = 0; this.t = 0; this.win = false; this.score = 0; this.floats = []; this.parts = []; this.ptr = {};
+        this.pf = []; for (let x = 380; x < LEN - 500; x += rand(260, 420)) this.pf.push({ x, y: g - rand(70, 130), w: rand(90, 170) }); this.en = []; for (let x = 450; x < LEN - 400; x += rand(200, 330)) { if (Math.random() < 0.6) this.en.push({ k: 'crawl', x, y: g - 14, hp: 2, dir: Math.random() < 0.5 ? 1 : -1, x0: x, r: 14 }); else this.en.push({ k: 'fly', x, y: g - rand(90, 170), hp: 1, ph: rand(0, TAU), x0: x, y0: g - rand(90, 170), r: 12 }); } this.boss = { k: 'boss', x: LEN - 220, y: g - 34, hp: 16, mh: 16, vx: 0, vy: 0, cd: 1.5, r: 34, face: -1, on: true }; this.en.push(this.boss); this.state = 'ready'; },
+      enter() { this.reset(); },
+      hitBtn(p) { for (const k in this.btn) { const b = this.btn[k]; if (p[0] >= b.x - 6 && p[0] <= b.x + b.w + 6 && p[1] >= b.y - 6 && p[1] <= b.y + b.h + 6) return k; } return null; },
+      held(k) { return Object.values(this.ptr).indexOf(k) >= 0; },
+      bind(cv) { const set = e => { this.ptr[e.pointerId] = this.hitBtn(ptrPos(cv, e)); }; cv.addEventListener('pointerdown', e => { if (this.kick()) return; set(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', e => { if (this.ptr[e.pointerId] !== undefined) set(e); }); ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => { delete this.ptr[e.pointerId]; })); },
+      key(e) { const d = e.type === 'keydown', m = { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'j', Space: 'j', KeyZ: 's', KeyX: 's' }[e.code]; if (!m) return false; if (d) this.ptr['k' + m] = m; else delete this.ptr['k' + m]; return true; },
+      hurt_(n) { const P = this.p; if (P.inv > 0) return; this.hp -= n; P.inv = 1.2; P.vy = -300; P.vx = -P.f * 220; this.flash = 0.4; this.shake = 0.5; buzz(40); sfx(110, 0.25, 0.06, 'sawtooth'); if (this.hp <= 0) { this.score = Math.floor(P.x / 20) + this.kills * 20; this.best = Math.max(this.best, this.score); this.msg = Math.round(P.x / LEN * 100) + '% of the path'; this.finish(); this.msg = Math.round(P.x / LEN * 100) + '% of the path'; } },
+      tick(dt) {
+        this.decay(dt); this.parts.forEach(q => { q.x += q.vx * dt; q.y += q.vy * dt; q.l -= dt; }); this.parts = this.parts.filter(q => q.l > 0); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; const P = this.p, g = this.gy; this.t += dt;
+        const L = this.held('l'), R = this.held('r'), J = this.held('j'), S = this.held('s'); P.inv = Math.max(0, P.inv - dt); P.atk = Math.max(0, P.atk - dt); P.acd = Math.max(0, P.acd - dt);
+        const tv = (R ? 1 : 0) - (L ? 1 : 0); if (tv) P.f = tv; P.vx += (tv * 200 - P.vx) * Math.min(1, dt * 12); P.vy += 1500 * dt;
+        if (J && !this.jprev && P.on) { P.vy = -560; P.on = false; sfx(450, 0.06, 0.04, 'square'); } if (!J && P.vy < -200) P.vy += 2000 * dt * 0.5; this.jprev = J;
+        if (S && !this.sprev && P.acd <= 0) { P.atk = 0.15; P.acd = 0.32; sfx(260, 0.08, 0.05, 'sawtooth'); const ax = P.x + P.f * 34; this.en.forEach(e => { if (e.dead) return; if (Math.abs(e.x - ax) < 40 + e.r && Math.abs(e.y - P.y) < 36 + e.r) { e.hp--; e.hf = 0.12; e.x += P.f * 18; if (e.hp <= 0) { e.dead = true; this.kills++; this.score = Math.floor(P.x / 20) + this.kills * 20 + (e.k === 'boss' ? 300 : 0); this.best = Math.max(this.best, this.score); for (let i = 0; i < 10; i++) this.parts.push({ x: e.x, y: e.y, vx: rand(-140, 140), vy: rand(-160, 40), l: 0.6 }); if (e.k === 'boss') { this.win = true; this.msg = 'GUARDIAN DEFEATED'; this.state = 'dead'; this.dead = 0; JING('win'); } else sfx(170, 0.1, 0.05, 'sawtooth'); } else sfx(220, 0.05, 0.05, 'square'); } }); } this.sprev = S;
+        const prevB = P.y + 20; P.x += P.vx * dt; P.y += P.vy * dt; P.x = clamp(P.x, 14, LEN - 14); P.on = false;
+        if (P.y + 20 >= g) { P.y = g - 20; P.vy = 0; P.on = true; } else if (P.vy >= 0) { for (const f of this.pf) { if (P.x > f.x - 6 && P.x < f.x + f.w + 6 && prevB <= f.y + 4 && P.y + 20 >= f.y) { P.y = f.y - 20; P.vy = 0; P.on = true; } } }
+        this.en.forEach(e => { if (e.dead) return; e.hf = Math.max(0, (e.hf || 0) - dt);
+          if (e.k === 'crawl') { e.x += e.dir * 50 * dt; if (Math.abs(e.x - e.x0) > 90) e.dir = -e.dir; } else if (e.k === 'fly') { e.ph += dt * 2; e.x = e.x0 + Math.sin(e.ph) * 70; e.y = e.y0 + Math.sin(e.ph * 1.7) * 24; if (Math.abs(e.x - P.x) < 200) { e.x0 += clamp(P.x - e.x, -1, 1) * 30 * dt; } }
+          else { e.cd -= dt; e.vy += 1500 * dt; e.y += e.vy * dt; e.x += e.vx * dt; if (e.y + e.r >= g) { e.y = g - e.r; e.vy = 0; e.vx *= 0.8; } if (e.cd <= 0 && Math.abs(e.y + e.r - g) < 2) { e.cd = e.hp < 8 ? 1.0 : 1.6; e.vy = -520; e.vx = clamp(P.x - e.x, -1, 1) * 260; sfx(100, 0.2, 0.06, 'sawtooth'); this.shake = 0.3; } e.x = clamp(e.x, LEN - 520, LEN - 20); }
+          if (Math.abs(e.x - P.x) < e.r + 10 && Math.abs(e.y - P.y) < e.r + 16) this.hurt_(e.k === 'boss' ? 2 : 1); });
+        this.en = this.en.filter(e => !e.dead); this.cam = clamp(P.x - this.w * 0.35, 0, LEN - this.w); this.score = Math.max(this.score, Math.floor(P.x / 20) + this.kills * 20); this.best = Math.max(this.best, this.score);
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, g = this.gy, cam = this.cam, P = this.p; drawBg(c, w, h);
+        c.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 10; i++) { const x = ((i * 190 - cam * 0.4) % (w + 200) + w + 200) % (w + 200) - 100; c.beginPath(); c.moveTo(x, 0); c.lineTo(x + 30, 80 + (i % 3) * 40); c.lineTo(x + 60, 0); c.fill(); }
+        c.fillStyle = sk.panel; c.fillRect(0, g, w, h - g); c.fillStyle = sk.line; c.fillRect(0, g, w, 3); this.pf.forEach(f => { const X = f.x - cam; if (X > w || X + f.w < 0) return; c.fillStyle = sk.panel; c.fillRect(X, f.y, f.w, 12); c.fillStyle = sk.line; c.fillRect(X, f.y, f.w, 3); });
+        this.en.forEach(e => { const X = e.x - cam, col = e.hf > 0 ? '#ffffff' : e.k === 'boss' ? sk.pal[0] : e.k === 'fly' ? sk.pal[2] : sk.pal[1]; if (X < -60 || X > w + 60) return; if (e.k === 'crawl') { c.fillStyle = col; c.beginPath(); c.ellipse(X, e.y, 16, 11, 0, Math.PI, 0); c.fill(); c.fillRect(X - 16, e.y, 32, 4); dot(c, X + e.dir * 6, e.y - 4, 2.5, '#000', { lw: 0 }); } else if (e.k === 'fly') { dot(c, X, e.y, 9, col, { lw: 0 }); c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(X - 11, e.y - 6 + Math.sin(this.t * 25) * 3, 9, 4, -0.5, 0, TAU); c.ellipse(X + 11, e.y - 6 + Math.sin(this.t * 25) * 3, 9, 4, 0.5, 0, TAU); c.fill(); } else { c.fillStyle = col; c.beginPath(); c.ellipse(X, e.y, e.r, e.r, 0, 0, TAU); c.fill(); c.strokeStyle = sk.fg; c.lineWidth = 3; c.stroke(); dot(c, X - 10, e.y - 6, 6, '#fff', { lw: 0 }); dot(c, X + 10, e.y - 6, 6, '#fff', { lw: 0 }); dot(c, X - 10, e.y - 6, 3, '#000', { lw: 0 }); dot(c, X + 10, e.y - 6, 3, '#000', { lw: 0 }); box(c, w / 2 - 70, 70, 140, 8, { fill: 'rgba(0,0,0,.4)', r: 4, hard: 0, soft: 0, lw: 0 }); box(c, w / 2 - 70, 70, Math.max(4, 140 * e.hp / e.mh), 8, { fill: sk.pal[0], r: 4, hard: 0, soft: 0, lw: 0 }); } });
+        if (this.state !== 'dead' || this.win) { c.globalAlpha = P.inv > 0 && Math.floor(P.inv * 12) % 2 ? 0.4 : 1; const X = P.x - cam; c.fillStyle = sk.fg; c.beginPath(); c.ellipse(X, P.y - 2, 10, 14, 0, 0, TAU); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.ellipse(X + P.f * 3, P.y - 6, 7, 6, 0, 0, TAU); c.fill(); c.fillStyle = sk.pal[2]; c.fillRect(X + P.f * 3 - 3, P.y - 7, 2, 3); c.fillRect(X + P.f * 3 + 1, P.y - 7, 2, 3); c.fillStyle = sk.fg; c.fillRect(X - 6, P.y - 18, 3, 8); c.fillRect(X + 3, P.y - 18, 3, 8); c.globalAlpha = 1; if (P.atk > 0) { c.strokeStyle = sk.fg; c.lineWidth = 4; c.beginPath(); c.arc(X + P.f * 22, P.y - 2, 28, P.f > 0 ? -1 : Math.PI - 1, P.f > 0 ? 1 : Math.PI + 1); c.stroke(); } }
+        this.parts.forEach(q => { c.globalAlpha = clamp(q.l * 2, 0, 1); dot(c, q.x - cam, q.y, 3, sk.pal[1], { lw: 0 }); c.globalAlpha = 1; });
+        for (let i = 0; i < 5; i++) { c.fillStyle = i < this.hp ? sk.fg : 'rgba(255,255,255,.2)'; c.beginPath(); c.ellipse(24 + i * 20, 34, 7, 9, 0, 0, TAU); c.fill(); } txt(c, String(this.score), w - 14, 30, 18, sk.fg, 'right'); box(c, 14, 48, w - 28, 5, { fill: 'rgba(255,255,255,.15)', r: 3, hard: 0, soft: 0, lw: 0 }); box(c, 14, 48, Math.max(4, (w - 28) * P.x / LEN), 5, { fill: sk.pal[1], r: 3, hard: 0, soft: 0, lw: 0 });
+        const lab = { l: '<', r: '>', j: 'JUMP', s: 'SLASH' }; for (const k in this.btn) { const b = this.btn[k], on = this.held(k); box(c, b.x, b.y, b.w, b.h, { fill: on ? sk.pal[1] : 'rgba(255,255,255,.14)', r: 14, hard: 0, soft: 0, lw: 2, line: sk.fg }); txt(c, lab[k], b.x + b.w / 2, b.y + b.h / 2 + 5, lab[k].length > 1 ? 11 : 20, on ? '#000000' : sk.fg, 'center', MONO); }
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+
+  skin('lab', { bg: ['#f3f5f7', '#dfe4ea'], pat: 'grid', patc: 'rgba(20,40,70,.07)', fg: '#1d2733', dim: '#6b7785', panel: '#ffffff', pfg: '#1d2733', line: '#1d2733', lw: 2, r: 6, pal: ['#ff8a1f', '#2f9bff', '#4cc38a', '#8892a0'], good: '#2aa56d', bad: '#e0533a', font: '"Exo 2","Arial",sans-serif', fw: 700, fs: 1, mono: '"Roboto Mono","Courier New",monospace', mw: 600, ms: 0.9, veil: 'rgba(243,245,247,.88)', vfg: '#1d2733', slide: '#1d2733', sbgc: '#1d2733', sfg: '#f3f5f7', sdim: '#a9b4c2', stag: '#ff8a1f', tsize: 26, tfw: 700, tls: '.01em', frame: 'box-shadow:0 0 0 2px #1d2733,0 0 0 5px #ff8a1f' });
+  skin('styx', { bg: ['#1b0f14', '#2e1219'], pat: 'diamonds', patc: 'rgba(214,170,80,.07)', fg: '#f4e2b8', dim: '#a8906a', panel: '#3a1a20', pfg: '#f4e2b8', dark: true, line: '#c9983a', lw: 2, r: 8, pal: ['#d6403a', '#e8c15a', '#6fbf8a', '#7c6bd6'], good: '#6fbf8a', bad: '#d6403a', font: '"Cinzel Decorative","Georgia",serif', fw: 700, fs: 0.9, mono: '"IM Fell English","Georgia",serif', mw: 400, ms: 1, veil: 'rgba(27,15,20,.88)', vfg: '#f4e2b8', slide: '#1b0f14', sbgc: '#1b0f14', sfg: '#f4e2b8', sdim: '#b59d74', stag: '#e8c15a', tsize: 24, tfw: 700, tls: '.04em', frame: 'box-shadow:0 0 0 2px #c9983a,0 0 26px rgba(214,64,58,.35)' });
+  skin('cavern', { bg: ['#10161f', '#1b2432'], pat: 'speck', patc: 'rgba(180,200,230,.06)', fg: '#e8eef8', dim: '#8793a8', panel: '#242f40', pfg: '#e8eef8', dark: true, line: '#5b6b85', lw: 2, r: 6, pal: ['#e8704f', '#a9c4e8', '#7fd1c0', '#8a7cc8'], good: '#7fd1c0', bad: '#e8704f', font: '"Cormorant Garamond","Georgia",serif', fw: 700, fs: 1.05, mono: '"Cormorant Garamond","Georgia",serif', mw: 700, ms: 1.05, veil: 'rgba(16,22,31,.88)', vfg: '#e8eef8', slide: '#10161f', sbgc: '#10161f', sfg: '#e8eef8', sdim: '#9aa6bb', stag: '#a9c4e8', tsize: 28, tfw: 700, tls: '.02em', frame: 'box-shadow:0 0 0 2px #5b6b85,0 0 24px rgba(120,150,200,.25)' });
+
+  NEW_SLIDES.push(
+    mk(makeGate(SKINS.lab), 'Gate Hop', SKINS.lab, 'Open two linked portals on the light walls and walk through them to reach the exit.', '#portal #puzzle #rooms', 6.8e9, 1.8e9, 450e6, 'gate'),
+    mk(makeUnder(SKINS.styx), 'Underworld', SKINS.styx, 'Fight through rooms, dash through bullets and pick a boon after every clear. A boss waits at room five.', '#roguelike #dungeon #boss', 8.4e9, 2.6e9, 740e6, 'under'),
+    mk(makeHollow(SKINS.cavern), 'Hollow Path', SKINS.cavern, 'Wander the caverns, slash the crawlers and face the guardian at the end of the path.', '#metroidvania #platformer #cave', 6.1e9, 1.6e9, 410e6, 'hollow')
   );
 
 
