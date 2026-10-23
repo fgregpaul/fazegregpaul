@@ -222,6 +222,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
   .phone{position:fixed;inset:0;width:auto;height:auto;max-width:none;max-height:none;aspect-ratio:auto;border-radius:0;box-shadow:none;background:transparent}
   .rbtn[data-act="next"]{display:none}
   .pwa .phone{bottom:auto;height:var(--apph,100%)}
+  .pwa .cap{padding-bottom:max(calc(var(--sab) + 8px),28px)}
 }
 @media (max-width:699px) and (max-height:700px){ .cap .desc{-webkit-line-clamp:1} }
 
@@ -6405,7 +6406,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
   SLIDES.forEach((s, i) => { s.cm = genComments(s.kind || BASEK[i]); });
   { const rnd = Math.random; for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
 
-  const fixH = () => { try { const r = document.documentElement, pwa = navigator.standalone || matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches; r.classList.toggle('pwa', !!pwa); if (pwa) { const port = innerHeight >= innerWidth, sh = port ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height); r.style.setProperty('--apph', Math.max(innerHeight, sh) + 'px'); } } catch (_) {} };
+  const fixH = () => { try { const r = document.documentElement, pwa = navigator.standalone === true; r.classList.toggle('pwa', pwa); if (pwa) { const port = innerHeight >= innerWidth, sh = port ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height); r.style.setProperty('--apph', sh + 'px'); } } catch (_) {} };
   fixH(); window.addEventListener('resize', fixH); window.addEventListener('orientationchange', () => setTimeout(fixH, 250));
   const feed = document.getElementById('feed'), phone = document.getElementById('phone');
   const loadedFonts = {};
