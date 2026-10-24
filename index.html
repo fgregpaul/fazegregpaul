@@ -9279,22 +9279,28 @@ const SUMMIT_LEVELS = [
     const FLOOR = 1, WALL = 0;
     const M = new Uint8Array(MW * MH), ROOMID = new Int8Array(MW * MH).fill(-1);
     const ROOMS = [
-      { n: 'CAFETERIA', r: [38, 4, 58, 18], f: '#5a6a8a' }, { n: 'WEAPONS', r: [66, 6, 78, 16], f: '#5a5a7a' }, { n: 'NAVIGATION', r: [84, 21, 93, 32], f: '#4a6a7a' }, { n: 'SHIELDS', r: [66, 40, 78, 50], f: '#5a6a5a' },
-      { n: 'STORAGE', r: [40, 40, 56, 54], f: '#6a604a' }, { n: 'ADMIN', r: [60, 25, 70, 34], f: '#6a5a6a' }, { n: 'ELECTRICAL', r: [25, 34, 36, 44], f: '#5a5a4a' }, { n: 'MEDBAY', r: [25, 20, 36, 28], f: '#4a6a6a' },
-      { n: 'UPPER ENGINE', r: [6, 5, 18, 15], f: '#6a4a4a' }, { n: 'LOWER ENGINE', r: [6, 42, 18, 52], f: '#6a4a4a' }, { n: 'REACTOR', r: [1, 23, 8, 34], f: '#4a4a6a' }, { n: 'SECURITY', r: [15, 25, 22, 32], f: '#4a5a6a' }
+      { n: 'CAFETERIA', s: 'CAFE', r: [38, 3, 57, 17], f: '#4e6488' }, { n: 'WEAPONS', s: 'WEAPONS', r: [68, 4, 80, 14], f: '#6e5a3a' }, { n: 'NAVIGATION', s: 'NAV', r: [86, 22, 94, 33], f: '#3a6a7c' }, { n: 'SHIELDS', s: 'SHIELDS', r: [68, 42, 80, 52], f: '#4a6e48' },
+      { n: 'STORAGE', s: 'STORAGE', r: [40, 40, 56, 54], f: '#6e6248' }, { n: 'ADMIN', s: 'ADMIN', r: [62, 23, 72, 32], f: '#6a4a6e' }, { n: 'ELECTRICAL', s: 'ELEC', r: [24, 40, 34, 50], f: '#6a6a36' }, { n: 'MEDBAY', s: 'MEDBAY', r: [24, 20, 34, 28], f: '#36786a' },
+      { n: 'UPPER ENGINE', s: 'U.ENGINE', r: [5, 4, 17, 14], f: '#7a4a3a' }, { n: 'LOWER ENGINE', s: 'L.ENGINE', r: [5, 44, 17, 54], f: '#7a4a3a' }, { n: 'REACTOR', s: 'REACT', r: [1, 24, 7, 34], f: '#3a467a' }, { n: 'SECURITY', s: 'SEC', r: [15, 26, 20, 32], f: '#565a6c' }
     ];
-    const HALLS = [[58, 10, 66, 12], [71, 16, 73, 40], [73, 25, 84, 27], [70, 29, 71, 31], [47, 18, 49, 40], [49, 29, 60, 31], [56, 46, 66, 48], [36, 38, 40, 40], [18, 48, 40, 50], [18, 10, 38, 12], [11, 15, 13, 42], [8, 28, 11, 30], [13, 28, 15, 30], [30, 12, 32, 20]];
+    // 3-wide corridors. Each one starts and ends on a room edge and never runs alongside a room wall.
+    const HALLS = [[18, 8, 37, 10], [28, 11, 30, 19], [58, 8, 67, 10], [74, 15, 76, 41], [73, 27, 73, 29], [77, 27, 85, 29], [47, 18, 49, 39], [50, 27, 61, 29], [57, 46, 67, 48], [35, 44, 39, 46], [18, 52, 39, 54], [10, 15, 12, 43], [8, 28, 9, 30], [13, 28, 14, 30]];
     (function carve() { M.fill(WALL); const c = (r, id) => { for (let y = r[1]; y <= r[3]; y++) for (let x = r[0]; x <= r[2]; x++) { M[y * MW + x] = FLOOR; if (id >= 0) ROOMID[y * MW + x] = id; } }; ROOMS.forEach((R, i) => c(R.r, i)); HALLS.forEach(h => c(h, -1)); })();
     ROOMS.forEach(R => { R.F = HX(R.f); R.FD = DK(R.F, 0.85); R.cx = (R.r[0] + R.r[2] + 1) / 2 * T; R.cy = (R.r[1] + R.r[3] + 1) / 2 * T; });
     const tile = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? WALL : M[y * MW + x];
     const walk = (px, py) => tile(Math.floor(px / T), Math.floor(py / T)) === FLOOR;
     const roomAt = (px, py) => { const x = Math.floor(px / T), y = Math.floor(py / T); return (x < 0 || y < 0 || x >= MW || y >= MH) ? -1 : ROOMID[y * MW + x]; };
     const roomName = i => i >= 0 ? ROOMS[i].n : 'HALLWAY';
+    // doorway tiles: hallway tiles touching a room
+    const DOOR = new Uint8Array(MW * MH); for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { if (M[y * MW + x] !== FLOOR || ROOMID[y * MW + x] >= 0) continue; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < MW && ny < MH && ROOMID[ny * MW + nx] >= 0) DOOR[y * MW + x] = dx ? 1 : 2; } }
+    // a spoken place: a room, or the hallway closest to a room
+    const placeOf = (px, py) => { const r = roomAt(px, py); if (r >= 0) return ROOMS[r].n; let bi = 0, bd = 1e9; ROOMS.forEach((R, i) => { const d = Math.hypot(R.cx - px, R.cy - py); if (d < bd) { bd = d; bi = i; } }); return 'HALL BY ' + ROOMS[bi].n; };
+    const inP = p => (p.startsWith('HALL') ? 'IN THE ' : 'IN ') + p;
     // tasks: [kind, tileX, tileY]
-    const TASKS = [['wires', 27, 34], ['wires', 61, 25], ['wires', 41, 40], ['wires', 39, 4], ['card', 68, 25], ['align', 7, 5], ['align', 7, 42], ['download', 77, 6], ['download', 92, 21], ['download', 57, 4],
-      ['fuel', 55, 40], ['fuel', 17, 42], ['rocks', 67, 6], ['calib', 77, 40], ['calib', 35, 34], ['scan', 30, 26], ['download', 62, 33], ['align', 17, 14], ['fuel', 44, 53]].map(([k, x, y], i) => ({ i, k, x: x * T + 4, y: y * T + 4, room: roomAt(x * T + 4, y * T + 4) }));
-    const LIGHTS = { x: 26 * T + 4, y: 43 * T + 4 }, REACT = { x: 2 * T + 4, y: 28 * T + 4 }, BUTTON = { x: 48 * T + 4, y: 11 * T + 4 };
-    const VENTS = [[44, 6], [65, 33], [48, 52], [76, 14], [90, 30], [76, 49], [10, 13], [10, 50], [5, 32], [34, 22], [20, 31], [34, 42]].map(([x, y]) => ({ x: x * T + 4, y: y * T + 4 }));
+    const TASKS = [['wires', 26, 41], ['wires', 64, 24], ['wires', 42, 41], ['wires', 40, 4], ['card', 70, 24], ['align', 7, 5], ['align', 7, 45], ['download', 79, 5], ['download', 93, 23], ['download', 55, 4],
+      ['fuel', 55, 41], ['fuel', 16, 45], ['rocks', 70, 5], ['calib', 79, 43], ['calib', 33, 41], ['scan', 29, 26], ['download', 66, 31], ['align', 16, 5], ['fuel', 44, 53]].map(([k, x, y], i) => ({ i, k, x: x * T + 4, y: y * T + 4, room: roomAt(x * T + 4, y * T + 4) }));
+    const LIGHTS = { x: 30 * T + 4, y: 41 * T + 4 }, REACT = { x: 3 * T + 4, y: 25 * T + 4 }, BUTTON = { x: 47 * T + 4, y: 10 * T + 4 };
+    const VENTS = [[40, 16], [71, 31], [54, 53], [70, 13], [88, 32], [70, 51], [6, 13], [6, 53], [2, 33], [25, 27], [16, 31], [25, 49]].map(([x, y]) => ({ x: x * T + 4, y: y * T + 4 }));
     const VNET = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10, 11]];
     const ventLinks = i => { const n = VNET.find(g => g.indexOf(i) >= 0); return n.filter(j => j !== i); };
     // BFS distance field per target tile, cached
@@ -9323,7 +9329,7 @@ const SUMMIT_LEVELS = [
     const SPAWN = ROOMS[0];
     const toast = (t, c) => { G.toasts.push({ t, c: c || HX('#ffffff'), age: 0 }); if (G.toasts.length > 3) G.toasts.shift(); };
     function newGame(role) { G.role = role || (Math.random() < 0.5 ? 'sab' : 'crew'); G.crew = []; const order = [0, 1, 2, 3, 4, 5, 6, 7];
-      for (let i = 0; i < 8; i++) G.crew.push({ i, ci: i, name: i === 7 ? 'YOU' : COLS[i][0], bot: i !== 7, alive: true, ghost: false, sab: false, x: 0, y: 0, vx: 0, vy: 1, tasks: [], tdone: 0, st: 'idle', st2: Math.random() * 2, seen: [], sawKill: null, sawVent: null, anim: 0, goal: null, emerg: true, memT: Math.random() * 0.4, lastRoom: 0 });
+      for (let i = 0; i < 8; i++) G.crew.push({ i, ci: i, name: COLS[i][0], you: i === 7, bot: i !== 7, alive: true, ghost: false, sab: false, x: 0, y: 0, vx: 0, vy: 1, tasks: [], tdone: 0, st: 'idle', st2: Math.random() * 2, seen: [], sawKill: null, sawVent: null, anim: 0, goal: null, emerg: true, memT: Math.random() * 0.4, lastRoom: 0 });
       G.sab = G.role === 'sab' ? 7 : Math.floor(Math.random() * 7); G.crew[G.sab].sab = true; G.me = 7;
       const pool = TASKS.map(t => t.i); G.crew.forEach(c => { c.tasks = shuf(pool.slice()).slice(0, 5).map(i => ({ t: TASKS[i], done: false })); }); G.tasksTotal = G.crew.filter(c => !c.sab).length * 5; G.tasksDone = 0;
       G.bodies = []; G.meeting = null; G.eject = null; G.end = null; G.lights = 1; G.reactor = 0; G.sabCd = 35; G.killCd = 18; G.task = null; G.vent = null; G.fixHold = 0; G.emergUsed = false; G.rounds = 0; G.t = 0; G.toasts = []; G.seenBody = {};
@@ -9332,17 +9338,17 @@ const SUMMIT_LEVELS = [
     const alive = () => G.crew.filter(c => c.alive), crewAlive = () => G.crew.filter(c => c.alive && !c.sab);
     const visR = c => c.sab ? 84 : G.lights > 0.5 ? 66 : 28;
     const canSee = (a, b) => { if (b.inVent) return false; const d = Math.hypot(a.x - b.x, a.y - b.y); return d < visR(a) && los(a.x, a.y - 4, b.x, b.y - 4); };
-    function remember(dt) { for (const c of G.crew) { if (!c.alive || !c.bot) continue; c.memT -= dt; if (c.memT > 0) continue; c.memT = 0.4; (c.hist = c.hist || []).push({ t: G.t, room: roomAt(c.x, c.y) }); if (c.hist.length > 150) c.hist.shift(); for (const o of G.crew) { if (o === c || !o.alive || o.ghost) continue; if (canSee(c, o)) c.seen.push({ w: o.i, room: roomAt(o.x, o.y), t: G.t }); } if (c.seen.length > 90) c.seen.splice(0, c.seen.length - 90);
+    function remember(dt) { for (const c of G.crew) { if (!c.alive || !c.bot) continue; c.memT -= dt; if (c.memT > 0) continue; c.memT = 0.4; (c.hist = c.hist || []).push({ t: G.t, room: roomAt(c.x, c.y), p: placeOf(c.x, c.y) }); if (c.hist.length > 150) c.hist.shift(); for (const o of G.crew) { if (o === c || !o.alive || o.ghost) continue; if (canSee(c, o)) c.seen.push({ w: o.i, room: roomAt(o.x, o.y), p: placeOf(o.x, o.y), t: G.t }); } if (c.seen.length > 90) c.seen.splice(0, c.seen.length - 90);
         for (const b of G.bodies) { if (b.found || c.sab) continue; if (Math.hypot(c.x - b.x, c.y - b.y) < visR(c) && los(c.x, c.y - 4, b.x, b.y)) { b.seenBy = b.seenBy || c.i; b.seenT = b.seenT || G.t; } } } }
     function doKill(k, v) { v.alive = false; v.inVent = false; const b = { ci: v.ci, i: v.i, x: v.x, y: v.y, t: G.t, room: roomAt(v.x, v.y), killer: k.i }; G.bodies.push(b); sfx(120, 0.25, 0.08, 'sawtooth'); sfx(70, 0.3, 0.06, 'square');
-      for (const c of G.crew) if (c.bot && c.alive && !c.sab && c !== v && Math.hypot(c.x - v.x, c.y - v.y) < visR(c) && los(c.x, c.y - 4, v.x, v.y - 4)) { c.sawKill = { k: k.i, v: v.i }; b.seenBy = c.i; b.seenT = G.t - 0.6; }
+      for (const c of G.crew) if (c.bot && c.alive && !c.sab && c !== v && Math.hypot(c.x - v.x, c.y - v.y) < visR(c) && los(c.x, c.y - 4, v.x, v.y - 4)) { c.sawKill = { k: k.i, v: v.i, p: placeOf(v.x, v.y) }; b.seenBy = c.i; b.seenT = G.t - 0.6; }
       if (v.i === G.me) { toast('YOU WERE KILLED BY ' + k.name, HX('#ff6a6a')); v.ghost = true; G.task = null; } else if (v.bot) v.ghost = true; }
-    function ventUse(c, from, to) { const V = VENTS[to]; c.x = V.x; c.y = V.y; for (const o of G.crew) if (o.bot && o.alive && !o.sab && o !== c && (Math.hypot(o.x - VENTS[from].x, o.y - VENTS[from].y) < visR(o) && los(o.x, o.y, VENTS[from].x, VENTS[from].y) || Math.hypot(o.x - V.x, o.y - V.y) < visR(o) && los(o.x, o.y, V.x, V.y))) o.sawVent = c.i; sfx(160, 0.08, 0.04, 'square'); }
-    function sabotage(kind) { if (kind === 'lights' && G.lights > 0.5) { G.lights = 0; toast('LIGHTS ARE OUT! FIX THEM IN ELECTRICAL', HX('#ffd23f')); sfx(90, 0.5, 0.07, 'sawtooth'); }
-      else if (kind === 'reactor' && !G.reactor) { G.reactor = 40; toast('REACTOR MELTDOWN! FIX IT IN THE REACTOR', HX('#ff5a5a')); sfx(220, 0.6, 0.07, 'square'); } G.sabCd = 40; }
+    function ventUse(c, from, to) { const V = VENTS[to]; c.x = V.x; c.y = V.y; for (const o of G.crew) if (o.bot && o.alive && !o.sab && o !== c && (Math.hypot(o.x - VENTS[from].x, o.y - VENTS[from].y) < visR(o) && los(o.x, o.y, VENTS[from].x, VENTS[from].y) || Math.hypot(o.x - V.x, o.y - V.y) < visR(o) && los(o.x, o.y, V.x, V.y))) { o.sawVent = c.i; o.sawVentP = placeOf(VENTS[from].x, VENTS[from].y); } sfx(160, 0.08, 0.04, 'square'); }
+    function sabotage(kind) { if (kind === 'lights' && G.lights > 0.5) { G.lights = 0; toast('LIGHTS ARE OUT! FIX THEM IN ELECTRICAL', HX('#ffd23f')); sfx(180, 0.4, 0.03, 'triangle'); }
+      else if (kind === 'reactor' && !G.reactor) { G.reactor = 40; toast('REACTOR MELTDOWN! FIX IT IN THE REACTOR', HX('#ff5a5a')); sfx(392, 0.35, 0.03, 'sine'); G.alarmT = 0.5; } G.sabCd = 40; }
     function taskDone(c, tk) { if (tk.done) return; tk.done = true; c.tdone++; if (!c.sab) G.tasksDone++; if (G.tasksDone >= G.tasksTotal) endGame('crew', 'ALL TASKS COMPLETE'); }
     function endGame(winner, why) { if (G.end) return; G.end = { winner, why, t: 0 }; G.mode = 'end'; const won = (winner === 'crew') === (G.role === 'crew'); try { JING(won ? 'win' : 'over'); } catch (_) {} }
-    function checkWin() { if (G.end) return; const s = G.crew[G.sab]; if (!s.alive) return endGame('crew', s.name === 'YOU' ? 'YOU WERE EJECTED' : 'THE SABOTEUR WAS EJECTED'); if (crewAlive().length <= 1) endGame('sab', 'THE SABOTEUR OUTNUMBERED THE CREW'); if (G.reactor && G.reactor <= 0.01) endGame('sab', 'THE REACTOR MELTED DOWN'); }
+    function checkWin() { if (G.end) return; const s = G.crew[G.sab]; if (!s.alive) return endGame('crew', s.i === G.me ? 'YOU WERE EJECTED' : 'THE SABOTEUR WAS EJECTED'); if (crewAlive().length <= 1) endGame('sab', 'THE SABOTEUR OUTNUMBERED THE CREW'); if (G.reactor && G.reactor <= 0.01) endGame('sab', 'THE REACTOR MELTED DOWN'); }
 
     /* ---------- bots ---------- */
     function botAI(c, dt) { const sp = 44; c.st2 -= dt;
@@ -9368,37 +9374,49 @@ const SUMMIT_LEVELS = [
       else if (c.st === 'task' && c.st2 <= 0) { c.st = 'idle'; c.st2 = 1 + Math.random() * 3; } }
 
     /* ---------- meetings ---------- */
-    function callMeeting(by, body) { if (G.meeting || G.end) return; G.bodies.forEach(b => b.found = true); G.task = null; G.vent = null; const crew = G.crew; const live = alive();
-      const lines = [], acc = {}; const addA = (who, w) => { acc[who] = (acc[who] || 0) + w; };
-      const say = (c, s, a, w) => { lines.push({ c: c.i, s, a, w }); };
-      const bt = body ? body.t : G.t, broom = body ? body.room : -1;
-      if (body) say(by, by.i === G.me ? 'YOU FOUND ' + COLS[body.ci][0] + ' IN ' + roomName(broom) : 'I FOUND ' + COLS[body.ci][0] + (broom >= 0 ? ' IN ' + roomName(broom) : ' IN THE HALLS') + '!');
-      else say(by, by.i === G.me ? 'YOU CALLED AN EMERGENCY MEETING' : 'EMERGENCY MEETING! I HAVE A FEELING');
-      const nm = i => i === G.me ? 'YOU' : crew[i].name, was = (c, t) => { const h = (c.hist || []).filter(x => Math.abs(x.t - t) < 2); return h.length ? h[h.length - 1].room : roomAt(c.x, c.y); }, inR = r => r >= 0 ? 'IN ' + roomName(r) : 'IN THE HALLS';
-      for (const c of shuf(live.filter(c => c.bot))) { if (c.sab || (c === by && !c.sawKill && c.sawVent == null)) continue;
-        if (c.sawKill) { say(c, 'I SAW ' + nm(c.sawKill.k) + ' KILL ' + COLS[crew[c.sawKill.v].ci][0] + '!', c.sawKill.k, 90); continue; }
-        if (c.sawVent != null) { say(c, nm(c.sawVent) + ' WENT INTO A VENT!', c.sawVent, 80); continue; }
-        const near = c.seen.filter(s => s.room === broom && broom >= 0 && Math.abs(s.t - bt) < 14 && crew[s.w].alive && s.w !== c.i); const myRoom = roomName(c.seen.length ? roomAt(c.x, c.y) : -1);
-        if (near.length) { const s = near[near.length - 1]; say(c, 'I SAW ' + nm(s.w) + ' NEAR ' + roomName(broom) + '.', s.w, 34); continue; }
-        const withMe = c.seen.filter(s => Math.abs(s.t - bt) < 6 && crew[s.w].alive && s.w !== c.i); if (withMe.length && Math.random() < 0.6) { const s = withMe[withMe.length - 1]; say(c, (s.w === G.me ? 'YOU WERE' : nm(s.w) + ' WAS') + ' WITH ME ' + inR(s.room) + '.', s.w, -30); continue; }
-        const wr = was(c, bt); c.claim = wr; say(c, pick(['I WAS DOING TASKS ' + inR(wr) + '.', 'NO IDEA. I WAS ' + inR(wr) + '.', 'I WAS ' + inR(wr) + '. DIDNT SEE ANYTHING.', 'WHERE WAS EVERYONE? I WAS ' + inR(wr) + '.']), -1, 0); }
-      const S = crew[G.sab]; if (S.alive && S.bot) { const accused = lines.filter(l => l.a === S.i && l.w > 50); if (accused.length) { const l = accused[0]; say(S, crew[l.c].name + ' IS LYING! IT WAS ' + crew[l.c].name + '!', l.c, 40); } else if (Math.random() < 0.5) { const tg = pick(live.filter(o => o !== S)); say(S, 'I THINK IT WAS ' + tg.name + '. KINDA SUS.', tg.i, 22); } else { const lie = Math.floor(Math.random() * ROOMS.length); say(S, 'I WAS IN ' + roomName(lie) + ' DOING TASKS.', -1, 0);
-          const catcher = live.find(o => o.bot && !o.sab && o.seen.some(s => s.w === S.i && Math.abs(s.t - bt) < 5 && s.room !== lie)); if (catcher && Math.random() < 0.35) { const s = catcher.seen.filter(s => s.w === S.i && Math.abs(s.t - bt) < 5).pop(); say(catcher, 'WAIT. ' + S.name + ' WASNT IN ' + roomName(lie) + '. I SAW THEM ' + inR(s.room) + '!', S.i, 55); } } }
-      G.meeting = { lines, shown: 0, t: 0, by: by.i, body, votes: null, myVote: null, phase: 'talk', res: null, broom }; G.mode = 'meeting'; sfx(330, 0.2, 0.06, 'triangle'); setTimeout(() => sfx(330, 0.2, 0.06, 'triangle'), 220); }
+    function callMeeting(by, body) { if (G.meeting || G.end) return; G.bodies.forEach(b => b.found = true); G.task = null; G.vent = null; G.mapOpen = false; const crew = G.crew, live = alive();
+      const lines = []; const say = (c, s, a, w) => { lines.push({ c: c.i, s, a: a == null ? -1 : a, w: w || 0 }); }; const sys = s => lines.push({ c: -1, s, a: -1, w: 0 });
+      const bt = body ? body.t : G.t, bp = body ? placeOf(body.x, body.y) : null, vn = body ? COLS[body.ci][0] : '', nm = i => crew[i].name;
+      const was = (c, t) => { const h = (c.hist || []).filter(x => Math.abs(x.t - t) < 2.5); return h.length ? h[h.length - 1].p : placeOf(c.x, c.y); };
+      const doing = (c, p) => c.goal && c.goal.t && c.goal.t.k && !c.goal.wander && c.goal.t.room >= 0 && ROOMS[c.goal.t.room].n === p ? TNAME[c.goal.t.k] : null;
+      if (body) { sys(vn + ' WAS FOUND DEAD ' + inP(bp) + '. ' + (by.i === G.me ? 'YOU REPORTED IT.' : nm(by.i) + ' REPORTED IT.')); if (by.bot) say(by, pick(['I JUST FOUND ' + vn + ' ' + inP(bp) + '.', 'BODY ' + inP(bp) + '! ITS ' + vn + '.'])); }
+      else { sys(by.i === G.me ? 'YOU CALLED AN EMERGENCY MEETING.' : nm(by.i) + ' CALLED AN EMERGENCY MEETING.'); if (by.bot) say(by, 'I PRESSED THE BUTTON. EVERYONE SAY WHERE YOU WERE.'); }
+      const said = {};
+      for (const c of shuf(live.filter(c => c.bot && !c.sab))) {
+        if (c.sawKill) { say(c, 'I SAW ' + nm(c.sawKill.k) + ' KILL ' + nm(c.sawKill.v) + ' ' + inP(c.sawKill.p) + '!', c.sawKill.k, 90); said[c.i] = 1; continue; }
+        if (c.sawVent != null) { say(c, 'I SAW ' + nm(c.sawVent) + ' CLIMB INTO A VENT ' + inP(c.sawVentP || 'THE HALLS') + '!', c.sawVent, 80); said[c.i] = 1; continue; }
+        if (c === by && body) continue;
+        const near = body ? c.seen.filter(s => s.p === bp && Math.abs(s.t - bt) < 14 && crew[s.w].alive && s.w !== c.i) : [];
+        if (near.length) { const s = near[near.length - 1], ago = Math.max(2, Math.round(G.t - s.t)); say(c, 'I SAW ' + nm(s.w) + ' ' + inP(bp) + ' ABOUT ' + ago + ' SECONDS AGO.', s.w, 34); continue; }
+        const withMe = c.seen.filter(s => Math.abs(s.t - bt) < 6 && crew[s.w].alive && s.w !== c.i);
+        if (withMe.length && Math.random() < 0.6) { const s = withMe[withMe.length - 1]; say(c, 'I WAS WITH ' + nm(s.w) + ' ' + inP(s.p) + '. ' + nm(s.w) + ' IS SAFE.', s.w, -30); continue; }
+        const wr = was(c, bt), dt2 = doing(c, wr); say(c, dt2 && Math.random() < 0.6 ? 'I WAS ' + inP(wr) + ' DOING ' + dt2 + '.' : pick(['I WAS ' + inP(wr) + '. I DIDNT SEE ANYONE.', 'I WAS ' + inP(wr) + ' ALONE. NO INFO.']), -1, 0); }
+      // the saboteur bot slots its line in somewhere natural
+      const S = crew[G.sab]; if (S.alive && S.bot) { const ins = l => { const lo = body && by.bot ? 2 : 1, k = Math.min(lines.length, lo + Math.floor(Math.random() * Math.max(1, lines.length - lo + 1))); lines.splice(k, 0, l); };
+        const accused = lines.filter(l => l.a === S.i && l.w > 50);
+        if (accused.length) { const l = accused[0], k = lines.indexOf(l); lines.splice(k + 1, 0, { c: S.i, s: 'NO! ' + nm(l.c) + ' IS LYING. I WAS NOWHERE NEAR THERE.', a: l.c, w: 40 }); }
+        else if (body && Math.random() < 0.5) { const tg = pick(live.filter(o => o !== S && o.i !== by.i)); if (tg) ins({ c: S.i, s: 'I SAW ' + nm(tg.i) + ' WALKING AWAY FROM ' + (bp.startsWith('HALL') ? 'THE ' : '') + bp + '.', a: tg.i, w: 26 }); }
+        else { const lie = ROOMS[Math.floor(Math.random() * ROOMS.length)].n; ins({ c: S.i, s: 'I WAS IN ' + lie + ' DOING TASKS.', a: -1, w: 0 });
+          const catcher = live.find(o => o.bot && !o.sab && o.seen.some(s => s.w === S.i && Math.abs(s.t - bt) < 5 && s.p !== lie)); if (catcher && Math.random() < 0.35) { const s = catcher.seen.filter(s => s.w === S.i && Math.abs(s.t - bt) < 5).pop(); for (let k = lines.length - 1; k >= 0; k--) if (lines[k].c === catcher.i && lines[k].a === S.i && lines[k].w < 0) lines.splice(k, 1); lines.push({ c: catcher.i, s: 'THATS A LIE. I SAW ' + S.name + ' ' + inP(s.p) + ', NOT ' + lie + '.', a: S.i, w: 70 }); } } }
+      // innocent bots defend themselves when accused
+      const top = {}; lines.forEach(l => { if (l.a >= 0 && l.w > 0) top[l.a] = (top[l.a] || 0) + l.w; });
+      Object.keys(top).forEach(k => { const c = crew[k]; if (!c.bot || c.sab || !c.alive || top[k] > 85 || lines.some(l => l.c === c.i && l.w === 0)) return; lines.push({ c: c.i, s: 'IT WASNT ME. I WAS ' + inP(was(c, bt)) + '.', a: -1, w: 0 }); });
+      G.meeting = { lines, shown: 0, t: 0, by: by.i, body, votes: null, myVote: null, phase: 'talk', res: null, bp }; G.mode = 'meeting'; sfx(330, 0.2, 0.06, 'triangle'); setTimeout(() => sfx(330, 0.2, 0.06, 'triangle'), 220); }
     function tallyVotes() { const m = G.meeting, crew = G.crew, live = alive(), votes = {}; const ev = {}; m.lines.forEach(l => { if (l.a >= 0) ev[l.a] = (ev[l.a] || 0) + l.w; });
       for (const c of live) { if (!c.bot) continue; let tg = -1; if (c.sab) { let best = -1, bv = 10; for (const k in ev) { if (+k === c.i || !crew[k].alive) continue; if (ev[k] > bv) { bv = ev[k]; best = +k; } } tg = best >= 0 ? best : (m.myVote != null && m.myVote >= 0 && m.myVote !== c.i ? m.myVote : -1); }
         else { let best = -1, bv = 30; for (const o of live) { if (o === c) continue; let s = (ev[o.i] || 0) + (Math.random() - 0.5) * 14; if (c.sawKill && c.sawKill.k === o.i) s += 200; if (c.sawVent === o.i) s += 150; if (m.lines.some(l => l.c === c.i && l.a === o.i && l.w < 0)) s -= 40; if (m.lines.some(l => l.c === o.i && l.a === c.i && l.w > 0) && !(c.sawKill)) s += 12; if (s > bv) { bv = s; best = o.i; } } tg = best; }
         votes[c.i] = tg; }
       if (crew[G.me].alive) votes[G.me] = m.myVote == null ? -1 : m.myVote;
       const cnt = {}; Object.values(votes).forEach(v => cnt[v] = (cnt[v] || 0) + 1); let top = -1, tv = 0, tie = false; for (const k in cnt) { if (cnt[k] > tv) { tv = cnt[k]; top = +k; tie = false; } else if (cnt[k] === tv) tie = true; }
-      m.votes = votes; m.cnt = cnt; m.out = tie ? -1 : top; m.phase = 'reveal'; m.t = 0; }
+      m.votes = votes; m.cnt = cnt; m.out = tie ? -1 : top; m.tie = tie; m.phase = 'reveal'; m.t = 0;
+      const by = {}; for (const v in votes) (by[votes[v]] = by[votes[v]] || []).push(+v === G.me ? 'YOU' : crew[v].name); Object.keys(by).sort((a, b) => by[b].length - by[a].length).forEach(k => m.lines.push({ c: -1, s: (+k < 0 ? 'SKIPPED' : crew[k].name) + ': ' + by[k].length + (by[k].length === 1 ? ' VOTE' : ' VOTES') + ' (' + by[k].join(', ') + ')', a: -1, w: 0, vote: 1 })); m.shown = m.lines.length; }
     function finishMeeting() { const m = G.meeting; G.meeting = null; G.rounds++; if (m.out >= 0) { const c = G.crew[m.out]; c.alive = false; c.ghost = c.bot; G.eject = { i: m.out, t: 0, was: c.sab }; G.mode = 'eject'; } else { G.eject = { i: -1, t: 0 }; G.mode = 'eject'; } G.lights = 1; G.reactor = 0; }
 
     /* ---------- player + world step ---------- */
     const me = () => G.crew[G.me];
     const PSP = 52;
     function step(dt) { const P = me(); G.t += dt;
-      if (G.reactor) { G.reactor -= dt; if (G.reactor <= 0) { G.reactor = 0.001; checkWin(); return; } }
+      if (G.reactor) { G.reactor -= dt; G.alarmT = (G.alarmT || 0) - dt; if (G.alarmT <= 0) { G.alarmT = G.reactor < 10 ? 0.9 : 1.6; sfx(523, 0.16, 0.018, 'sine'); setTimeout(() => sfx(440, 0.22, 0.016, 'sine'), 170); } if (G.reactor <= 0) { G.reactor = 0.001; checkWin(); return; } }
       if (G.reactor && !G.crew.some(c => c.fixer && c.alive && c.bot)) { const cs = crewAlive().filter(c => c.bot); cs.sort((a, b) => Math.hypot(a.x - REACT.x, a.y - REACT.y) - Math.hypot(b.x - REACT.x, b.y - REACT.y)); if (cs[0]) cs[0].fixer = true; }
       if (G.lights < 0.5 && !G.crew.some(c => c.lfixer && c.alive && c.bot) && Math.random() < 0.01) { const cs = crewAlive().filter(c => c.bot); cs.sort((a, b) => Math.hypot(a.x - LIGHTS.x, a.y - LIGHTS.y) - Math.hypot(b.x - LIGHTS.x, b.y - LIGHTS.y)); if (cs[0]) cs[0].lfixer = true; }
       if (!G.reactor) G.crew.forEach(c => c.fixer = false); if (G.lights > 0.5) G.crew.forEach(c => c.lfixer = false);
@@ -9469,10 +9487,10 @@ const SUMMIT_LEVELS = [
     function drawShip(t) { const tx0 = Math.floor(CX / T), ty0 = Math.floor(CY / T), tx1 = Math.ceil((CX + LW) / T), ty1 = Math.ceil((CY + LH) / T);
       for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const X = tx * T - CX, Y = ty * T - CY, f = tile(tx, ty) === FLOOR, rid = (tx >= 0 && ty >= 0 && tx < MW && ty < MH) ? ROOMID[ty * MW + tx] : -1;
         for (let j = 0; j < T; j++) { const yy = Y + j; if (yy < 0 || yy >= LH) continue; for (let i = 0; i < T; i++) { const xx = X + i; if (xx < 0 || xx >= LW) continue; let c;
-            if (f) { if (rid >= 0) { const R = ROOMS[rid]; c = (i === 0 || j === 0) ? R.FD : R.F; if (((tx + ty) & 1) && i > 0 && j > 0) c = BL(R.F, R.FD, 0.4); } else c = (j === 3 || j === 4) && (i & 1) ? HALLD : HALLF; }
+            if (f) { if (rid >= 0) { const R = ROOMS[rid]; c = (i === 0 || j === 0) ? R.FD : R.F; if (((tx + ty) & 1) && i > 0 && j > 0) c = BL(R.F, R.FD, 0.4); } else { const dr = DOOR[ty * MW + tx]; if (dr) { c = (((i + j + tx * T + ty * T) >> 1) & 1) ? HX('#d8b038') : HX('#30303a'); } else c = (j === 3 || j === 4) && (i & 1) ? HALLD : HALLF; } }
             else { const below = tile(tx, ty + 1) === FLOOR; c = below ? (j < 2 ? WALLT : j > 5 ? DK(WALLF, 0.7) : WALLF) : WALLC; if (!below && tile(tx, ty - 1) === FLOOR && j === 0) c = WALLT; }
             B32[yy * LW + xx] = c; } } }
-      ROOMS.forEach((R, i) => { const X = R.r[0] * T - CX + 3, Y = R.r[1] * T - CY + 3; if (X > -60 && X < LW && Y > -10 && Y < LH) PT(R.n, X, Y, 1, DK(R.F, 1.5)); });
+      ROOMS.forEach((R, i) => { const X = R.r[0] * T - CX + 3, Y = R.r[1] * T - CY + 3; if (X > -60 && X < LW && Y > -10 && Y < LH) PT(R.n, X, Y, 1, BL(R.F, W_, 0.65), DK(R.F, 0.6)); });
       const P = me();
       VENTS.forEach((V, i) => { const X = V.x - CX, Y = V.y - CY; if (X < -8 || X > LW + 8 || Y < -8 || Y > LH + 8) return; RF(X - 5, Y - 3, 10, 7, HX('#2a2e38')); for (let k = 0; k < 4; k++) RF(X - 4, Y - 2 + k * 2, 8, 1, HX('#6a7080')); });
       TASKS.forEach(tk => { const X = tk.x - CX, Y = tk.y - CY; if (X < -10 || X > LW + 10 || Y < -12 || Y > LH + 10) return; BOX(X - 5, Y - 6, 11, 9, HX('#2a3040'), INK); RF(X - 3, Y - 4, 7, 4, HX('#3ad8d8')); const mine = !P.sab && P.tasks.some(t => t.t === tk && !t.done); if (mine && (Math.floor(t * 3) & 1)) PT('!', X - 1, Y - 14, 1, HX('#ffd23f'), INK); });
@@ -9481,18 +9499,36 @@ const SUMMIT_LEVELS = [
       { const X = REACT.x - CX, Y = REACT.y - CY; BOX(X - 5, Y - 8, 12, 12, HX('#2a3a5a'), INK); RF(X - 2, Y - 5, 6, 6, G.reactor ? ((Math.floor(t * 6) & 1) ? HX('#ff3a3a') : HX('#ffd23f')) : HX('#3ad8d8')); }
       G.bodies.forEach(b => { if (b.found) return; blitC(charSpr(b.ci, 0, true), b.x - CX, b.y - CY, false); });
       const list = G.crew.filter(c => (c.alive && !c.inVent && (P.ghost || P.sab || c === P || canSee(P, c))) || (c.ghost && P.ghost && c !== P) || (c === P)).sort((a, b) => a.y - b.y);
-      for (const c of list) { if (c.inVent && c !== P) continue; if (c === P && P.inVent) continue; const fr = c.anim > 0 ? 1 + (Math.floor(c.anim) & 1) : 0; blitC(charSpr(c.ci, fr, false), c.x - CX, c.y - CY, c.vx < -0.1, c.ghost); if (c !== P || true) { const nm = c.name; PT(nm, c.x - CX, c.y - CY - 20, 1, c.sab && P.sab ? HX('#ff5a5a') : W_, INK, 'c'); } }
+      for (const c of list) { if (c.inVent && c !== P) continue; if (c === P && P.inVent) continue; const fr = c.anim > 0 ? 1 + (Math.floor(c.anim) & 1) : 0; blitC(charSpr(c.ci, fr, false), c.x - CX, c.y - CY, c.vx < -0.1, c.ghost); if (c !== P || true) { const nm = c === P ? 'YOU' : c.name; PT(nm, c.x - CX, c.y - CY - 20, 1, c.sab && P.sab && c !== P ? HX('#ff5a5a') : c === P ? HX('#7dfaff') : W_, INK, 'c'); } }
       // darkness outside your vision
       if (!P.ghost) { const r = visR(P), cx = P.x - CX, cy = P.y - 4 - CY, r2 = r * r, r2b = (r + 10) * (r + 10); for (let y = 0; y < LH; y++) { const dy = y - cy; for (let x = 0; x < LW; x++) { const dx = x - cx, d2 = dx * dx + dy * dy; if (d2 < r2) continue; const o = y * LW + x; if (d2 < r2b) { if (((x + y) & 1) === 0) B32[o] = DK(B32[o], 0.35); } else B32[o] = DK(B32[o], 0.28); } } } }
+    function banner(a, b, bg, fg, y) { const w = Math.min(Math.floor(GW - 16), Math.max(tw(a), tw(b)) + 12), x = Math.floor(GX + (GW - w) / 2); y = Math.floor(y); BOX(x, y, w, 18, bg, INK, BL(bg, fg, 0.3)); PT(a, GX + GW / 2, y + 3, 1, fg, null, 'c'); PT(b, GX + GW / 2, y + 10, 1, HX('#e8e4d8'), null, 'c'); }
+    function tri(x, y, a, col) { for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) { const u = i * Math.cos(-a) - j * Math.sin(-a), v = i * Math.sin(-a) + j * Math.cos(-a); if (u > 3.5 || u < -2.5 || Math.abs(v) > (3.5 - u) * 0.75) continue; PX(x + i, y + j, (u > 2.4 || u < -1.6 || Math.abs(v) > (3.5 - u) * 0.75 - 1) ? INK : col); } }
+    function edgeArrow(wx, wy, col, t, small) { const P = me(), sx = wx - CX, sy = wy - CY - 4, L = GX + 8, Rr = GX + GW - 8, Tp = GY + 34, Bt = GY + GH - 50;
+      if (sx > L && sx < Rr && sy > Tp && sy < Bt) { if (!small) { const b = Math.round(Math.sin(t * 6) * 2); tri(Math.round(sx), Math.round(sy - 14 + b), Math.PI / 2, col); } return; }
+      const px = P.x - CX, py = P.y - CY - 4, a = Math.atan2(sy - py, sx - px), dx = Math.cos(a), dy = Math.sin(a); let k = 1e9; if (dx > 0) k = Math.min(k, (Rr - px) / dx); if (dx < 0) k = Math.min(k, (L - px) / dx); if (dy > 0) k = Math.min(k, (Bt - py) / dy); if (dy < 0) k = Math.min(k, (Tp - py) / dy);
+      if (small && (Math.floor(t * 2) & 1) && false) return; tri(Math.round(px + dx * k), Math.round(py + dy * k), a, small ? DK(col, 0.85) : col); }
+    function drawMap(t) { panel.length = 0; const P = me(); DV(0, 0, LW, LH, INK, 0); DV(0, 0, LW, LH, INK, 1); const s = Math.min((GW - 12) / MW, (GH * 0.62) / MH), w = Math.floor(MW * s), h = Math.floor(MH * s), x0 = Math.floor(GX + (GW - w) / 2), y0 = Math.floor(GY + 40);
+      PT('SHIP MAP', GX + GW / 2, y0 - 22, 2, W_, INK, 'c'); BOX(x0 - 3, y0 - 3, w + 6, h + 6, HX('#0c101c'), INK, HX('#2a3450'));
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const tx = Math.floor(x / s), ty = Math.floor(y / s), f = tile(tx, ty) === FLOOR; if (!f) continue; const r = ROOMID[ty * MW + tx]; let c = r >= 0 ? ROOMS[r].F : HX('#5a6070'); if (r >= 0 && G.reactor && ROOMS[r].n === 'REACTOR' && (Math.floor(t * 4) & 1)) c = HX('#c8303a'); if (r >= 0 && G.lights < 0.5 && ROOMS[r].n === 'ELECTRICAL' && (Math.floor(t * 4) & 1)) c = HX('#c8a030'); PX(x0 + x, y0 + y, c); }
+      ROOMS.forEach(R => PT(R.s, x0 + R.cx / T * s, y0 + R.cy / T * s - 2, 1, W_, INK, 'c'));
+      if (!P.sab) P.tasks.forEach(tk => { if (tk.done) return; const X = Math.round(x0 + tk.t.x / T * s), Y = Math.round(y0 + tk.t.y / T * s); RF(X - 1, Y - 1, 3, 3, (Math.floor(t * 3) & 1) ? HX('#ffd23f') : HX('#8a6a10')); });
+      if (P.sab) VENTS.forEach(V => RF(Math.round(x0 + V.x / T * s) - 1, Math.round(y0 + V.y / T * s) - 1, 3, 2, HX('#9aa0b0')));
+      { const X = Math.round(x0 + P.x / T * s), Y = Math.round(y0 + P.y / T * s); RF(X - 2, Y - 2, 5, 5, INK); RF(X - 1, Y - 1, 3, 3, (Math.floor(t * 4) & 1) ? HX('#7dfaff') : W_); }
+      let ly = y0 + h + 8; [[HX('#7dfaff'), 'YOU'], ...(P.sab ? [[HX('#9aa0b0'), 'VENTS']] : [[HX('#ffd23f'), 'YOUR TASKS']])].forEach(([c, l], k) => { const X = Math.floor(GX + GW / 2 - 50 + k * 54); RF(X, ly, 4, 4, c); PT(l, X + 7, ly, 1, HX('#c8d0e0')); });
+      PT('TAP ANYWHERE TO CLOSE', GX + GW / 2, ly + 12, 1, HX('#8a90a8'), null, 'c'); }
     function circ(cx, cy, r, fill, edge) { for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) { const d = Math.hypot(x, y); if (d > r + 0.3) continue; PX(cx + x, cy + y, d > r - 1 ? edge : fill); } }
     function btns() { const r = Math.max(12, Math.min(15, Math.floor(GW * 0.085))), bx = GX + GW - r - 6, by = GY + GH - r - 8; return { r, use: [bx, by], kill: [bx - r * 2 - 6, by], vent: [bx, by - r * 2 - 6], sabo: [bx - r * 2 - 6, by - r * 2 - 6], joy: [GX + 30, GY + GH - 30] }; }
     const panel = []; const ubtn = (id, x, y, w, h, label, col, dis) => { BOX(x, y, w, h, dis ? HX('#3a3448') : col, INK, dis ? null : DK(col, 1.35)); PT(label, x + w / 2, y + Math.floor(h / 2) - 2, 1, dis ? HX('#7a7090') : W_, null, 'c'); panel.push({ id, x, y, w, h, dis }); };
     function drawHUD(t) { panel.length = 0; const P = me(), x0 = Math.floor(GX + 4), y0 = Math.floor(GY + 4);
       const bw = Math.floor(GW - 8); RF(x0, y0, bw, 7, INK); RF(x0 + 1, y0 + 1, Math.round((bw - 2) * G.tasksDone / G.tasksTotal), 5, HX('#3ac84a')); PT('TASKS', x0 + 3, y0 + 1, 1, W_);
       PT(P.sab ? 'YOU ARE THE SABOTEUR' : P.ghost ? 'YOU ARE A GHOST. FINISH TASKS' : 'CREWMATE', x0, y0 + 10, 1, P.sab ? HX('#ff5a5a') : P.ghost ? HX('#a8b0c0') : HX('#7dffa0'), INK); PT(roomName(roomAt(P.x, P.y)), GX + GW - 4, y0 + 10, 1, HX('#c8d0e0'), INK, 'r');
-      if (!P.sab) { let ly = y0 + 19; P.tasks.forEach(tk => { PT((tk.done ? '* ' : '- ') + TNAME[tk.t.k] + ' ' + roomName(tk.t.room).slice(0, 8), x0, ly, 1, tk.done ? HX('#5aaa5a') : HX('#e8e0c8'), INK); ly += 7; }); }
-      if (G.reactor) { const s = Math.ceil(G.reactor); if (Math.floor(t * 4) & 1) DV(0, 0, LW, LH, HX('#ff2a2a'), 1); PT('REACTOR MELTDOWN ' + s, GX + GW / 2, GY + GH * 0.3, 1, HX('#ffffff'), HX('#8a0000'), 'c'); }
-      G.toasts.forEach((ts, i) => { if (ts.age > 2.2 && (Math.floor(ts.age * 30) & 1)) return; PT(ts.t, GX + GW / 2, GY + GH * 0.36 + i * 8, 1, ts.c, INK, 'c'); });
+      if (!P.sab) { let ly = y0 + 19; P.tasks.forEach(tk => { PT((tk.done ? '* ' : '- ') + TNAME[tk.t.k] + ' IN ' + (tk.t.room >= 0 ? ROOMS[tk.t.room].s : 'HALL'), x0, ly, 1, tk.done ? HX('#5aaa5a') : HX('#e8e0c8'), INK); ly += 7; }); }
+      if (G.reactor) { const s = Math.ceil(G.reactor), pu = (Math.sin(t * (G.reactor < 10 ? 9 : 5)) + 1) / 2, e = 2 + Math.round(pu * 3), RC = HX('#e0303a'); DV(0, 0, LW, e, RC, 0); DV(0, LH - e, LW, e, RC, 0); DV(0, 0, e, LH, RC, 0); DV(LW - e, 0, e, LH, RC, 0); banner('REACTOR MELTDOWN IN ' + s + 'S', P.sab ? 'THE CREW HAS TO FIX IT IN TIME' : 'HOLD THE PANEL IN REACTOR', HX('#5a0f18'), HX('#ff8a8a'), GY + 64); if (!P.sab && P.alive) edgeArrow(REACT.x, REACT.y, HX('#ff5a5a'), t); }
+      else if (G.lights < 0.5) { banner('LIGHTS ARE OUT', P.sab ? 'THE CREW CANT SEE FAR' : 'FLIP THE SWITCHES IN ELECTRICAL', HX('#3a3410'), HX('#ffd23f'), GY + 64); if (!P.sab && P.alive) edgeArrow(LIGHTS.x, LIGHTS.y, HX('#ffd23f'), t); }
+      if (!P.sab && !G.reactor && G.lights > 0.5) P.tasks.forEach(tk => { if (!tk.done) edgeArrow(tk.t.x, tk.t.y, HX('#ffd23f'), t, true); });
+      ubtn('map', Math.floor(GX + GW - 30), y0 + 18, 26, 11, 'MAP', HX('#3a4a6a'));
+      G.toasts.forEach((ts, i) => { if (ts.age > 2.2 && (Math.floor(ts.age * 30) & 1)) return; wrapT(ts.t, Math.floor((GW - 8) / 4)).forEach((l, k) => PT(l, GX + GW / 2, GY + GH * 0.36 + i * 9 + k * 7, 1, ts.c, INK, 'c')); });
       const B = btns(), r = B.r, nb = nearBody(), nt = nearTask(), emerg = P.alive && !G.emergUsed && Math.hypot(P.x - BUTTON.x, P.y - BUTTON.y) < 16, fix = !P.sab && ((G.reactor && Math.hypot(P.x - REACT.x, P.y - REACT.y) < 16) || (G.lights < 0.5 && Math.hypot(P.x - LIGHTS.x, P.y - LIGHTS.y) < 16));
       const useLab = nb ? 'RPT' : emerg ? 'SOS' : fix ? 'FIX' : 'USE', useOn = !!(nb || emerg || fix || (nt && !P.sab)); circ(Math.floor(B.use[0]), Math.floor(B.use[1]), r, useOn ? (nb ? HX('#c83a3a') : HX('#e8e0c8')) : HX('#2a2e3a'), useOn ? W_ : HX('#5a6070')); PT(useLab, B.use[0] + 1, B.use[1] - 2, 1, useOn ? (nb ? W_ : INK) : HX('#8a90a0'), null, 'c');
       if (P.sab && P.alive) { const kv = nearVictim(), kon = kv && G.killCd <= 0 && G.vent == null; circ(Math.floor(B.kill[0]), Math.floor(B.kill[1]), r, kon ? HX('#c83a3a') : HX('#3a2a30'), kon ? W_ : HX('#6a4a50')); PT(G.killCd > 0 ? String(Math.ceil(G.killCd)) : 'KILL', B.kill[0] + 1, B.kill[1] - 2, 1, kon ? W_ : HX('#a88a90'), null, 'c');
@@ -9504,21 +9540,23 @@ const SUMMIT_LEVELS = [
     const wrapT = (s, n) => { const out = []; let cur = ''; s.split(' ').forEach(w => { if ((cur + ' ' + w).trim().length > n && cur) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }); if (cur) out.push(cur); return out; };
     function drawMeeting(t) { panel.length = 0; const m = G.meeting, X = Math.floor(GX + 3), w = Math.floor(GW - 6); for (let i = 0; i < LW * LH; i++) B32[i] = HX('#1c2236'); let y = Math.floor(GY + 4);
       PT(m.body ? 'DEAD BODY REPORTED' : 'EMERGENCY MEETING', GX + GW / 2, y, 1, m.body ? HX('#ff6a6a') : HX('#ffd23f'), INK, 'c'); y += 9;
-      const cw = Math.floor((w - 3) / 2); G.crew.forEach((c, k) => { const cx = X + (k % 2) * (cw + 3), cy = y + Math.floor(k / 2) * 17, dead = !c.alive; BOX(cx, cy, cw, 15, dead ? HX('#3a3440') : (m.myVote === c.i ? HX('#5a4a8a') : HX('#e8e4d8')), INK); blitC(charSpr(c.ci, 0, dead), cx + 8, cy + 13, false); PT(c.name, cx + 17, cy + 5, 1, dead ? HX('#7a7080') : INK);
+      { const s1 = m.body ? COLS[m.body.ci][0] + ' WAS FOUND ' + inP(m.bp) : 'NO BODY. SOMEONE PRESSED THE BUTTON'; PT(s1, GX + GW / 2, y, 1, HX('#e8e4d8'), INK, 'c'); y += 9; }
+      const cw = Math.floor((w - 3) / 2); G.crew.forEach((c, k) => { const cx = X + (k % 2) * (cw + 3), cy = y + Math.floor(k / 2) * 17, dead = !c.alive; BOX(cx, cy, cw, 15, dead ? HX('#3a3440') : (m.myVote === c.i ? HX('#ffd23f') : HX('#e8e4d8')), c.i === G.me ? HX('#3ad8d8') : INK); blitC(charSpr(c.ci, 0, dead), cx + 8, cy + 13, false); PT(c.name, cx + 17, cy + 2, 1, dead ? HX('#7a7080') : INK); PT(dead ? 'DEAD' : c.i === G.me ? 'YOU' : c.i === m.by ? 'CALLED IT' : '', cx + 17, cy + 8, 1, dead ? HX('#e0505a') : c.i === G.me ? HX('#1a8a8a') : HX('#8a6a20'));
         if (m.phase === 'reveal') { let n = 0; for (const v in m.votes) if (m.votes[v] === c.i) { const vc = G.crew[v]; RF(cx + cw - 6 - n * 5, cy + 4, 4, 4, HX(COLS[vc.ci][1])); n++; } } else if (m.votedSet && m.votedSet[c.i]) PT('VOTED', cx + cw - 3, cy + 5, 1, HX('#2f9a58'), null, 'r');
         if (!dead && m.phase === 'talk' && me().alive && c.i !== G.me) panel.push({ id: 'vote' + c.i, x: cx, y: cy, w: cw, h: 15 }); });
-      y += 4 * 17 + 3; const chatH = Math.floor(GY + GH - 22 - y); BOX(X, y, w, chatH, HX('#e8e4d8'), INK); let ly = y + 3; const maxLines = Math.floor((chatH - 4) / 7); const L = []; m.lines.slice(0, m.shown).forEach(l => { const c = G.crew[l.c]; wrapT(c.name + ': ' + l.s, Math.floor((w - 14) / 4)).forEach((s, k) => L.push({ c, s, first: k === 0 })); }); L.slice(-maxLines).forEach(l => { if (l.first) RF(X + 3, ly, 5, 5, HX(COLS[l.c.ci][1])); PT(l.s, X + 10, ly, 1, l.first ? DK(HX(COLS[l.c.ci][1]), 0.55) : INK); ly += 7; });
+      y += 4 * 17 + 1; if (m.phase === 'talk') PT(me().alive ? (m.myVote == null ? 'TAP A PLAYER TO VOTE THEM OUT' : m.myVote < 0 ? 'YOU SKIPPED' : 'YOU VOTED ' + G.crew[m.myVote].name) : 'YOU ARE DEAD. YOU CANT VOTE', GX + GW / 2, y, 1, HX('#ffd23f'), INK, 'c'); y += 8; const chatH = Math.floor(GY + GH - 22 - y); BOX(X, y, w, chatH, HX('#e8e4d8'), INK); let ly = y + 3; const maxLines = Math.floor((chatH - 4) / 7); const L = []; const cols = Math.floor((w - 14) / 4); m.lines.slice(0, m.shown).forEach(l => { if (l.c < 0) { wrapT((l.vote ? '' : '* ') + l.s, cols).forEach(s => L.push({ sys: 1, vote: l.vote, s })); return; } const c = G.crew[l.c], pre = c.name + ': '; wrapT(pre + l.s, cols).forEach((s, k) => L.push({ c, s, first: k === 0, pre })); L.push({ gap: 1 }); });
+      L.slice(-maxLines).forEach(l => { if (l.gap) { ly += 2; return; } if (l.sys) { PT(l.s, X + (l.vote ? 10 : 4), ly, 1, l.vote ? HX('#3a2a6a') : HX('#6a6478')); ly += 7; return; } if (l.first) { RF(X + 3, ly, 5, 5, HX(COLS[l.c.ci][1])); PT(l.pre.trim(), X + 10, ly, 1, DK(HX(COLS[l.c.ci][1]), 0.5)); PT(l.s.slice(l.pre.length), X + 10 + tw(l.pre), ly, 1, INK); } else PT(l.s, X + 10, ly, 1, INK); ly += 7; });
       const by = Math.floor(GY + GH - 18); if (m.phase === 'talk') { if (me().alive) ubtn('vote-1', X, by, 60, 14, m.myVote === -1 ? 'SKIPPED' : 'SKIP VOTE', HX('#5a6070')); PT('VOTING ENDS ' + Math.max(0, Math.ceil(28 - m.t)), X + w, by + 5, 1, HX('#c8d0e0'), INK, 'r'); if (!me().alive) PT('GHOSTS CANT VOTE', X, by + 5, 1, HX('#a8b0c0'), INK); }
-      else { const out = m.out >= 0 ? G.crew[m.out].name : null; PT(out ? out + ' GETS THE MOST VOTES' : 'NO ONE WAS EJECTED (TIE / SKIP)', GX + GW / 2, by + 5, 1, W_, INK, 'c'); } }
+      else { const out = m.out >= 0 ? G.crew[m.out].name : null; PT(out ? out + ' GOT THE MOST VOTES' : m.tie ? 'TIE VOTE. NO ONE IS EJECTED' : 'MOST SKIPPED. NO ONE IS EJECTED', GX + GW / 2, by + 5, 1, W_, INK, 'c'); } }
     function drawEject(t) { const e = G.eject; for (let y = 0; y < LH; y++) for (let x = 0; x < LW; x++) B32[y * LW + x] = (hs(x + Math.floor(t * 30), y) % 97 === 0) ? HX('#c8d0ff') : HX('#05060c');
       const cy = Math.floor(GY + GH * 0.4); if (e.i >= 0) { const c = G.crew[e.i], x = GX - 20 + (GW + 40) * Math.min(1, e.t / 3); blitC(charSpr(c.ci, Math.floor(e.t * 6) % 3, false), x, cy + Math.sin(e.t * 3) * 4, Math.floor(e.t * 2) & 1); }
-      if (e.t > 1) { const txt = e.i < 0 ? 'NO ONE WAS EJECTED.' : (G.crew[e.i].name === 'YOU' ? 'YOU WERE' : G.crew[e.i].name + ' WAS') + (e.was ? ' THE SABOTEUR.' : ' NOT THE SABOTEUR.'); wrapT(txt, Math.floor(GW / 8)).forEach((s, k) => PT(s, GX + GW / 2, cy + 24 + k * 14, 2, W_, INK, 'c')); if (e.i >= 0 && !e.was) PT('1 SABOTEUR REMAINS', GX + GW / 2, cy + 56, 1, HX('#a8b0c0'), null, 'c'); } }
+      if (e.t > 1) { const txt = e.i < 0 ? 'NO ONE WAS EJECTED.' : (e.i === G.me ? 'YOU WERE' : G.crew[e.i].name + ' WAS') + (e.was ? ' THE SABOTEUR.' : ' NOT THE SABOTEUR.'); wrapT(txt, Math.floor(GW / 8)).forEach((s, k) => PT(s, GX + GW / 2, cy + 24 + k * 14, 2, W_, INK, 'c')); if (e.i >= 0 && !e.was) PT('1 SABOTEUR REMAINS', GX + GW / 2, cy + 56, 1, HX('#a8b0c0'), null, 'c'); } }
     function drawTitle(t) { for (let y = 0; y < LH; y++) for (let x = 0; x < LW; x++) B32[y * LW + x] = (hs(x, y + Math.floor(t * 10)) % 131 === 0) ? HX('#c8d0ff') : HX('#0a0c18'); panel.length = 0; const cx = GX + GW / 2, ty = Math.floor(GY + GH * 0.12);
       PT('SUSPECTS', cx, ty, 3, HX('#ff5a5a'), INK, 'c'); PT('ONE OF US IS NOT WHAT THEY SEEM', cx, ty + 20, 1, HX('#c8d0e0'), null, 'c');
       for (let i = 0; i < 8; i++) blitC(charSpr(i, Math.floor(t * 4 + i) % 3, false), GX + GW / 2 - 56 + i * 16, ty + 48 + Math.sin(t * 2 + i) * 2, false);
       const bw = 110, bx = Math.floor(cx - bw / 2); ubtn('play', bx, ty + 66, bw, 16, 'PLAY  (RANDOM ROLE)', HX('#2f9a58')); ubtn('crew', bx, ty + 86, bw, 14, 'PLAY AS CREW', HX('#3a5a9a')); ubtn('sab', bx, ty + 104, bw, 14, 'PLAY AS SABOTEUR', HX('#9a2a3a'));
       ['CREW: DO TASKS, REPORT BODIES, VOTE', 'OUT THE SABOTEUR. SABOTEUR: KILL,', 'VENT, SABOTAGE AND LIE YOUR WAY OUT.'].forEach((s, i) => PT(s, cx, ty + 128 + i * 8, 1, HX('#8a90a8'), null, 'c')); }
-    function drawIntro(t) { for (let i = 0; i < LW * LH; i++) B32[i] = HX('#05060c'); const P = me(), cx = GX + GW / 2, cy = Math.floor(GY + GH * 0.3); PT(P.sab ? 'SABOTEUR' : 'CREWMATE', cx, cy, 3, P.sab ? HX('#ff3a3a') : HX('#3ad8d8'), INK, 'c'); PT(P.sab ? 'KILL THE CREW WITHOUT GETTING CAUGHT' : 'THERE IS 1 SABOTEUR AMONG YOU', cx, cy + 22, 1, W_, null, 'c');
+    function drawIntro(t) { for (let i = 0; i < LW * LH; i++) B32[i] = HX('#05060c'); const P = me(), cx = GX + GW / 2, cy = Math.floor(GY + GH * 0.3); PT(P.sab ? 'SABOTEUR' : 'CREWMATE', cx, cy, 3, P.sab ? HX('#ff3a3a') : HX('#3ad8d8'), INK, 'c'); PT(P.sab ? 'KILL THE CREW WITHOUT GETTING CAUGHT' : 'THERE IS 1 SABOTEUR AMONG YOU', cx, cy + 22, 1, W_, null, 'c'); PT('YOU ARE CYAN', cx, cy + 32, 1, HX('#7dfaff'), null, 'c');
       const show = P.sab ? [P] : G.crew; show.forEach((c, k) => blitC(charSpr(c.ci, 0, false), cx - (show.length - 1) * 8 + k * 16, cy + 56, false)); }
     function drawEnd(t) { for (let i = 0; i < LW * LH; i++) B32[i] = HX('#05060c'); panel.length = 0; const e = G.end, won = (e.winner === 'crew') === (G.role === 'crew'), cx = GX + GW / 2, cy = Math.floor(GY + GH * 0.22);
       PT(won ? 'VICTORY' : 'DEFEAT', cx, cy, 3, won ? HX('#3ad8ff') : HX('#ff3a3a'), INK, 'c'); wrapT(e.why, 36).forEach((s, i) => PT(s, cx, cy + 22 + i * 8, 1, W_, null, 'c')); const S = G.crew[G.sab]; PT('THE SABOTEUR WAS ' + S.name, cx, cy + 44, 1, HX('#ff8a8a'), null, 'c'); blitC(charSpr(S.ci, 0, !S.alive), cx, cy + 70, false);
@@ -9531,11 +9569,13 @@ const SUMMIT_LEVELS = [
       layout() { this.geom(); }, reset() { this.geom(); G.mode = 'title'; this.state = 'ready'; }, enter() { this.geom(); },
       act(id) { if (id === 'play' || id === 'crew' || id === 'sab') { newGame(id === 'play' ? null : id); this.state = 'run'; try { JING('start'); } catch (_) {} return; }
         if (id.startsWith('vote')) { const m = G.meeting; if (!m || m.phase !== 'talk') return; m.myVote = +id.slice(4); sfx(500, 0.06, 0.04, 'square'); m.votedSet = m.votedSet || {}; m.votedSet[G.me] = 1; m.t = Math.max(m.t, 22); return; }
+        if (id === 'map') { G.mapOpen = !G.mapOpen; sfx(520, 0.04, 0.03, 'triangle'); return; }
         if (id === 'sabL') { sabotage('lights'); G.saboMenu = false; } else if (id === 'sabR') { sabotage('reactor'); G.saboMenu = false; } else if (id.startsWith('vent')) ventMove(+id.slice(4)); },
       bind(cv) { this.cv = cv; cv.addEventListener('contextmenu', e => e.preventDefault());
         const low = e => { const p = ptrPos(cv, e); return [(p[0] + this.ox) / PSZ, (p[1] + this.oy) / PSZ]; };
         cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') G.touch = true; this.geom(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} const q = low(e);
           for (const b of panel) if (!b.dis && q[0] >= b.x && q[1] >= b.y && q[0] < b.x + b.w && q[1] < b.y + b.h) { this.act(b.id); return; }
+          if (G.mapOpen) { G.mapOpen = false; return; }
           if (G.mode === 'intro') { G.introT = 9; return; } if (G.mode === 'eject') { if (G.eject.t > 1.5) G.eject.t = 9; return; } if (G.mode !== 'play') return;
           if (G.task) { taskPtr('down', q); G.taskPtr = e.pointerId; return; }
           const B = btns(), hit = k => Math.hypot(q[0] - B[k][0], q[1] - B[k][1]) < B.r + 4; const P = me();
@@ -9549,7 +9589,7 @@ const SUMMIT_LEVELS = [
         if (G.mode === 'intro') { if (d) G.introT = 9; return true; }
         if (m) { G.keys[m] = d; if (d && G.vent != null && (c === 'ArrowLeft' || c === 'ArrowRight')) ventMove(c === 'ArrowLeft' ? 0 : 1); return true; } if (!d || e.repeat) return false;
         if (G.mode === 'meeting' && /^Digit[0-9]$/.test(c)) { const n = +c.slice(5); this.act('vote' + (n === 0 ? -1 : n - 1)); return true; }
-        if (G.mode !== 'play') return false; if (c === 'KeyE' || c === 'Space') { if (G.task) G.task = null; else useAct(); return true; } if (c === 'KeyR') { const b = nearBody(); if (b) callMeeting(me(), b); return true; } if (c === 'KeyQ') { killAct(); return true; } if (c === 'KeyV') { ventAct(); return true; } if (c === 'KeyX') { if (me().sab && G.sabCd <= 0) G.saboMenu = !G.saboMenu; return true; } if (/^Digit[12]$/.test(c) && G.vent != null) { ventMove(+c.slice(5) - 1); return true; } return false; },
+        if (G.mode !== 'play') return false; if (c === 'KeyM' || c === 'Tab') { G.mapOpen = !G.mapOpen; return true; } if (c === 'KeyE' || c === 'Space') { if (G.task) G.task = null; else useAct(); return true; } if (c === 'KeyR') { const b = nearBody(); if (b) callMeeting(me(), b); return true; } if (c === 'KeyQ') { killAct(); return true; } if (c === 'KeyV') { ventAct(); return true; } if (c === 'KeyX') { if (me().sab && G.sabCd <= 0) G.saboMenu = !G.saboMenu; return true; } if (/^Digit[12]$/.test(c) && G.vent != null) { ventMove(+c.slice(5) - 1); return true; } return false; },
       tick(dt) { this.decay(dt); G.t2 = (G.t2 || 0) + dt;
         if (G.mode === 'intro') { G.introT += dt; if (G.introT > 3) G.mode = 'play'; }
         else if (G.mode === 'play') { const n = Math.ceil(dt / (1 / 60)); for (let i = 0; i < n && G.mode === 'play'; i++) step(dt / n); const P = me(), tx = P.x - (GX + GW / 2), ty = P.y - (GY + GH * 0.48); if (G.camInit) { G.camx = tx; G.camy = ty; G.camInit = false; } G.camx += (tx - G.camx) * Math.min(1, dt * 8); G.camy += (ty - G.camy) * Math.min(1, dt * 8); }
@@ -9559,7 +9599,7 @@ const SUMMIT_LEVELS = [
         this.state = G.mode === 'title' ? 'ready' : 'run'; },
       draw() { const c = this.ctx; this.geom(); if (!this.W || !this.H) return; ensureBuf(this.W, this.H, PSZ); const t = G.t2 || 0;
         if (G.mode === 'title') drawTitle(t); else if (G.mode === 'intro') drawIntro(t); else if (G.mode === 'meeting') drawMeeting(t); else if (G.mode === 'eject') drawEject(t); else if (G.mode === 'end') drawEnd(t);
-        else { panel.length = 0; CX = Math.round(G.camx); CY = Math.round(G.camy); drawShip(t); drawHUD(t); if (G.task) drawTask(); }
+        else { panel.length = 0; CX = Math.round(G.camx); CY = Math.round(G.camy); drawShip(t); drawHUD(t); if (G.task) drawTask(); else if (G.mapOpen) drawMap(t); }
         lx.putImageData(img, 0, 0); c.save(); c.imageSmoothingEnabled = false; c.drawImage(lc, -this.ox, -this.oy, LW * PSZ, LH * PSZ); c.restore(); }
     }, MIX);
   }
