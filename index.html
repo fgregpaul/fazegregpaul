@@ -1483,6 +1483,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     slots: ['hit three sevens', 'auto spin drained me', 'two cherries again', 'this is why my wallet is empty', 'the gem line hit'],
     crash: ['cashed at 1.01 like a coward', 'it went to 40x and i left at 2x', 'auto 2x is the strat', 'crashed at 1.00 instantly', 'held too long every time'],
     mines: ['one more tile', '10 mines is insane', 'cashed out at 5 gems', 'boom on the first tile', 'the next gem multiplier gets me'],
+    voxel: ['built a house in 5 minutes', 'flying around the island is so peaceful', 'dug straight down and found bedrock', 'the glass looks so good', 'my tower reaches the clouds', 'how is this running on my phone', 'made a moat with the water', 'the trees look like real ones'],
     sling: ['angry birds who', 'why does the target move', 'the aim line helps a lot', 'i keep overshooting']
   };
   const MORECM = {
@@ -7473,6 +7474,143 @@ const SUMMIT_LEVELS = [
       }
     }, MIX);
   }
+
+  /* ===== Block Isle: a 3D voxel sandbox rendered with raw WebGL into an offscreen canvas ===== */
+  function makeVoxel(sk) {
+    const SX = 80, SZ = 80, SY = 40, CS = 16, NCX = SX / CS, NCZ = SZ / CS, WL = 12;
+    const AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, COBBLE = 4, PLANK = 5, LOG = 6, LEAF = 7, SAND = 8, GLASS = 9, BRICK = 10, WATER = 11, BED = 12, SNOW = 13;
+    const TILE = { 1: [0, 1, 2], 2: [2, 2, 2], 3: [3, 3, 3], 4: [4, 4, 4], 5: [5, 5, 5], 6: [7, 6, 7], 7: [8, 8, 8], 8: [9, 9, 9], 9: [10, 10, 10], 10: [11, 11, 11], 11: [12, 12, 12], 12: [13, 13, 13], 13: [14, 15, 2] };
+    const NAME = { 1: 'Grass', 2: 'Dirt', 3: 'Stone', 4: 'Cobble', 5: 'Planks', 6: 'Log', 7: 'Leaves', 8: 'Sand', 9: 'Glass', 10: 'Brick', 13: 'Snow' };
+    const HOT = [GRASS, DIRT, STONE, COBBLE, PLANK, LOG, LEAF, GLASS, BRICK];
+    const TRANS = b => b === AIR || b === LEAF || b === GLASS || b === WATER, SOLID = b => b !== AIR && b !== WATER;
+    const W = new Uint8Array(SX * SY * SZ), I = (x, y, z) => (y * SZ + z) * SX + x;
+    const get = (x, y, z) => (y < 0 ? BED : (y >= SY || x < 0 || z < 0 || x >= SX || z >= SZ) ? AIR : W[I(x, y, z)]);
+    // ---- terrain ----
+    const rng = mulberry(1234), perm = []; for (let i = 0; i < 512; i++) perm.push(Math.floor(rng() * 1e6));
+    const h2 = (x, y) => { const n = Math.sin(x * 127.1 + y * 311.7 + perm[(x * 7 + y * 13) & 511] * 0.001) * 43758.5453; return n - Math.floor(n); };
+    const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, s = t => t * t * (3 - 2 * t), a = h2(xi, yi), b = h2(xi + 1, yi), c = h2(xi, yi + 1), d = h2(xi + 1, yi + 1), u = s(xf), v = s(yf); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+    const fbm = (x, y) => vn(x, y) * 0.55 + vn(x * 2.1, y * 2.1) * 0.28 + vn(x * 4.3, y * 4.3) * 0.17;
+    const gen = () => { W.fill(0); const cx = SX / 2, cz = SZ / 2;
+      for (let x = 0; x < SX; x++) for (let z = 0; z < SZ; z++) { const d = Math.hypot(x - cx, z - cz) / (SX * 0.5), fall = Math.max(0, d - 0.55) * 26, mtn = Math.pow(vn(x / 18 + 9, z / 18 + 4), 3) * 16;
+        const hgt = Math.max(2, Math.min(SY - 8, Math.floor(10 + fbm(x / 22, z / 22) * 10 + mtn - fall)));
+        for (let y = 0; y <= Math.max(hgt, WL); y++) { let b; if (y === 0) b = BED; else if (y < hgt - 3) b = STONE; else if (y < hgt) b = DIRT; else if (y === hgt) b = hgt <= WL + 1 ? SAND : hgt > 25 ? SNOW : hgt > 22 ? STONE : GRASS; else b = WATER; W[I(x, y, z)] = b; } }
+      for (let n = 0; n < 70; n++) { const x = 3 + Math.floor(rng() * (SX - 6)), z = 3 + Math.floor(rng() * (SZ - 6)); let y = SY - 1; while (y > 0 && get(x, y, z) === AIR) y--; if (get(x, y, z) !== GRASS) continue; const th = 4 + Math.floor(rng() * 2);
+        for (let k = 1; k <= th; k++) W[I(x, y + k, z)] = LOG; for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = th - 2; dy <= th + 1; dy++) { const r = Math.abs(dx) + Math.abs(dz) + Math.max(0, dy - th) * 2; if (r > 3 || (r === 3 && rng() < 0.5)) continue; const X = x + dx, Y = y + dy, Z = z + dz; if (get(X, Y, Z) === AIR) W[I(X, Y, Z)] = LEAF; } } };
+    // ---- textures (procedural, 16px tiles in a 64x64 atlas) ----
+    const atlas = (() => { const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64; const c = cv.getContext('2d'), im = c.createImageData(64, 64), r = mulberry(77);
+      const put = (t, f) => { const ox = (t % 4) * 16, oy = Math.floor(t / 4) * 16; for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const [R, G, B, A] = f(x, y, r()); const k = ((oy + y) * 64 + ox + x) * 4; im.data[k] = R; im.data[k + 1] = G; im.data[k + 2] = B; im.data[k + 3] = A == null ? 255 : A; } };
+      const nz = (base, amt, q) => base.map(v => clamp(Math.round(v + (q - 0.5) * amt), 0, 255));
+      put(0, (x, y, q) => nz([96, 170, 66], 40, q)); put(1, (x, y, q) => y < 3 + ((x * 7) % 3 === 0 ? 1 : 0) ? nz([96, 170, 66], 40, q) : nz([134, 96, 67], 36, q)); put(2, (x, y, q) => nz([134, 96, 67], 40, q));
+      put(3, (x, y, q) => nz(q > 0.92 ? [96, 96, 100] : [128, 128, 132], 30, q)); put(4, (x, y, q) => { const e = ((x + (Math.floor(y / 4) % 2) * 3) % 6 === 0) || y % 4 === 0; return nz(e ? [80, 80, 84] : [140, 140, 144], 34, q); });
+      put(5, (x, y, q) => { const line = y % 4 === 3, seam = (x + Math.floor(y / 4) * 5) % 8 === 0; return nz(line || seam ? [120, 86, 48] : [176, 134, 82], 22, q); });
+      put(6, (x, y, q) => nz(x % 4 === 0 ? [72, 52, 30] : [104, 78, 46], 26, q)); put(7, (x, y, q) => { const d = Math.hypot(x - 7.5, y - 7.5); return nz(d > 7 ? [104, 78, 46] : Math.floor(d) % 2 ? [184, 146, 92] : [160, 124, 76], 18, q); });
+      put(8, (x, y, q) => q < 0.18 ? [0, 0, 0, 0] : nz([58, 128, 46], 50, q)); put(9, (x, y, q) => nz([222, 206, 148], 28, q));
+      put(10, (x, y, q) => (x === 0 || y === 0 || x === 15 || y === 15) ? [220, 236, 244, 255] : (x === y + 3 || x === y + 4) && x > 5 && x < 12 ? [235, 245, 250, 200] : [0, 0, 0, 0]);
+      put(11, (x, y, q) => { const row = Math.floor(y / 4), m = y % 4 === 3 || (x + row % 2 * 4) % 8 === 7; return nz(m ? [196, 188, 176] : [164, 70, 56], 24, q); });
+      put(12, (x, y, q) => [48 + Math.round(q * 20), 104 + Math.round(q * 30), 200, 170]); put(13, (x, y, q) => nz([60, 60, 64], 50, q)); put(14, (x, y, q) => nz([244, 248, 252], 14, q)); put(15, (x, y, q) => y < 4 ? nz([244, 248, 252], 14, q) : nz([134, 96, 67], 36, q));
+      c.putImageData(im, 0, 0); return cv; })();
+    // ---- meshing ----
+    const FACES = [
+      { n: [0, 1, 0], c: [[0, 1, 1], [1, 1, 1], [1, 1, 0], [0, 1, 0]], t: 0, sh: 1.0 }, { n: [0, -1, 0], c: [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]], t: 2, sh: 0.5 },
+      { n: [1, 0, 0], c: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]], t: 1, sh: 0.8 }, { n: [-1, 0, 0], c: [[0, 0, 0], [0, 0, 1], [0, 1, 1], [0, 1, 0]], t: 1, sh: 0.8 },
+      { n: [0, 0, 1], c: [[0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]], t: 1, sh: 0.65 }, { n: [0, 0, -1], c: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], t: 1, sh: 0.65 }];
+    const UV = [[0, 1], [1, 1], [1, 0], [0, 0]], E = 0.001;
+    const buildChunk = (cx, cz) => { const op = [], wa = [];
+      for (let y = 0; y < SY; y++) for (let z = cz * CS; z < cz * CS + CS; z++) for (let x = cx * CS; x < cx * CS + CS; x++) { const b = W[I(x, y, z)]; if (!b) continue;
+        for (const F of FACES) { const nx = x + F.n[0], ny = y + F.n[1], nz2 = z + F.n[2], nb = get(nx, ny, nz2);
+          if (b === WATER) { if (nb === WATER || SOLID(nb) && !TRANS(nb)) continue; } else if (!TRANS(nb) || nb === b && b !== GLASS && b !== LEAF) continue; else if (nb === b && b === GLASS) continue;
+          const tile = TILE[b][F.t], tu = (tile % 4) / 4, tv = Math.floor(tile / 4) / 4, out = b === WATER ? wa : op, ao = [];
+          for (let k = 0; k < 4; k++) { const C = F.c[k]; let a = 3; if (b !== WATER) { const ax = F.n[0] ? 0 : F.n[1] ? 1 : 2, o = [0, 1, 2].filter(q => q !== ax), s = o.map(q => C[q] ? 1 : -1), base = [nx, ny, nz2]; const p1 = base.slice(), p2 = base.slice(), p3 = base.slice(); p1[o[0]] += s[0]; p2[o[1]] += s[1]; p3[o[0]] += s[0]; p3[o[1]] += s[1]; const s1 = SOLID(get(...p1)) && !TRANS(get(...p1)) ? 1 : 0, s2 = SOLID(get(...p2)) && !TRANS(get(...p2)) ? 1 : 0, cc = SOLID(get(...p3)) && !TRANS(get(...p3)) ? 1 : 0; a = s1 && s2 ? 0 : 3 - s1 - s2 - cc; } ao.push(a); }
+          const vtx = k => { const C = F.c[k]; let py = y + C[1]; if (b === WATER && C[1] === 1 && get(x, y + 1, z) !== WATER) py = y + 0.88; return [x + C[0], py, z + C[2], tu + (UV[k][0] ? 0.25 - E : E), tv + (UV[k][1] ? 0.25 - E : E), F.sh * (0.5 + 0.5 * ao[k] / 3)]; };
+          const order = ao[0] + ao[2] < ao[1] + ao[3] ? [1, 2, 3, 1, 3, 0] : [0, 1, 2, 0, 2, 3]; order.forEach(k => out.push(...vtx(k))); } }
+      return { op: new Float32Array(op), wa: new Float32Array(wa) }; };
+    // ---- GL ----
+    let gl = null, glc = null, prog = null, tex = null, loc = null, chunks = [], seaBuf = null, glFail = false;
+    const VS = 'attribute vec3 p;attribute vec2 t;attribute float l;uniform mat4 m;uniform vec3 cam;varying vec2 vt;varying float vl;varying float vf;void main(){gl_Position=m*vec4(p,1.);vt=t;vl=l;float d=length(p.xz-cam.xz);vf=clamp((d-26.)/34.,0.,1.);}';
+    const FS = 'precision mediump float;uniform sampler2D tex;uniform vec3 fog;uniform float am;varying vec2 vt;varying float vl;varying float vf;void main(){vec4 c=texture2D(tex,vt);if(c.a<0.1)discard;gl_FragColor=vec4(mix(c.rgb*vl,fog,vf),c.a*am);}';
+    const initGL = () => { if (gl || glFail) return !!gl; glc = document.createElement('canvas'); gl = glc.getContext('webgl', { antialias: false, alpha: false, preserveDrawingBuffer: false }); if (!gl) { glFail = true; return false; }
+      const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; }; prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+      loc = { p: gl.getAttribLocation(prog, 'p'), t: gl.getAttribLocation(prog, 't'), l: gl.getAttribLocation(prog, 'l'), m: gl.getUniformLocation(prog, 'm'), cam: gl.getUniformLocation(prog, 'cam'), fog: gl.getUniformLocation(prog, 'fog'), am: gl.getUniformLocation(prog, 'am') };
+      tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.enable(gl.DEPTH_TEST); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      const tu = (12 % 4) / 4, tv = Math.floor(12 / 4) / 4, R = 400, y = WL + 0.88, q = [[-R, -R], [R, -R], [R, R], [-R, R]].map(([a, b]) => [SX / 2 + a, y, SZ / 2 + b, tu + 0.12, tv + 0.12, 1]); seaBuf = upload(new Float32Array([0, 1, 2, 0, 2, 3].flatMap(k => q[k])));
+      return true; };
+    const upload = arr => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); return { b, n: arr.length / 6 }; };
+    const remesh = (cx, cz) => { if (!gl || cx < 0 || cz < 0 || cx >= NCX || cz >= NCZ) return; const k = cz * NCX + cx, m = buildChunk(cx, cz), old = chunks[k]; if (old) { gl.deleteBuffer(old.op.b); gl.deleteBuffer(old.wa.b); } chunks[k] = { op: upload(m.op), wa: upload(m.wa), cx, cz }; };
+    const remeshAll = () => { for (let cz = 0; cz < NCZ; cz++) for (let cx = 0; cx < NCX; cx++) remesh(cx, cz); };
+    const bindBuf = B => { gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.enableVertexAttribArray(loc.p); gl.vertexAttribPointer(loc.p, 3, gl.FLOAT, false, 24, 0); gl.enableVertexAttribArray(loc.t); gl.vertexAttribPointer(loc.t, 2, gl.FLOAT, false, 24, 12); gl.enableVertexAttribArray(loc.l); gl.vertexAttribPointer(loc.l, 1, gl.FLOAT, false, 24, 20); };
+    // ---- math ----
+    const persp = (fy, a, n, f) => { const t = 1 / Math.tan(fy / 2), nf = 1 / (n - f); return [t / a, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) * nf, -1, 0, 0, 2 * f * n * nf, 0]; };
+    const mul = (a, b) => { const o = new Array(16); for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; };
+    const look = (e, f) => { const up = [0, 1, 0], s = V3n(V3x(f, up)), u = V3x(s, f); return [s[0], u[0], -f[0], 0, s[1], u[1], -f[1], 0, s[2], u[2], -f[2], 0, -(s[0] * e[0] + s[1] * e[1] + s[2] * e[2]), -(u[0] * e[0] + u[1] * e[1] + u[2] * e[2]), f[0] * e[0] + f[1] * e[1] + f[2] * e[2], 1]; };
+    const V3x = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], V3n = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+    return Object.assign({
+      sk, hold: true, title: 'Block Isle', how: 'Build and dig on a little island. PC: click to lock the mouse, WASD to move, Space to jump, left click to break, right click to place, 1 to 9 or the wheel to pick a block, F to fly. Phone: drag left to move, drag right to look, tap to break or place.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], keys: {}, ptr: {}, joy: null,
+      geom() { const w = this.w, h = this.h, n = HOT.length; this.slot = Math.min(36, Math.floor((w - 20) / n)); this.hx = (w - this.slot * n) / 2; this.hy = h - this.slot - 8; this.bJ = { x: w - 44, y: this.hy - 50, r: 30 }; this.bM = { x: w - 112, y: this.hy - 34, r: 24 }; this.bF = { x: w - 44, y: this.hy - 118, r: 20 }; },
+      layout() { this.geom(); },
+      reset() { this.geom(); if (!this.genned) { gen(); this.genned = true; if (gl) remeshAll(); } this.p = [SX / 2 + 0.5, 0, SZ / 2 + 0.5]; let y = SY - 1; while (y > 0 && !SOLID(get(Math.floor(this.p[0]), y, Math.floor(this.p[2])))) y--; this.p[1] = y + 1.01; this.v = [0, 0, 0]; this.yaw = 0.6; this.pitch = -0.25; this.sel = 0; this.mode = 'break'; this.fly = false; this.onG = false; this.placed = 0; this.broken = 0; this.score = 0; this.state = 'ready'; this.keys = {}; this.ptr = {}; this.joy = null; this.look = null; this.floats = []; },
+      enter() { this.reset(); },
+      dir() { const cp = Math.cos(this.pitch); return [Math.sin(this.yaw) * cp, Math.sin(this.pitch), -Math.cos(this.yaw) * cp]; },
+      eye() { return [this.p[0], this.p[1] + 1.62, this.p[2]]; },
+      ray() { const o = this.eye(), d = this.dir(); let x = Math.floor(o[0]), y = Math.floor(o[1]), z = Math.floor(o[2]); const st = d.map(v => v > 0 ? 1 : -1), td = d.map(v => Math.abs(1 / (v || 1e-9))); let tm = [0, 1, 2].map(k => { const p = o[k], c = [x, y, z][k]; return (d[k] > 0 ? c + 1 - p : p - c) * td[k]; }); let n = [0, 0, 0], t = 0;
+        while (t < 6) { const b = get(x, y, z); if (b && b !== WATER) return { x, y, z, n, b }; const k = tm[0] < tm[1] ? (tm[0] < tm[2] ? 0 : 2) : (tm[1] < tm[2] ? 1 : 2); t = tm[k]; tm[k] += td[k]; if (k === 0) x += st[0]; else if (k === 1) y += st[1]; else z += st[2]; n = [0, 0, 0]; n[k] = -st[k]; } return null; },
+      setB(x, y, z, b) { if (x < 0 || z < 0 || x >= SX || z >= SZ || y < 1 || y >= SY) return false; W[I(x, y, z)] = b; const cx = Math.floor(x / CS), cz = Math.floor(z / CS); remesh(cx, cz); if (x % CS === 0) remesh(cx - 1, cz); if (x % CS === CS - 1) remesh(cx + 1, cz); if (z % CS === 0) remesh(cx, cz - 1); if (z % CS === CS - 1) remesh(cx, cz + 1); return true; },
+      act(place) { if (this.state !== 'run') return; const h = this.ray(); if (!h) return; if (place) { const x = h.x + h.n[0], y = h.y + h.n[1], z = h.z + h.n[2], P = this.p; if (x + 1 > P[0] - 0.3 && x < P[0] + 0.3 && z + 1 > P[2] - 0.3 && z < P[2] + 0.3 && y + 1 > P[1] && y < P[1] + 1.8) return; const cur = get(x, y, z); if (cur && cur !== WATER) return; if (this.setB(x, y, z, HOT[this.sel])) { this.placed++; sfx(330 + this.sel * 20, 0.06, 0.04, 'sine'); } }
+        else { if (h.b === BED) return; if (this.setB(h.x, h.y, h.z, get(h.x, h.y + 1, h.z) === WATER || get(h.x + 1, h.y, h.z) === WATER || get(h.x - 1, h.y, h.z) === WATER || get(h.x, h.y, h.z + 1) === WATER || get(h.x, h.y, h.z - 1) === WATER ? (h.y <= WL ? WATER : AIR) : AIR)) { this.broken++; sfx(180 + Math.random() * 40, 0.08, 0.05, 'sine'); } }
+        this.score = this.placed + this.broken; this.best = Math.max(this.best, this.score); },
+      hitC(b, p) { return Math.hypot(p[0] - b.x, p[1] - b.y) < b.r + 8; },
+      bind(cv) { this.cv = cv; cv.addEventListener('contextmenu', e => e.preventDefault());
+        cv.addEventListener('wheel', e => { if (this.state !== 'run') return; e.preventDefault(); this.sel = (this.sel + (e.deltaY > 0 ? 1 : -1) + HOT.length) % HOT.length; }, { passive: false });
+        document.addEventListener('mousemove', e => { if (document.pointerLockElement === cv) { this.yaw += e.movementX * 0.0025; this.pitch = clamp(this.pitch - e.movementY * 0.0025, -1.55, 1.55); } });
+        cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') this.touched = true; if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+          if (p[1] >= this.hy && p[1] <= this.hy + this.slot && p[0] >= this.hx && p[0] <= this.hx + this.slot * HOT.length) { this.sel = Math.floor((p[0] - this.hx) / this.slot); return; }
+          if (e.pointerType === 'mouse') { if (document.pointerLockElement !== cv) { try { cv.requestPointerLock(); } catch (_) {} return; } this.act(e.button === 2); return; }
+          try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+          if (this.hitC(this.bJ, p)) { this.ptr[e.pointerId] = 'j'; this.jumpQ = true; return; } if (this.hitC(this.bM, p)) { this.mode = this.mode === 'break' ? 'place' : 'break'; return; } if (this.hitC(this.bF, p)) { this.fly = !this.fly; this.v[1] = 0; return; }
+          if (p[0] < this.w * 0.45 && !this.joy) { this.joy = { id: e.pointerId, ox: p[0], oy: p[1], x: p[0], y: p[1] }; this.ptr[e.pointerId] = 'm'; } else if (!this.look) { this.look = { id: e.pointerId, lx: p[0], ly: p[1], sx: p[0], sy: p[1], t: performance.now(), moved: 0 }; this.ptr[e.pointerId] = 'l'; } });
+        cv.addEventListener('pointermove', e => { const p = ptrPos(cv, e); if (this.joy && this.joy.id === e.pointerId) { this.joy.x = p[0]; this.joy.y = p[1]; } else if (this.look && this.look.id === e.pointerId) { const dx = p[0] - this.look.lx, dy = p[1] - this.look.ly; this.yaw += dx * 0.007; this.pitch = clamp(this.pitch - dy * 0.007, -1.55, 1.55); this.look.lx = p[0]; this.look.ly = p[1]; this.look.moved += Math.abs(dx) + Math.abs(dy); } });
+        ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, e => { delete this.ptr[e.pointerId]; if (this.joy && this.joy.id === e.pointerId) this.joy = null; else if (this.look && this.look.id === e.pointerId) { if (this.look.moved < 10 && performance.now() - this.look.t < 300 && t === 'pointerup') this.act(this.mode === 'place'); this.look = null; } })); },
+      key(e) { const d = e.type === 'keydown', m = { KeyW: 'f', KeyS: 'b', KeyA: 'l', KeyD: 'r', ArrowUp: 'f', ArrowDown: 'b', ArrowLeft: 'l', ArrowRight: 'r', Space: 'j', ShiftLeft: 'dn', ControlLeft: 'run' }[e.code];
+        if (this.state !== 'run') { if (d && m) this.kick(); return !!m; }
+        if (d && /^Digit[1-9]$/.test(e.code)) { this.sel = Math.min(HOT.length - 1, +e.code.slice(5) - 1); return true; } if (d && e.code === 'KeyF') { this.fly = !this.fly; this.v[1] = 0; this.floats.push({ t: this.fly ? 'flying' : 'walking', x: this.w / 2, y: this.h * 0.3, age: 0, c: 'good' }); return true; }
+        if (!m) return false; if (m === 'j' && d && !this.keys.j) this.jumpQ = true; this.keys[m] = d; return true; },
+      collide(p) { for (let x = Math.floor(p[0] - 0.3); x <= Math.floor(p[0] + 0.3 - 1e-6); x++) for (let y = Math.floor(p[1]); y <= Math.floor(p[1] + 1.8 - 1e-6); y++) for (let z = Math.floor(p[2] - 0.3); z <= Math.floor(p[2] + 0.3 - 1e-6); z++) { if (x < 0 || z < 0 || x >= SX || z >= SZ) return true; if (SOLID(get(x, y, z))) return true; } return false; },
+      tick(dt) { this.decay(dt); if (this.state !== 'run') { this.yaw += dt * 0.12; return; } dt = Math.min(dt, 0.05);
+        const K = this.keys; let fx = 0, fz = 0; if (K.f) fz += 1; if (K.b) fz -= 1; if (K.l) fx -= 1; if (K.r) fx += 1; if (this.joy) { const dx = this.joy.x - this.joy.ox, dy = this.joy.y - this.joy.oy, l = Math.hypot(dx, dy); if (l > 8) { fx = dx / Math.max(l, 40); fz = -dy / Math.max(l, 40); } }
+        const l = Math.hypot(fx, fz); if (l > 1) { fx /= l; fz /= l; } const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw), inW = get(Math.floor(this.p[0]), Math.floor(this.p[1] + 0.5), Math.floor(this.p[2])) === WATER, sp = this.fly ? 9 : inW ? 2.6 : K.run ? 6.2 : 4.4;
+        const wx = (sy * fz + cy * fx) * sp, wz = (-cy * fz + sy * fx) * sp; const jumpHeld = K.j || Object.values(this.ptr).indexOf('j') >= 0;
+        this.v[0] += (wx - this.v[0]) * Math.min(1, dt * (this.onG || this.fly ? 14 : 4)); this.v[2] += (wz - this.v[2]) * Math.min(1, dt * (this.onG || this.fly ? 14 : 4));
+        if (this.fly) { this.v[1] = (jumpHeld ? 7 : 0) - (K.dn ? 7 : 0); } else if (inW) { this.v[1] = Math.max(this.v[1] - 10 * dt, -3); if (jumpHeld) this.v[1] = Math.min(this.v[1] + 22 * dt, 3.2); } else { this.v[1] -= 28 * dt; if (this.v[1] < -40) this.v[1] = -40; if ((this.jumpQ || jumpHeld) && this.onG) { this.v[1] = 8.6; this.onG = false; } }
+        this.jumpQ = false; this.onG = false; const steps = 3; for (let s = 0; s < steps; s++) { for (let a = 0; a < 3; a++) { const P = this.p.slice(); P[a] += this.v[a] * dt / steps; if (!this.collide(P)) this.p = P; else { if (a === 1 && this.v[1] < 0) this.onG = true; this.v[a] = 0; } } }
+        if (this.p[1] < -10) { this.reset(); this.state = 'run'; } },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK; this.geom(); drawBg(c, w, h);
+        if (!initGL()) { txt(c, 'This device cannot run WebGL, which Block Isle needs.', w / 2, h / 2, 12, sk.fg, 'center', MONO); endVeil(this); return; }
+        if (!chunks.length) remeshAll();
+        const sc = Math.min(window.devicePixelRatio || 1, 1.5), GW = Math.max(2, Math.round(w * sc)), GH = Math.max(2, Math.round(h * sc)); if (glc.width !== GW || glc.height !== GH) { glc.width = GW; glc.height = GH; }
+        gl.viewport(0, 0, GW, GH); const sky = [0.56, 0.76, 0.98]; gl.clearColor(sky[0], sky[1], sky[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.useProgram(prog);
+        const e = this.eye(), f = this.dir(), M = mul(persp(1.2, GW / GH, 0.05, 220), look(e, f)); this.M = M;
+        gl.uniformMatrix4fv(loc.m, false, new Float32Array(M)); gl.uniform3f(loc.cam, e[0], e[1], e[2]); gl.uniform3f(loc.fog, sky[0], sky[1], sky[2]); gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.disable(gl.BLEND); gl.depthMask(true); gl.uniform1f(loc.am, 1); chunks.forEach(ch => { if (ch && ch.op.n) { bindBuf(ch.op); gl.drawArrays(gl.TRIANGLES, 0, ch.op.n); } });
+        gl.enable(gl.BLEND); gl.depthMask(false); gl.uniform1f(loc.am, 0.8); bindBuf(seaBuf); gl.drawArrays(gl.TRIANGLES, 0, seaBuf.n); chunks.forEach(ch => { if (ch && ch.wa.n) { bindBuf(ch.wa); gl.drawArrays(gl.TRIANGLES, 0, ch.wa.n); } }); gl.depthMask(true);
+        c.drawImage(glc, 0, 0, w, h);
+        // target outline
+        if (this.state === 'run') { const hit = this.ray(); if (hit) { const pr = q => { const x = q[0], y = q[1], z = q[2], X = M[0] * x + M[4] * y + M[8] * z + M[12], Y = M[1] * x + M[5] * y + M[9] * z + M[13], Wc = M[3] * x + M[7] * y + M[11] * z + M[15]; if (Wc <= 0.01) return null; return [(X / Wc * 0.5 + 0.5) * w, (1 - (Y / Wc * 0.5 + 0.5)) * h]; };
+          const P = [0, 1, 2, 3, 4, 5, 6, 7].map(k => pr([hit.x + (k & 1) - 0.002 + (k & 1) * 0.004, hit.y + ((k >> 1) & 1) - 0.002 + ((k >> 1) & 1) * 0.004, hit.z + ((k >> 2) & 1) - 0.002 + ((k >> 2) & 1) * 0.004])); if (P.every(Boolean)) { c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 1.5; c.beginPath(); [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]].forEach(([a, b]) => { c.moveTo(P[a][0], P[a][1]); c.lineTo(P[b][0], P[b][1]); }); c.stroke(); } }
+          c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 2; c.beginPath(); c.moveTo(w / 2 - 8, h / 2); c.lineTo(w / 2 + 8, h / 2); c.moveTo(w / 2, h / 2 - 8); c.lineTo(w / 2, h / 2 + 8); c.stroke(); }
+        // hotbar
+        HOT.forEach((b, i) => { const x = this.hx + i * this.slot, y = this.hy, s = this.slot; c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(x, y, s, s); const t = TILE[b][1]; c.imageSmoothingEnabled = false; c.drawImage(atlas, (t % 4) * 16, Math.floor(t / 4) * 16, 16, 16, x + 5, y + 5, s - 10, s - 10); c.imageSmoothingEnabled = true; c.strokeStyle = i === this.sel ? '#ffffff' : 'rgba(255,255,255,.25)'; c.lineWidth = i === this.sel ? 3 : 1; c.strokeRect(x + 1, y + 1, s - 2, s - 2); });
+        txt(c, NAME[HOT[this.sel]], w / 2, this.hy - 8, 11, '#ffffff', 'center', MONO); txt(c, (this.fly ? 'flying  ' : '') + 'placed ' + this.placed + '  broken ' + this.broken, 10, 16, 10, '#ffffff', 'left', MONO);
+        if (matchMedia('(pointer:coarse)').matches || this.touched) { [[this.bJ, this.fly ? 'UP' : 'JUMP', '#3d7bff'], [this.bM, this.mode === 'break' ? 'BREAK' : 'PLACE', this.mode === 'break' ? '#e2563a' : '#3ddc84'], [this.bF, this.fly ? 'WALK' : 'FLY', '#9a6bff']].forEach(([b, n, col]) => { c.globalAlpha = 0.8; dot(c, b.x, b.y, b.r, col, { lw: 2 }); c.globalAlpha = 1; txt(c, n, b.x, b.y + 4, Math.max(8, b.r * 0.34), '#ffffff', 'center', MONO); });
+          if (this.joy) { c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 3; c.beginPath(); c.arc(this.joy.ox, this.joy.oy, 36, 0, TAU); c.stroke(); const dx = this.joy.x - this.joy.ox, dy = this.joy.y - this.joy.oy, d = Math.hypot(dx, dy), k = Math.min(1, 36 / (d || 1)); dot(c, this.joy.ox + dx * k, this.joy.oy + dy * k, 14, 'rgba(255,255,255,.55)', { lw: 0 }); } }
+        else if (this.state === 'run' && this.cv && document.pointerLockElement !== this.cv) txt(c, 'click to look around', w / 2, h / 2 + 28, 12, '#ffffff', 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, MIX);
+  }
+  skin('isle', { bg: ['#3f6fa8', '#264a72'], pat: 'none', fg: '#ffffff', dim: '#e8f2ff', panel: '#3a5a2a', pfg: '#ffffff', dark: true, line: '#2a3a1a', lw: 0, r: 4, pal: ['#6aaa42', '#ffd23f', '#3d7bff', '#8a6043'], good: '#ffe14d', bad: '#ff6b6b', font: '"Silkscreen","Courier New",monospace', fw: 700, fs: 0.95, mono: '"Silkscreen","Courier New",monospace', mw: 400, ms: 0.8, veil: 'rgba(30,50,80,.55)', vfg: '#ffffff', slide: '#264a72', sbgc: '#264a72', sfg: '#ffffff', sdim: '#e0f0d8', stag: '#ffe14d', tsize: 24, tfw: 700, tls: '.02em', frame: '' });
+  NEW_SLIDES.push(mk(makeVoxel(SKINS.isle), 'Block Isle', SKINS.isle, 'A little 3D island made of blocks. Dig it, build on it, fly around it. Nine blocks to build with.', '#blocks #sandbox #3d', 21.4e9, 6.8e9, 4.4e9, 'voxel'));
 
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
