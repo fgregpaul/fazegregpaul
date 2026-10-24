@@ -7765,6 +7765,9 @@ const SUMMIT_LEVELS = [
         else if (k === 'gap') { endG(); x += a; y += (b || 0); }
         else if (k === 'kick') { P(['ramp', b || 50, a]); P(['step', a]); }
         else if (k === 'jump') { const h = c || 22; P(['ramp', 60, h]); P(['gap', a, h + (b || 0)]); P(['land', d || 90, 16]); }
+        else if (k === 'mega') { const h = c || 44, rl = d || 90; P(['ramp', rl, h]); P(['gap', a, h + (b || 0)]); P(['land', e || 160, f == null ? 50 : f]); }
+        else if (k === 'cliff') { P(['gap', b || 30, a]); P(['land', c || 260, d == null ? 90 : d]); }
+        else if (k === 'blast') OB.push({ t: 'blast', x: x + (a || 0), x1: x + (a || 0) + 18, hy: y, pow: b || 330, fx: c || 170 });
         else if (k === 'P') mode = a || 8;
         else if (k === 'G') mode = 0;
         else if (k === 'loop') { LP.push({ cx: x + a, cy: y - a, R: a }); pt(x + 2 * a, y); }
@@ -7774,7 +7777,7 @@ const SUMMIT_LEVELS = [
         else if (k === 'orbit') OB.push({ t: 'orbit', x: x + a, hy: y, dy: b, R: c, w: d, r: e || 7, ph: f || 0 });
         else if (k === 'spikes') OB.push({ t: 'spikes', x: x + a, x1: x + a + b, hy: y });
         else if (k === 'boost') OB.push({ t: 'boost', x: x + (a || 0), x1: x + (a || 0) + (b || 34), hy: y });
-        else if (k === 'spring') OB.push({ t: 'spring', x: x + (a || 0), x1: x + (a || 0) + 16, hy: y, pow: b || 430 });
+        else if (k === 'spring') OB.push({ t: 'spring', x: x + (a || 0), x1: x + (a || 0) + 22, hy: y, pow: b || 430 });
         else if (k === 'cp') { CPS.push({ x: x + 20, hy: y }); pt(x + 170, y); }
         else if (k === 'ice') ICE.push([x, x + a]);
         else if (k === 'sign') DEC.push({ t: 'sign', x: x + (a || 0), hy: y, k: b || 0 });
@@ -7806,89 +7809,84 @@ const SUMMIT_LEVELS = [
 
     /* ---------- the twelve tracks ---------- */
     const LEVELS = [
-      { id: 'sp1', season: 'spring', name: 'First Bloom', stars: [24, 33], parts: [
-        ['flat', 220], ['slope', 160, -26], ['flat', 60], ['slope', 160, 26], ['flat', 60], ['hill', 160, 24], ['flat', 40], ['bumps', 200, 6, 3], ['flat', 80],
-        ['cp'], ['sign', 20, 1], ['flat', 60], ['jump', 80, 0, 18], ['flat', 120],
-        ['hill', 220, 40], ['flat', 60], ['sign', 10, 0], ['flat', 40], ['kick', 22], ['barrel', 70], ['flat', 220],
-        ['cp'], ['boost', 20], ['flat', 120], ['loop', 56], ['flat', 120],
-        ['slope', 200, -60], ['flat', 60], ['jump', 120, 60, 22], ['flat', 100],
-        ['cp'], ['bumps', 240, 8, 4], ['flat', 60], ['hill', 200, 36], ['flat', 80], ['kick', 20], ['spikes', 50, 30], ['flat', 180],
-        ['slope', 160, -40], ['flat', 40], ['jump', 100, 40], ['flat', 60], ['finish', 60], ['flat', 320]] },
-      { id: 'sp2', season: 'spring', name: 'Petal Loop', stars: [27, 37], parts: [
-        ['flat', 200], ['hill', 180, 30], ['flat', 40], ['boost', 0], ['flat', 100], ['loop', 56], ['flat', 100],
-        ['kick', 22], ['barrel', 50], ['barrel', 75], ['flat', 220],
-        ['cp'], ['slope', 160, -40], ['flat', 50], ['spring', 30, 336], ['flat', 110], ['step', -90], ['flat', 360],
-        ['jump', 110, 50], ['flat', 60], ['hill', 200, 40], ['flat', 40], ['kick', 22], ['spikes', 40, 50], ['flat', 200],
-        ['cp'], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 40], ['loop', 56], ['flat', 120],
-        ['slope', 200, -50], ['flat', 40], ['P', 8], ['jump', 80, 0, 18], ['flat', 60], ['jump', 80, 10, 16], ['flat', 60], ['G'], ['jump', 90, 30, 16], ['flat', 80],
-        ['cp'], ['hill', 240, 50], ['flat', 60], ['kick', 24], ['barrel', 50], ['barrel', 66, 2], ['barrel', 82], ['flat', 200], ['finish', 40], ['flat', 320]] },
-      { id: 'sp3', season: 'spring', night: true, name: 'Moonlit Meadow', stars: [28, 38], parts: [
-        ['flat', 200], ['jump', 100, 20], ['flat', 80], ['kick', 22], ['barrel', 60, 2], ['flat', 220],
-        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 20], ['flat', 80],
-        ['boost', 0], ['flat', 90], ['loop', 56], ['flat', 30], ['loop', 56], ['flat', 120],
-        ['cp'], ['flat', 40], ['spring', 30, 349], ['flat', 110], ['step', -100], ['flat', 300], ['jump', 150, 100, 24], ['flat', 80],
-        ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['P', 8], ['jump', 80, 0, 18], ['flat', 40], ['jump', 70, 0, 18], ['flat', 40], ['G'], ['jump', 80, 20, 18], ['flat', 80],
-        ['cp'], ['hill', 220, 44], ['bumps', 180, 6, 3], ['flat', 140], ['kick', 24], ['barrel', 42], ['barrel', 60], ['barrel', 78], ['flat', 220], ['finish', 40], ['flat', 320]] },
+      { id: 'sp1v2', season: 'spring', name: 'First Bloom', stars: [24, 30], parts: [
+        ['flat', 220], ['slope', 240, -80], ['flat', 40], ['mega', 150, 70, 40], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 70], ['slope', 300, -150], ['flat', 30], ['mega', 190, 150, 50], ['flat', 120],
+        ['kick', 22], ['barrel', 70], ['flat', 200], ['blast', 40], ['flat', 640],
+        ['cp'], ['boost', 0], ['flat', 100], ['loop', 56], ['flat', 80], ['cliff', 220, 40, 320, 110], ['flat', 120],
+        ['cp'], ['slope', 260, -100], ['flat', 20], ['mega', 170, 110, 46], ['flat', 60], ['finish', 60], ['flat', 320]] },
+      { id: 'sp2v2', season: 'spring', name: 'Petal Loop', stars: [27, 34], parts: [
+        ['flat', 200], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 40], ['slope', 280, -140], ['mega', 200, 160, 50], ['flat', 100],
+        ['cp'], ['blast', 30, 360], ['flat', 700], ['kick', 22], ['barrel', 50], ['barrel', 75], ['flat', 220],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 340, -200], ['flat', 30], ['cliff', 300, 60, 360, 130], ['flat', 260],
+        ['spring', 30, 380], ['flat', 120], ['step', -110], ['flat', 120], ['mega', 160, 60, 44], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 40], ['loop', 56], ['flat', 80], ['blast', 20, 320], ['flat', 620], ['finish', 60], ['flat', 320]] },
+      { id: 'sp3v2', season: 'spring', night: true, name: 'Moonlit Meadow', stars: [27, 34], parts: [
+        ['flat', 200], ['slope', 260, -120], ['mega', 180, 120, 46], ['flat', 80],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 140, 40], ['flat', 60],
+        ['blast', 20, 300], ['blast', 120, 300], ['flat', 640],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 360, -220], ['flat', 30], ['mega', 220, 200, 56, 100, 220, 70], ['flat', 120],
+        ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['P', 8], ['jump', 110, 0, 22], ['flat', 50], ['jump', 110, 10, 22], ['flat', 50], ['G'], ['cliff', 180, 40, 280, 90], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 60], ['kick', 24], ['barrel', 42], ['barrel', 60], ['barrel', 78], ['flat', 200], ['finish', 40], ['flat', 320]] },
 
-      { id: 'su1', season: 'summer', name: 'Dune Run', stars: [28, 38], parts: [
-        ['flat', 200], ['hill', 240, 40], ['hill', 260, 56], ['flat', 40], ['boost', 0], ['flat', 80], ['jump', 150, 50, 26], ['flat', 80],
-        ['cp'], ['hill', 280, 64], ['hill', 220, 40], ['flat', 60], ['kick', 22], ['barrel', 60], ['flat', 220], ['boost', 0], ['flat', 80], ['loop', 64], ['flat', 100],
-        ['cp'], ['slope', 240, -80], ['flat', 40], ['jump', 160, 90, 26], ['flat', 60], ['hill', 220, 50], ['bumps', 220, 8, 4], ['flat', 60],
-        ['kick', 24], ['spikes', 40, 60], ['flat', 200], ['hill', 300, 70], ['flat', 40], ['jump', 140, 40, 24], ['flat', 60],
-        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 60], ['hill', 260, 50], ['flat', 80], ['finish', 40], ['flat', 320]] },
-      { id: 'su2', season: 'summer', name: 'Mesa Hop', stars: [26, 36], parts: [
-        ['flat', 220], ['jump', 90, 0, 20], ['flat', 120], ['jump', 100, 10, 20], ['flat', 120],
-        ['cp'], ['saw', 140, -36, 10, 0, 14, 2.2], ['flat', 260], ['spring', 30, 336], ['flat', 120], ['step', -90], ['flat', 260], ['jump', 120, 40, 22], ['flat', 60],
-        ['cp'], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 80], ['kick', 22], ['spikes', 40, 50], ['flat', 200], ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 240],
-        ['slope', 160, -40], ['jump', 140, 60, 24], ['flat', 60], ['P', 10], ['jump', 70, -10, 18], ['flat', 70], ['jump', 70, -10, 18], ['flat', 70], ['G'], ['jump', 90, 30, 18], ['flat', 60],
-        ['cp'], ['kick', 24], ['barrel', 50], ['barrel', 70, 2], ['flat', 220], ['hill', 220, 40], ['flat', 80], ['finish', 40], ['flat', 320]] },
-      { id: 'su3', season: 'summer', night: true, name: 'Canyon Blaze', stars: [25, 34], parts: [
-        ['flat', 200], ['orbit', 200, -40, 30, 2.2, 7], ['flat', 320], ['jump', 120, 30, 22], ['flat', 80],
-        ['cp'], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 30], ['loop', 58], ['flat', 120], ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220],
-        ['cp'], ['saw', 120, -36, 10, 0, 14, 2.4], ['flat', 240], ['spring', 30, 349], ['flat', 120], ['step', -100], ['flat', 80], ['orbit', 140, -40, 28, -2.4, 7], ['flat', 300],
-        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 100, 30], ['flat', 60],
-        ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['slope', 200, -50], ['jump', 160, 80, 26], ['flat', 80], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 100], ['finish', 40], ['flat', 320]] },
+      { id: 'su1v2', season: 'summer', name: 'Dune Run', stars: [32, 41], parts: [
+        ['flat', 200], ['hill', 260, 60], ['boost', 0], ['flat', 80], ['slope', 320, -180], ['flat', 30], ['mega', 230, 170, 54, 100, 220, 60], ['flat', 120],
+        ['cp'], ['blast', 30, 380], ['flat', 760], ['kick', 22], ['barrel', 60], ['flat', 220],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 64], ['flat', 60], ['slope', 300, -160], ['cliff', 320, 60, 380, 140], ['flat', 120],
+        ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 240], ['boost', 0], ['flat', 70], ['mega', 210, 80, 50], ['flat', 80],
+        ['cp'], ['hill', 300, 70], ['blast', 40, 330], ['flat', 680], ['finish', 40], ['flat', 320]] },
+      { id: 'su2v2', season: 'summer', name: 'Mesa Hop', stars: [32, 40], parts: [
+        ['flat', 220], ['P', 12], ['jump', 130, 0, 24], ['flat', 120], ['jump', 140, -20, 26], ['flat', 120], ['G'], ['cliff', 240, 40, 320, 100], ['flat', 80],
+        ['cp'], ['saw', 140, -36, 10, 0, 14, 2.2], ['flat', 260], ['spring', 30, 400], ['flat', 120], ['step', -130], ['flat', 160], ['mega', 200, 140, 50], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 360, -230], ['flat', 30], ['blast', 20, 300, 220], ['flat', 60], ['gap', 360, 180], ['land', 300, 80], ['flat', 120],
+        ['kick', 22], ['spikes', 40, 50], ['flat', 200], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 80],
+        ['cp'], ['kick', 24], ['barrel', 50], ['barrel', 70, 2], ['flat', 200], ['slope', 260, -110], ['mega', 190, 140, 48], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'su3v2', season: 'summer', night: true, name: 'Canyon Blaze', stars: [26, 33], parts: [
+        ['flat', 200], ['orbit', 200, -40, 30, 2.2, 7], ['flat', 320], ['boost', 0], ['flat', 70], ['mega', 230, 200, 56, 100, 240, 70], ['flat', 100],
+        ['cp'], ['blast', 20, 320], ['blast', 160, 340], ['flat', 760], ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 380, -260], ['flat', 30], ['cliff', 360, 70, 400, 150], ['flat', 80], ['orbit', 140, -40, 28, -2.4, 7], ['flat', 300],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 140, 40], ['flat', 60],
+        ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 30], ['loop', 60], ['flat', 60], ['blast', 30, 360], ['flat', 700], ['finish', 40], ['flat', 320]] },
 
-      { id: 'fa1', season: 'fall', name: 'Leaf Lane', stars: [28, 38], parts: [
-        ['flat', 200], ['slope', 160, -30], ['flat', 60], ['flat', 20], ['gap', 22, 3], ['crumble', 120], ['gap', 24, 3], ['flat', 60], ['flat', 80],
-        ['cp'], ['hill', 200, 34], ['flat', 40], ['kick', 22], ['barrel', 60], ['flat', 220], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 100],
-        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 24], ['flat', 80],
-        ['hill', 200, 40], ['flat', 40], ['jump', 120, 40, 22], ['flat', 80], ['kick', 22], ['barrel', 50], ['barrel', 75], ['flat', 220],
-        ['cp'], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 80], ['kick', 22], ['barrel', 50, 2], ['flat', 330], ['P', 8], ['jump', 80, 0, 18], ['flat', 50], ['jump', 80, 0, 18], ['flat', 50], ['G'], ['jump', 100, 30, 18], ['flat', 80],
-        ['cp'], ['slope', 200, -50], ['flat', 40], ['jump', 140, 70, 24], ['flat', 60], ['hill', 180, 30], ['flat', 80], ['finish', 40], ['flat', 320]] },
-      { id: 'fa2', season: 'fall', name: 'Hollow Woods', stars: [31, 42], parts: [
-        ['flat', 200], ['saw', 160, -36, 10, 0, 14, 2.2], ['flat', 280], ['slope', 140, 30], ['flat', 40], ['jump', 100, 30, 22], ['flat', 60],
-        ['cp'], ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['kick', 22], ['saw', 60, -9, 9], ['flat', 220], ['jump', 120, 30, 24], ['flat', 80],
-        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 60], ['spring', 30, 323], ['flat', 120], ['step', -80], ['flat', 80], ['orbit', 120, -36, 28, 2.4, 7], ['flat', 260],
-        ['P', 8], ['jump', 80, 0, 18], ['flat', 50], ['jump', 80, 10, 18], ['flat', 50], ['G'], ['jump', 100, 40, 18], ['flat', 60],
-        ['cp'], ['kick', 24], ['barrel', 50, 2], ['barrel', 75], ['flat', 220], ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 220], ['jump', 130, 60, 24], ['flat', 80], ['finish', 40], ['flat', 320]] },
-      { id: 'fa3', season: 'fall', night: true, name: 'Harvest Moon', stars: [28, 38], parts: [
-        ['flat', 200], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 80, 20], ['flat', 60],
-        ['cp'], ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220], ['orbit', 120, -36, 30, 2.6, 7], ['flat', 260], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 30], ['loop', 60], ['flat', 100],
-        ['cp'], ['kick', 22], ['spikes', 40, 70], ['flat', 200], ['spring', 30, 361], ['flat', 120], ['step', -110], ['flat', 80], ['kick', 22], ['saw', 60, -9, 9], ['flat', 260],
-        ['cp'], ['P', 8], ['jump', 80, 10, 18], ['flat', 40], ['jump', 70, 0, 18], ['flat', 40], ['jump', 70, -10, 18], ['flat', 40], ['G'], ['jump', 120, 80, 22], ['flat', 60],
-        ['saw', 120, -36, 11, 0, 14, 2.2], ['flat', 240], ['hill', 240, 50], ['flat', 150], ['kick', 24], ['spikes', 40, 55], ['flat', 220], ['finish', 40], ['flat', 320]] },
+      { id: 'fa1v2', season: 'fall', name: 'Leaf Lane', stars: [32, 41], parts: [
+        ['flat', 200], ['slope', 240, -100], ['flat', 30], ['mega', 170, 100, 44], ['flat', 80],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 110], ['gap', 24, 3], ['crumble', 110], ['gap', 24, 3], ['land', 140, 40], ['flat', 80],
+        ['blast', 20, 340], ['flat', 680], ['kick', 22], ['barrel', 60], ['flat', 220],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 340, -200], ['flat', 30], ['mega', 220, 190, 54, 100, 230, 70], ['flat', 100],
+        ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 80], ['cliff', 260, 50, 340, 120], ['flat', 80],
+        ['cp'], ['P', 8], ['jump', 110, 0, 22], ['flat', 50], ['jump', 110, 10, 22], ['flat', 50], ['G'], ['mega', 150, 60, 40], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'fa2v2', season: 'fall', name: 'Hollow Woods', stars: [34, 43], parts: [
+        ['flat', 200], ['saw', 160, -36, 10, 0, 14, 2.2], ['flat', 280], ['slope', 280, -140], ['mega', 190, 160, 50], ['flat', 80],
+        ['cp'], ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['blast', 20, 340], ['flat', 680],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 60], ['spring', 30, 400], ['flat', 120], ['step', -130], ['flat', 300], ['orbit', 120, -36, 28, 2.4, 7], ['flat', 240],
+        ['boost', 0], ['flat', 60], ['slope', 360, -230], ['flat', 30], ['cliff', 340, 60, 380, 140], ['flat', 100],
+        ['cp'], ['kick', 24], ['barrel', 50, 2], ['barrel', 75], ['flat', 220], ['blast', 20, 300], ['blast', 150, 320], ['flat', 680], ['finish', 40], ['flat', 320]] },
+      { id: 'fa3v2', season: 'fall', night: true, name: 'Harvest Moon', stars: [31, 39], parts: [
+        ['flat', 200], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 120, 30], ['flat', 60],
+        ['cp'], ['boost', 0], ['flat', 70], ['slope', 340, -210], ['flat', 30], ['mega', 230, 210, 56, 100, 240, 70], ['flat', 80], ['orbit', 140, -36, 30, 2.6, 7], ['flat', 280],
+        ['cp'], ['blast', 20, 360], ['flat', 720], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 30], ['loop', 60], ['flat', 80],
+        ['kick', 22], ['spikes', 40, 70], ['flat', 340], ['spring', 30, 410], ['flat', 120], ['step', -140], ['flat', 100], ['cliff', 300, 50, 360, 120], ['flat', 80],
+        ['cp'], ['P', 8], ['jump', 110, 10, 22], ['flat', 40], ['jump', 110, 0, 22], ['flat', 40], ['G'], ['mega', 180, 120, 46], ['flat', 80], ['finish', 40], ['flat', 320]] },
 
-      { id: 'wi1', season: 'winter', name: 'Frost Trail', stars: [27, 37], parts: [
-        ['flat', 200], ['hill', 180, 30], ['ice', 340], ['flat', 140], ['slope', 160, 30], ['flat', 40], ['jump', 90, 20, 20], ['flat', 80],
-        ['cp'], ['hill', 200, 40], ['flat', 40], ['ice', 260], ['slope', 200, 40], ['flat', 60], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 100],
-        ['cp'], ['kick', 22], ['barrel', 60], ['flat', 220], ['slope', 180, -50], ['jump', 130, 70, 24], ['flat', 60], ['ice', 300], ['flat', 120], ['slope', 180, 40],
-        ['cp'], ['bumps', 220, 6, 4], ['flat', 120], ['kick', 22], ['spikes', 40, 50], ['flat', 200], ['P', 10], ['jump', 80, 0, 18], ['flat', 60], ['jump', 80, 10, 18], ['flat', 60], ['G'], ['jump', 90, 30, 18], ['flat', 80],
-        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 80], ['hill', 200, 36], ['ice', 200], ['slope', 200, 40], ['flat', 60], ['finish', 40], ['flat', 320]] },
-      { id: 'wi2', season: 'winter', name: 'Glacier Gap', stars: [33, 45], parts: [
-        ['flat', 200], ['P', 10], ['jump', 80, 0, 18], ['flat', 80], ['jump', 80, -10, 18], ['flat', 80], ['G'], ['jump', 90, 30, 18], ['flat', 60],
-        ['cp'], ['ice', 400], ['slope', 160, 40], ['flat', 120], ['flat', 60], ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 100],
-        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 30], ['flat', 60],
-        ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 260], ['jump', 130, 50, 24], ['flat', 60], ['ice', 300], ['slope', 240, 60], ['flat', 60],
-        ['cp'], ['kick', 24], ['barrel', 50], ['barrel', 70, 2], ['flat', 220], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 30], ['loop', 58], ['flat', 80], ['spring', 30, 336], ['flat', 120], ['step', -90], ['flat', 300], ['jump', 150, 90, 24], ['flat', 60],
-        ['cp'], ['hill', 200, 36], ['flat', 120], ['kick', 22], ['saw', 60, -9, 9], ['flat', 200], ['finish', 40], ['flat', 320]] },
-      { id: 'wi3', season: 'winter', night: true, name: 'Aurora Run', stars: [28, 38], parts: [
-        ['flat', 200], ['ice', 300], ['slope', 200, 40], ['flat', 60], ['jump', 130, 40, 22], ['flat', 60],
-        ['cp'], ['orbit', 120, -36, 28, 2.4, 7], ['flat', 260], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 30], ['loop', 60], ['flat', 100],
-        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 30], ['flat', 60],
-        ['P', 10], ['jump', 80, 0, 18], ['flat', 40], ['jump', 80, 0, 18], ['flat', 40], ['G'], ['jump', 100, 40, 18], ['flat', 60],
-        ['cp'], ['kick', 22], ['spikes', 40, 70], ['flat', 200], ['spring', 30, 361], ['flat', 120], ['step', -110], ['flat', 80], ['kick', 22], ['saw', 60, -9, 9], ['flat', 260],
-        ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220], ['slope', 200, -40], ['jump', 160, 90, 26], ['flat', 60], ['ice', 200], ['flat', 200], ['finish', 40], ['flat', 320]] }
+      { id: 'wi1v2', season: 'winter', name: 'Frost Trail', stars: [25, 31], parts: [
+        ['flat', 200], ['slope', 220, -80], ['ice', 200], ['flat', 120], ['mega', 160, 110, 44], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 320, -180], ['flat', 30], ['mega', 210, 170, 52], ['flat', 80], ['ice', 260], ['flat', 260],
+        ['cp'], ['blast', 30, 340], ['flat', 700], ['kick', 22], ['barrel', 60], ['flat', 220],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 60], ['cliff', 300, 50, 360, 130], ['flat', 80], ['ice', 200], ['flat', 200],
+        ['boost', 0], ['flat', 70], ['mega', 190, 90, 48], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'wi2v2', season: 'winter', name: 'Glacier Gap', stars: [35, 45], parts: [
+        ['flat', 200], ['P', 10], ['jump', 120, 0, 22], ['flat', 80], ['jump', 120, -10, 22], ['flat', 80], ['G'], ['cliff', 220, 40, 300, 100], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 80], ['slope', 380, -250], ['flat', 30], ['mega', 240, 230, 56, 100, 260, 80], ['flat', 100],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 140, 40], ['flat', 60],
+        ['blast', 20, 340], ['blast', 150, 360], ['flat', 1000], ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 300],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 30], ['loop', 58], ['flat', 80], ['spring', 30, 410], ['flat', 120], ['step', -140], ['flat', 160], ['mega', 210, 160, 50], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'wi3v2', season: 'winter', night: true, name: 'Aurora Run', stars: [34, 44], parts: [
+        ['flat', 200], ['ice', 300], ['flat', 300], ['boost', 0], ['flat', 70], ['slope', 340, -200], ['flat', 30], ['mega', 230, 200, 56, 100, 240, 70], ['flat', 80],
+        ['cp'], ['orbit', 120, -36, 28, 2.4, 7], ['flat', 260], ['blast', 30, 360], ['flat', 740],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 140, 40], ['flat', 60],
+        ['boost', 0], ['flat', 80], ['slope', 400, -280], ['flat', 30], ['cliff', 380, 70, 420, 160], ['flat', 80],
+        ['cp'], ['kick', 22], ['spikes', 40, 70], ['flat', 340], ['spring', 30, 410], ['flat', 120], ['step', -140], ['flat', 100], ['blast', 20, 320], ['blast', 140, 340], ['flat', 700],
+        ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 60], ['mega', 200, 120, 48], ['flat', 80], ['finish', 40], ['flat', 320]] }
     ];
     const SEASON_ORDER = ['spring', 'summer', 'fall', 'winter'];
     const BUILT = {};
@@ -7899,7 +7897,7 @@ const SUMMIT_LEVELS = [
     const MS = [1, 1, 1.5], RAD = [RWH, RWH, RT], MSUM = 3.5;
     const TREST = [-2, -11];
     const L01 = 20, L02 = Math.hypot(-10 - TREST[0], TREST[1]), L12 = Math.hypot(10 - TREST[0], TREST[1]);
-    const T_ = { KS: 0.2, DAMP: 0.05, ACC: 300, WHL: 0.6, VMAX: 250, BRK: 720, VREV: 60, REVA: 220, ROLL: 0.1, A_G: 16, A_A: 27, WMAX: 8.6, AIRD: 0.7, BOOSTV: 390 };
+    const T_ = { KS: 0.2, DAMP: 0.05, ACC: 300, WHL: 0.6, VMAX: 250, BRK: 720, VREV: 60, REVA: 220, ROLL: 0.1, A_G: 16, A_A: 36, WMAX: 11, AIRD: 0.7, BOOSTV: 390, AIRG: 0.62 };
     const newBike = () => ({ p: [[0, 0], [0, 0], [0, 0]], q: [[0, 0], [0, 0], [0, 0]], v: [[0, 0], [0, 0], [0, 0]], cn: [[0, -1], [0, -1], [0, -1]], ci: [0, 0, 0], ck: ['g', 'g', 'g'], ice: [0, 0, 0], air: 0, ang: 0, angU: 0, spin: [0, 0], rot: [0, 0], loop: null, loopA: 0, loopPrev: 0, landV: 0 });
     let bk = newBike();
     const M = { mode: 'menu', season: 0, sel: 0, li: 0, L: null, P: null, keys: {}, ptrs: {}, touch: false, t: 0, clk: 0, time: 0, started: false, bonus: 0, flips: 0, faults: 0, cam: { x: 0, y: 0 }, parts: [], rings: [], wx: [], toasts: [], shake: 0, pose: 0, crash: null, rag: null, pend: null, acc: 0, done: null, paused: false, cpi: 0, dyn: [], obs: [], crum: [], introT: 0, puff: 0, dust: 0, boostT: 0, lastTick: 0, inp: { gas: false, brake: false, lean: 0 }, bot: false, hint: 0 };
@@ -7929,7 +7927,7 @@ const SUMMIT_LEVELS = [
       if (inp.lean) { dw = inp.lean * (grounded ? T_.A_G : T_.A_A) * HSTEP; const nw = w + dw; if (Math.abs(nw) > T_.WMAX && Math.abs(nw) > Math.abs(w)) dw = Math.sign(nw) * T_.WMAX - w; if (dw * inp.lean < 0) dw = 0; }
       else if (!grounded) dw = -w * T_.AIRD * HSTEP;
       if (dw) for (let i = 0; i < 3; i++) { v[i][0] -= (p[i][1] - cy) * dw; v[i][1] += (p[i][0] - cx) * dw; }
-      for (let i = 0; i < 3; i++) { v[i][1] += GRAV * HSTEP; q[i][0] = p[i][0]; q[i][1] = p[i][1]; p[i][0] += v[i][0] * HSTEP; p[i][1] += v[i][1] * HSTEP; }
+      const gNow = bk.air > 0.08 && !bk.loop ? GRAV * T_.AIRG : GRAV; for (let i = 0; i < 3; i++) { v[i][1] += gNow * HSTEP; q[i][0] = p[i][0]; q[i][1] = p[i][1]; p[i][0] += v[i][0] * HSTEP; p[i][1] += v[i][1] * HSTEP; }
       // loops switch on when you roll into the bottom and off once you have gone all the way round
       const mx = (p[0][0] + p[1][0]) / 2, my = (p[0][1] + p[1][1]) / 2;
       if (!bk.loop) { for (const lp of L.LP) { if (lp.done) continue; if (mx >= lp.cx && mx < lp.cx + 24 && my > lp.cy && Math.hypot(mx - lp.cx, my - lp.cy) < lp.R + 4 && (v[0][0] + v[1][0]) > 0) { bk.loop = lp; bk.loopA = 0; bk.loopPrev = Math.atan2(my - lp.cy, mx - lp.cx); lp.done = true; } } }
@@ -7959,7 +7957,7 @@ const SUMMIT_LEVELS = [
     const fmtT = s => { s = Math.max(0, s); const m = Math.floor(s / 60), r = s - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
     function placeBike(x, hy) { const L = M.L; bk = newBike(); const yR = L.surf(x - 10, hy) - RWH - 0.3, yF = L.surf(x + 10, hy) - RWH - 0.3; bk.p[0] = [x - 10, yR]; bk.p[1] = [x + 10, yF];
       const [dx, dy] = frameDir(), mx = x, my = (yR + yF) / 2; bk.p[2] = [mx + dx * TREST[0] - dy * TREST[1], my + dy * TREST[0] + dx * TREST[1]]; bk.ang = Math.atan2(dy, dx); bk.ci = [1, 1, 0]; bk.p.forEach((p, i) => { bk.q[i] = p.slice(); }); }
-    function resetHaz() { M.obs = M.L.OB.map(o => Object.assign({}, o, { dead: false, cool: 0, sq: 0 })); M.crum = M.L.CR.map(c => Object.assign({}, c, { st: 0, t: 0, dy: 0, vy: 0 })); M.L.LP.forEach(lp => lp.done = false); M.dyn = []; }
+    function resetHaz() { M.obs = M.L.OB.map(o => Object.assign({}, o, { dead: false, cool: 0, sq: 0 })); M.crum = M.L.CR.map(c => Object.assign({}, c, { st: 0, t: 0, dy: 0, vy: 0 })); M.L.LP.forEach(lp => lp.done = false); M.dyn = []; M.fb = []; }
     function startLevel(i) { M.li = i; M.L = getL(i); M.P = pal(LEVELS[i].season, LEVELS[i].night); M.mode = 'play'; M.time = 0; M.clk = 0; M.started = false; M.bonus = 0; M.flips = 0; M.faults = 0; M.parts = []; M.rings = []; M.toasts = []; M.crash = null; M.rag = null; M.pend = null; M.done = null; M.paused = false; M.cpi = 0; M.keys = {}; M.ptrs = {}; M.introT = 0; M.acc = 0; M.hint = 0; M.log = [];
       M.L.CPS.forEach((c, k) => c.hit = k === 0); resetHaz(); placeBike(M.L.CPS[0].x, M.L.CPS[0].y); M.camInit = true; initWeather(); try { JING('start'); } catch (_) {} }
     function respawn() { const cp = M.L.CPS[M.cpi]; if (M.bot) M.botWait = Math.random() * 1.6; resetHaz(); placeBike(cp.x, cp.y); M.crash = null; M.rag = null; M.pend = null; M.acc = 0; }
@@ -7969,7 +7967,7 @@ const SUMMIT_LEVELS = [
     function crash(kind) { if (M.crash || M.done) return; M.crash = { t: 0, kind }; M.faults++; M.log.push(kind + '@' + Math.round(bk.p[2][0])); const T = bk.p[2], v = comV(), [dx, dy] = frameDir();
       M.rag = { x: T[0] + dy * 6, y: T[1] - dx * 6, vx: v[0] * 0.9 + 20, vy: v[1] * 0.6 - 140, a: bk.ang, w: (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 5) }; M.shake = 0.5; M.pose = 3;
       toast(pick(['OUCH!', 'WIPEOUT!', 'BONK!', 'CRASH!']), HX('#ff6b6b')); sfx(110, 0.25, 0.08, 'sawtooth'); sfx(70, 0.35, 0.07, 'square'); try { navigator.vibrate && navigator.vibrate(60); } catch (_) {} }
-    function explode(x, y) { burst(x, y, 46, FIRE, 160, 120, 0.7, 2); burst(x, y, 14, SMOKE, 60, -30, 1.3, 2); M.rings.push({ x, y, r: 2, t: 0 }); M.shake = 0.8; sfx(60, 0.45, 0.12, 'sawtooth'); sfx(45, 0.6, 0.1, 'square');
+    function explode(x, y) { (M.fb = M.fb || []).push({ x, y, R: 18, t: 0, T: 0.5 }, { x: x + 9, y: y - 6, R: 10, t: -0.06, T: 0.45 }); burst(x, y, 46, FIRE, 160, 120, 0.7, 2); burst(x, y, 14, SMOKE, 60, -30, 1.3, 2); M.rings.push({ x, y, r: 2, t: 0 }); M.shake = 0.8; sfx(60, 0.45, 0.12, 'sawtooth'); sfx(45, 0.6, 0.1, 'square');
       bk.p.forEach((p, i) => { const dx = p[0] - x, dy = p[1] - y, d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / 60) * 340; bk.v[i][0] += dx / d * f; bk.v[i][1] += dy / d * f - f * 0.3; bk.q[i][0] = p[0] - bk.v[i][0] * HSTEP; bk.q[i][1] = p[1] - bk.v[i][1] * HSTEP; }); }
     function finishLevel() { const lv = LEVELS[M.li], fin = Math.max(0, M.time - M.bonus), st = fin <= lv.stars[0] ? 3 : fin <= lv.stars[1] ? 2 : 1, prev = SAVE.best[lv.id];
       const nb = prev == null || fin < prev; if (nb) SAVE.best[lv.id] = +fin.toFixed(2); SAVE.stars[lv.id] = Math.max(SAVE.stars[lv.id] || 0, st); save();
@@ -7985,7 +7983,7 @@ const SUMMIT_LEVELS = [
       const slopeAt = (x, hy) => { const y0 = L.surf(x - 6, hy), y1 = L.surf(x + 6, hy); return Math.atan2(y1 - y0, 12); };
       if (bk.loop) return { gas: true, brake: false, lean: 0 };
       if (grounded) { const s = slopeAt(cx, cy); const e = wrapA(a - s); if (e < -0.32) lean = 1; else if (e > 0.25) lean = -1; }
-      else { let x = cx, y = cy, vx = v[0], vy = v[1], tgt = 0; for (let k = 0; k < 120; k++) { x += vx / 60; vy += GRAV / 60; y += vy / 60; const sy = L.surf(x, y); if (y + 10 >= sy && Math.abs(sy - y) < 40) { tgt = slopeAt(x, y); break; } } const e = wrapA(tgt - a), u = e * 5 - w * 0.55; lean = u > 0.25 ? 1 : u < -0.25 ? -1 : 0; }
+      else { let x = cx, y = cy, vx = v[0], vy = v[1], tgt = 0; for (let k = 0; k < 120; k++) { x += vx / 60; vy += GRAV * T_.AIRG / 60; y += vy / 60; const sy = L.surf(x, y); if (y + 10 >= sy && Math.abs(sy - y) < 40) { tgt = slopeAt(x, y); break; } } const e = wrapA(tgt - a), u = e * 5 - w * 0.55; lean = u > 0.25 ? 1 : u < -0.25 ? -1 : 0; }
       return { gas: true, brake: false, lean }; }
 
     function play(dt) {
@@ -8006,6 +8004,8 @@ const SUMMIT_LEVELS = [
         const pts = [bk.p[0], bk.p[1], bk.p[2], hp];
         for (const o of M.obs) { if (Math.abs(o.x - cx) > 160) continue; o.cool = Math.max(0, o.cool - dt); o.sq = Math.max(0, o.sq - dt * 4);
           if (o.t === 'barrel' && !o.dead) { for (let k = 0; k < o.n; k++) { const bx = o.x, by = o.y - 6 - k * 12; if (pts.some((p, i) => Math.hypot(p[0] - bx, p[1] - by) < (i < 2 ? RWH : i === 2 ? RT : HR) + 5)) { o.dead = true; explode(bx, by); crash('boom'); break; } } }
+          else if (o.t === 'blast' && !o.dead) { for (let i = 0; i < 2; i++) { const p = bk.p[i]; if (p[0] < o.x - 3 || p[0] > o.x1 + 3 || p[1] < o.y - 16) continue; o.dead = true; const bx = (o.x + o.x1) / 2, by = o.y - 5; (M.fb = M.fb || []).push({ x: bx, y: by - 6, R: 22, t: 0, T: 0.55 }, { x: bx - 12, y: by - 2, R: 12, t: -0.05, T: 0.5 }, { x: bx + 13, y: by - 4, R: 13, t: -0.08, T: 0.5 }); burst(bx, by, 60, FIRE, 190, 110, 0.8, 2); burst(bx, by, 18, SMOKE, 70, -40, 1.5, 2); burst(bx, by, 10, [HX('#6a4a2a'), HX('#9a6a3a')], 150, 300, 0.9, 1); M.rings.push({ x: bx, y: by, r: 3, t: 0 }); M.rings.push({ x: bx, y: by, r: -10, t: -0.06 }); M.shake = 1; sfx(55, 0.6, 0.13, 'sawtooth'); sfx(40, 0.8, 0.11, 'square'); sfx(180, 0.25, 0.05, 'triangle'); try { navigator.vibrate && navigator.vibrate(40); } catch (_) {}
+              bk.v.forEach((vv, k) => { vv[1] = Math.min(vv[1], -o.pow); vv[0] = Math.max(vv[0], o.fx); }); bk.p.forEach((pp, k) => { bk.q[k][0] = pp[0] - bk.v[k][0] * HSTEP; bk.q[k][1] = pp[1] - bk.v[k][1] * HSTEP; }); bk.air = 0.09; toast('KABOOM!', HX('#ffb03a'), 2, 0.9); break; } }
           else if (o.t === 'saw' || o.t === 'orbit') { const [sx, sy] = sawPos(o); if (pts.some((p, i) => Math.hypot(p[0] - sx, p[1] - sy) < o.r + (i < 2 ? RWH : i === 2 ? RT : HR) - 1.5)) { burst(sx, sy, 16, [HX('#ffe9a0'), HX('#ffffff'), HX('#ffb03a')], 120, 200, 0.4, 1); crash('saw'); } }
           else if (o.t === 'spikes') { for (let i = 0; i < 2; i++) { const p = bk.p[i]; if (p[0] >= o.x - 2 && p[0] <= o.x1 + 2) { const sy = o.y + (o.y1 - o.y) * (p[0] - o.x) / Math.max(1, o.x1 - o.x); if (p[1] + RWH > sy - 5) { crash('spikes'); break; } } } }
           else if (o.t === 'boost' || o.t === 'spring') { for (let i = 0; i < 2; i++) { const p = bk.p[i]; if (!bk.ci[i] || p[0] < o.x - 2 || p[0] > o.x1 + 2) continue; const n0 = bk.cn[i];
@@ -8023,11 +8023,11 @@ const SUMMIT_LEVELS = [
         if (M.crash.t > 1.35) respawn(); }
       else if (M.done) M.done.t += dt;
       for (const pp of M.parts) { pp.l += dt; pp.vy += pp.g * dt; pp.x += pp.vx * dt; pp.y += pp.vy * dt; if (pp.conf) { pp.vx *= 0.98; pp.vy = Math.min(pp.vy, 40); } } M.parts = M.parts.filter(pp => pp.l < pp.ml); if (M.parts.length > 400) M.parts.splice(0, M.parts.length - 400);
-      M.rings.forEach(r => { r.t += dt; r.r += dt * 120; }); M.rings = M.rings.filter(r => r.t < 0.35);
+      M.rings.forEach(r => { r.t += dt; r.r += dt * 120; }); if (M.fb) { M.fb.forEach(f => { f.t += dt; f.y -= dt * 14; }); M.fb = M.fb.filter(f => f.t < f.T); } M.rings = M.rings.filter(r => r.t < 0.35);
       M.toasts.forEach(t => t.age += dt); M.toasts = M.toasts.filter(t => t.age < t.life);
       M.shake = Math.max(0, M.shake - dt * 2.2);
       // camera
-      const lead = clamp(v[0], -120, 260) / 260, tx = cx - (GX + GW * 0.4) + GW * 0.22 * lead, ty = cy + clamp(v[1] * 0.12, -30, 40) - M.ay;
+      const lead = clamp(v[0], -120, 260) / 260, tx = cx - (GX + GW * 0.4) + GW * 0.22 * lead, ty = cy + clamp(v[1] * (bk.air > 0.2 ? 0.2 : 0.12), -40, bk.air > 0.2 ? 80 : 40) - M.ay;
       if (M.camInit) { M.cam.x = tx; M.cam.y = ty; M.camInit = false; } else { const k = Math.min(1, dt * 3.2); M.cam.x += (tx - M.cam.x) * k; M.cam.y += (ty - M.cam.y) * Math.min(1, dt * 4); }
       engine(M.crash || M.done ? 0 : 0.018 + (inp.gas ? 0.018 : 0), 46 + Math.min(260, Math.abs(bk.spin[0] * RWH)) * 0.36 + (inp.gas ? 18 : 0));
     }
@@ -8127,8 +8127,9 @@ const SUMMIT_LEVELS = [
         drawSaw(sx - CXs, sy - CYs, o.r, -M.clk * 14, night); }
       else if (o.t === 'spikes') { const sc = HX(night ? '#a0a6b6' : '#e6eaf2'), sd = HX(night ? '#555a6a' : '#8b92a3'); for (let x = o.x; x < o.x1; x += 6) { const y = Math.round(o.y + (o.y1 - o.y) * (x - o.x) / Math.max(1, o.x1 - o.x)); for (let i = 0; i < 6; i++) { const h = Math.round(6 - Math.abs(i - 2.5) * 2); for (let j = 0; j < h; j++) PX(x + i - CXs, y - 1 - j - CYs, i < 3 ? sc : sd); } } }
       else if (o.t === 'boost') { for (let x = o.x; x < o.x1; x++) { const y = Math.round(o.y + (o.y1 - o.y) * (x - o.x) / Math.max(1, o.x1 - o.x)) - CYs, X = x - CXs, v = (((x - o.x) - Math.floor(t * 90)) % 8 + 8) % 8; PX(X, y - 2, HX('#5a2a12')); PX(X, y - 1, v < 3 ? HX('#fff3a0') : v < 5 ? HX('#ffb13d') : HX('#ff6a2a')); PX(X, y, v < 3 ? HX('#ffd23f') : HX('#e8432e')); } }
-      else if (o.t === 'spring') { const X = o.x - CXs, y = Math.round(o.y) - CYs, h = o.sq > 0 ? 7 + Math.round(o.sq * 4) : 4; RF(X, y - 1, 16, 1, HX('#5a2a2a')); for (let k = 0; k < h; k++) { const yy = y - 2 - k; PX(X + 3 + ((k & 1) ? 0 : 8), yy, HX('#cfd4de')); for (let i = 4; i < 12; i++) if (((i + k) & 3) === 0) PX(X + i, yy, HX('#8b92a3')); }
-        RF(X, y - 3 - h, 16, 2, HX('#e8312f')); for (let i = 1; i < 16; i += 4) RF(X + i, y - 3 - h, 2, 1, HX('#ffffff')); } }
+      else if (o.t === 'blast') { const X = o.x - CXs, y = Math.round(o.y) - CYs; if (o.dead) { for (let i = -4; i < 22; i++) if (hs(i, 3) % 3) PX(X + i, y - 1, HX('#2a2220')); return; } const R_ = HX('#c8302a'), Rd = HX('#8a1a18'), K = HX('#1a1222'); RF(X - 1, y - 12, 20, 12, K); RF(X, y - 11, 18, 10, R_); RF(X, y - 4, 18, 3, Rd); RF(X, y - 11, 18, 1, HX('#e8584a')); PT('TNT', X + 9, y - 10, 1, HX('#ffe14d'), null, 'c'); RF(X + 8, y - 15, 2, 3, HX('#5a4a3a')); if (Math.floor(t * 8) & 1) PX(X + 9, y - 16, HX('#ffd23f')); else PX(X + 10, y - 17, HX('#ff8a2a')); }
+      else if (o.t === 'spring') { const X = o.x - CXs, y = Math.round(o.y) - CYs, h = o.sq > 0 ? 7 + Math.round(o.sq * 4) : 4; RF(X, y - 1, 22, 1, HX('#5a2a2a')); for (let k = 0; k < h; k++) { const yy = y - 2 - k; PX(X + 5 + ((k & 1) ? 0 : 11), yy, HX('#cfd4de')); for (let i = 6; i < 16; i++) if (((i + k) & 3) === 0) PX(X + i, yy, HX('#8b92a3')); }
+        RF(X, y - 3 - h, 22, 2, HX('#e8312f')); for (let i = 1; i < 22; i += 4) RF(X + i, y - 3 - h, 2, 1, HX('#ffffff')); } }
 
     function drawWorld(P, t, dt) { const L = M.L, CX = CXs, CY = CYs;
       drawBackdrop(P, CX, CY, t);
@@ -8147,6 +8148,7 @@ const SUMMIT_LEVELS = [
       blitR(BIKE, m0[0] - CX, m0[1] - CY, bk.ang);
       if (!M.crash) blitR(RIDER[M.pose], bk.p[2][0] - CX, bk.p[2][1] - CY, bk.ang); else if (M.rag) blitR(RIDER[3], M.rag.x - CX, M.rag.y - CY, M.rag.a);
       for (const pp of M.parts) { if (pp.smoke && pp.l > pp.ml * 0.5 && ((Math.floor(pp.x) + Math.floor(pp.y)) & 1)) continue; const X = Math.floor(pp.x - CX), Y = Math.floor(pp.y - CY); if (pp.s > 1) RF(X, Y, pp.s, pp.s, pp.c); else PX(X, Y, pp.c); }
+      for (const f of (M.fb || [])) { const k = f.t / f.T, r = f.R * (0.35 + Math.sqrt(k) * 0.8); for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) { const d = Math.hypot(i, j) + (hs(i + 40, j + 40 + Math.floor(f.t * 20)) % 5) - 2; if (d > r) continue; const q = d / r; if (k > 0.45 && ((i + j) & 1)) continue; PX(f.x - CX + i, f.y - CY + j, k < 0.12 ? HX('#ffffff') : q < 0.35 - k * 0.3 ? HX('#fff3a0') : q < 0.65 - k * 0.3 ? HX('#ffb03a') : k > 0.55 ? HX('#5a5058') : HX('#e8432e')); } }
       for (const r of M.rings) { const n = Math.ceil(r.r * 6); for (let k = 0; k < n; k++) { const a = k / n * TAU; PX(r.x - CX + Math.cos(a) * r.r, r.y - CY + Math.sin(a) * r.r, (k & 1) ? HX('#fff3a0') : HX('#ff8a2a')); } }
       drawWeather(P, dt, CX, CY, t);
     }
