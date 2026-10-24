@@ -10396,11 +10396,55 @@ const SUMMIT_LEVELS = [
       const t = ac.currentTime; gn.gain.exponentialRampToValueAtTime(0.0001, t + d); o.start(t); o.stop(t + d);
     } catch (_) {}
   };
-  const winSound = n => { const notes = n >= 1000 ? [523, 659, 784, 1047, 1319, 1568] : n >= 25 ? [523, 659, 784, 1047] : [523, 784]; notes.forEach((f, i) => setTimeout(() => beep(f, 0.24, 0.11, 'triangle'), i * 95)); };
+  /* ethereal crate sounds: soft sine bells through a long shimmering reverb */
+  let ethBus = null;
+  const ethInit = () => {
+    if (!soundOn) return false; unlockAudio(); if (!ac) return false;
+    if (ethBus) return true;
+    try {
+      const sr = ac.sampleRate, len = Math.floor(sr * 3.6), ir = ac.createBuffer(2, len, sr);
+      for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) { const t = i / len; d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.6) * (i < sr * 0.02 ? i / (sr * 0.02) : 1); } }
+      const verb = ac.createConvolver(); verb.buffer = ir;
+      const tone = ac.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 4200; tone.Q.value = 0.3;
+      const dry = ac.createGain(); dry.gain.value = 0.55; const wet = ac.createGain(); wet.gain.value = 0.9;
+      const out = ac.createGain(); out.gain.value = 2.2;
+      tone.connect(dry); tone.connect(verb); verb.connect(wet); dry.connect(out); wet.connect(out); out.connect(ac.destination);
+      ethBus = tone; return true;
+    } catch (_) { return false; }
+  };
+  const ethNote = (f, d, v, when, atk) => {
+    if (!ethInit()) return;
+    try {
+      const t = (when || 0) + ac.currentTime, g = ac.createGain(), a = atk || 0.012;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); g.connect(ethBus);
+      [[1, 1], [1.0035, 0.5], [2.0, 0.18], [3.01, 0.05]].forEach(([m, k]) => { const o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine'; o.frequency.value = f * m; og.gain.value = k; o.connect(og); og.connect(g); o.start(t); o.stop(t + a + d + 0.05); });
+    } catch (_) {}
+  };
+  const ethAir = (d, v) => {
+    if (!ethInit()) return;
+    try {
+      const t = ac.currentTime, n = Math.floor(ac.sampleRate * d), b = ac.createBuffer(1, n, ac.sampleRate), x = b.getChannelData(0); for (let i = 0; i < n; i++) x[i] = Math.random() * 2 - 1;
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = b; f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(3200, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + d * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + d); s.connect(f); f.connect(g); g.connect(ethBus); s.start(t); s.stop(t + d);
+    } catch (_) {}
+  };
+  const ETH_SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
+  const ethF = (st) => 523.25 * Math.pow(2, st / 12);
+  const ethTick = idx => ethNote(ethF(ETH_SCALE[idx % 7] + 12), 0.5, 0.028);
+  const ethStart = () => { ethAir(1.4, 0.035); [0, 7, 16].forEach((s, i) => ethNote(ethF(s - 12), 2.2, 0.03, i * 0.04, 0.5)); };
+  const ethWin = n => {
+    const big = n >= 1000, mid = n >= 25, arp = big ? [0, 4, 7, 12, 16, 19, 24, 28] : mid ? [0, 4, 7, 12, 16] : [0, 7, 12];
+    [-12, -5, 4].forEach(s => ethNote(ethF(s), big ? 4.5 : 3.2, 0.04, 0, 0.35));
+    arp.forEach((s, i) => ethNote(ethF(s), 2.4, 0.06 - i * 0.003, i * (big ? 0.11 : 0.13)));
+    if (big) { ethAir(2.4, 0.05); [24, 28, 31, 36].forEach((s, i) => ethNote(ethF(s), 2.8, 0.025, 1.0 + i * 0.16)); }
+  };
+  const ethLose = () => { ethNote(ethF(-5), 1.6, 0.045, 0, 0.03); ethNote(ethF(-9), 2.2, 0.04, 0.22, 0.03); };
+
+  const winSound = n => { const notes = n >= 1000 ? [523, 659, 784, 1047, 1319, 1568] : n >= 25 ? [523, 659, 784, 1047] : [523, 784]; ethWin(n); };
   $('snd').addEventListener('click', () => {
     soundOn = !soundOn; const b = $('snd');
     b.textContent = soundOn ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(soundOn));
-    if (soundOn) beep(660, 0.14, 0.11, 'triangle');
+    if (soundOn) ethNote(ethF(7), 1.2, 0.05);
   });
 
   function setGal() { const s = fmtN(gal); galn.textContent = fmtC(gal); balN.textContent = s; dBal.textContent = s; refreshDonate(); }
@@ -10427,12 +10471,12 @@ const SUMMIT_LEVELS = [
     const vw = reel.clientWidth || 320, s0 = PITCH * 1.2, sf = WINIDX * PITCH + 44 + rand(-34, 34) - vw / 2;
     const dur = reduced() ? 2200 : 6500, t0 = performance.now();
     let last = Math.floor((s0 + vw / 2) / PITCH);
-    setScroll(s0);
+    setScroll(s0); ethStart();
     const step = now => {
       const t = Math.min(1, (now - t0) / dur), sc = s0 + (sf - s0) * (1 - Math.pow(1 - t, 5));
       setScroll(sc);
       const idx = Math.floor((sc + vw / 2) / PITCH);
-      if (idx !== last) { last = idx; beep(620 + (idx % 3) * 40, 0.04, 0.07); }
+      if (idx !== last) { last = idx; ethTick(idx); }
       if (t < 1) requestAnimationFrame(step); else landed(win);
     };
     requestAnimationFrame(step);
@@ -10442,7 +10486,7 @@ const SUMMIT_LEVELS = [
     for (let i = 0; i < kids.length; i++) kids[i].classList.add(i === WINIDX ? 'win' : 'dim');
     spinning = false; openBtn.disabled = false; opened++; $('openedN').textContent = opened;
     if (win.n) { result.textContent = '+' + fmtN(win.n) + (win.n === 1 ? ' GALAXY' : ' GALAXIES'); result.style.color = win.c; addGal(win.n); winSound(win.n); }
-    else { result.textContent = pick(['NOT GALAXY. Open another.', 'NOT GALAXY. So close.', 'NOT GALAXY. The crate is fine.']); result.style.color = 'var(--muted)'; beep(150, 0.28, 0.1, 'sawtooth'); }
+    else { result.textContent = pick(['NOT GALAXY. Open another.', 'NOT GALAXY. So close.', 'NOT GALAXY. The crate is fine.']); result.style.color = 'var(--muted)'; ethLose(); }
   }
   openBtn.addEventListener('click', spin);
   $('galchip').addEventListener('click', () => showSheet(crate));
@@ -10480,7 +10524,7 @@ const SUMMIT_LEVELS = [
     $('giftTitle').textContent = 'GALAXY ×' + fmtN(amt); $('giftSub').textContent = 'sent to ' + name;
     gift.hidden = true; void gift.offsetWidth; gift.hidden = false;
     clearTimeout(giftT); giftT = setTimeout(() => { gift.hidden = true; }, 2800);
-    beep(392, 0.14, 0.1, 'sine'); setTimeout(() => beep(523, 0.14, 0.1, 'sine'), 110); setTimeout(() => beep(784, 0.35, 0.1, 'sine'), 220);
+    [0, 4, 7, 12].forEach((s, i) => ethNote(ethF(s), 1.8, 0.05, i * 0.12));
   }
   $('donateBtn').addEventListener('click', () => {
     const a = amtVal(), s = SLIDES[dTarget];
