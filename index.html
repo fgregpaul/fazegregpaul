@@ -1460,6 +1460,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     dash: ['78% and then the double spike', 'this one is actually fair', 'i hate the block into spike part', 'attempt 63', 'the pit part got me every time'],
     gate: ['the first portal always goes on the wrong wall', 'light walls only is a good rule', 'cleared 4 rooms', 'brain hurts in a good way', 'metal walls are evil'],
     under: ['the dash blast boon is great', 'the boss room came fast', 'archers are annoying', 'i love when the room clears', 'reached room 7'],
+    deep: ['first night the zombies got me instantly', 'found a life crystal in a cave', 'the torch lighting underground is so good', 'built a house out of planks', 'iron pickaxe changes everything', 'the watcher dashes so fast', 'chopping trees is weirdly satisfying', 'gold is so deep down', 'eyes keep dropping lenses for me', 'my world has the coolest cave'],
     hollow: ['the guardian hits so hard', 'pogoing off the spikes feels so good', 'the lantern glow in the dark is beautiful', 'lost all my geo and then got it back from my shade', 'mossgrave is my favourite area', 'phase two with the falling rocks is insane', 'focusing to heal mid fight is clutch', 'the pixel art is so clean', 'that acid pit got me 5 times', 'finally beat the guardian with 1 mask left'],
     cars: ['the ai is annoyingly good at defending', 'flip into the ball is so satisfying', 'boost management is the whole game', 'scored from my own half', 'rocket league but on my phone'],
     hot: ['standing still to dodge is genius', 'every bullet feels fair', 'i love when the room freezes', 'stage 6 had me sweating', 'the red guys are so clean'],
@@ -8573,6 +8574,371 @@ const SUMMIT_LEVELS = [
         lx.putImageData(img, 0, 0); c.save(); c.imageSmoothingEnabled = false; c.drawImage(lc, -this.ox, -this.oy, LW * PSZ, LH * PSZ); c.restore(); }
     }, MIX);
   }
+
+  /* ===== Deepland: pixel-art 2D sandbox ===== */
+  function makeDeep(sk) {
+    /* ---------- colour helpers + software pixel buffer ---------- */
+    const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const pk = (r, g, b) => ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+    const HXC = new Map(); const HX = h => { let v = HXC.get(h); if (v === undefined) { const c = rgb(h); v = pk(c[0], c[1], c[2]); HXC.set(h, v); } return v; };
+    const MX = (a, b, t) => { const A = rgb(a), B = rgb(b); return pk(Math.round(A[0] + (B[0] - A[0]) * t), Math.round(A[1] + (B[1] - A[1]) * t), Math.round(A[2] + (B[2] - A[2]) * t)); };
+    const DK = (c, f) => pk(Math.min(255, Math.round((c & 255) * f)), Math.min(255, Math.round((c >> 8 & 255) * f)), Math.min(255, Math.round((c >> 16 & 255) * f)));
+    const BL = (c, d, t) => pk(Math.round((c & 255) + ((d & 255) - (c & 255)) * t), Math.round((c >> 8 & 255) + ((d >> 8 & 255) - (c >> 8 & 255)) * t), Math.round((c >> 16 & 255) + ((d >> 16 & 255) - (c >> 16 & 255)) * t));
+    const hs = (x, y) => { let h = Math.imul(x | 0, 374761393) ^ Math.imul((y | 0) + 0x9e37, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; };
+    const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
+    const wrapA = a => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+    let LW = 0, LH = 0, lc = null, lx = null, img = null, B32 = null;
+    const ensureBuf = (W0, H0, s) => { const nw = Math.max(16, Math.ceil(W0 / s)), nh = Math.max(16, Math.ceil(H0 / s)); if (nw !== LW || nh !== LH || !lc) { LW = nw; LH = nh; lc = document.createElement('canvas'); lc.width = LW; lc.height = LH; lx = lc.getContext('2d'); img = lx.createImageData(LW, LH); B32 = new Uint32Array(img.data.buffer); } };
+    const PX = (x, y, c) => { x = Math.floor(x); y = Math.floor(y); if (x >= 0 && y >= 0 && x < LW && y < LH) B32[y * LW + x] = c; };
+    const RF = (x, y, w, h, c) => { x = Math.floor(x); y = Math.floor(y); const x1 = Math.min(LW, x + Math.floor(w)), y1 = Math.min(LH, y + Math.floor(h)); x = Math.max(0, x); y = Math.max(0, y); if (x1 <= x) return; for (let j = y; j < y1; j++) B32.fill(c, j * LW + x, j * LW + x1); };
+    const DV = (x, y, w, h, c, ph) => { x = Math.floor(x); y = Math.floor(y); const x1 = Math.min(LW, x + w), y1 = Math.min(LH, y + h); for (let j = Math.max(0, y); j < y1; j++) for (let i = Math.max(0, x); i < x1; i++) if (((i + j + (ph || 0)) & 1) === 0) B32[j * LW + i] = c; };
+    const DIM = (x, y, w, h, f) => { x = Math.floor(x); y = Math.floor(y); const x1 = Math.min(LW, x + w), y1 = Math.min(LH, y + h); for (let j = Math.max(0, y); j < y1; j++) for (let i = Math.max(0, x); i < x1; i++) { const o = j * LW + i; B32[o] = DK(B32[o], f); } };
+    const LINE = (x0, y0, x1, y1, c) => { const n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))); for (let i = 0; i <= n; i++) { const t = n ? i / n : 0; PX(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, c); } };
+    const BOX = (x, y, w, h, fill, edge, hi) => { x = Math.floor(x); y = Math.floor(y); RF(x + 1, y, w - 2, 1, edge); RF(x + 1, y + h - 1, w - 2, 1, edge); RF(x, y + 1, 1, h - 2, edge); RF(x + w - 1, y + 1, 1, h - 2, edge); RF(x + 1, y + 1, w - 2, h - 2, fill); if (hi != null) { RF(x + 2, y + 1, w - 4, 1, hi); } };
+
+    /* ---------- 3x5 bitmap font ---------- */
+    const FONT = { '0': [7, 5, 5, 5, 7], '1': [2, 6, 2, 2, 7], '2': [7, 1, 7, 4, 7], '3': [7, 1, 3, 1, 7], '4': [5, 5, 7, 1, 1], '5': [7, 4, 7, 1, 7], '6': [7, 4, 7, 5, 7], '7': [7, 1, 1, 2, 2], '8': [7, 5, 7, 5, 7], '9': [7, 5, 7, 1, 7],
+      A: [2, 5, 7, 5, 5], B: [6, 5, 6, 5, 6], C: [3, 4, 4, 4, 3], D: [6, 5, 5, 5, 6], E: [7, 4, 6, 4, 7], F: [7, 4, 6, 4, 4], G: [3, 4, 5, 5, 3], H: [5, 5, 7, 5, 5], I: [7, 2, 2, 2, 7], J: [1, 1, 1, 5, 2], K: [5, 5, 6, 5, 5], L: [4, 4, 4, 4, 7], M: [5, 7, 7, 5, 5], N: [6, 5, 5, 5, 5], O: [2, 5, 5, 5, 2], P: [6, 5, 6, 4, 4], Q: [2, 5, 5, 6, 3], R: [6, 5, 6, 5, 5], S: [3, 4, 2, 1, 6], T: [7, 2, 2, 2, 2], U: [5, 5, 5, 5, 7], V: [5, 5, 5, 5, 2], W: [5, 5, 7, 7, 5], X: [5, 5, 2, 5, 5], Y: [5, 5, 2, 2, 2], Z: [7, 1, 2, 4, 7],
+      ' ': [0, 0, 0, 0, 0], '.': [0, 0, 0, 0, 2], ',': [0, 0, 0, 2, 4], ':': [0, 2, 0, 2, 0], '-': [0, 0, 7, 0, 0], '+': [0, 2, 7, 2, 0], '!': [2, 2, 2, 0, 2], '?': [6, 1, 2, 0, 2], '/': [1, 1, 2, 4, 4], "'": [2, 2, 0, 0, 0], '(': [1, 2, 2, 2, 1], ')': [4, 2, 2, 2, 4], '*': [0, 5, 2, 5, 0], '<': [1, 2, 4, 2, 1], '>': [4, 2, 1, 2, 4], '=': [0, 7, 0, 7, 0], '#': [5, 7, 5, 7, 5], '%': [5, 1, 2, 4, 5], '&': [2, 5, 2, 5, 3] };
+    const OUTL = [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    const tw = (s, k) => Math.max(0, String(s).length * 4 - 1) * (k || 1);
+    const glyph = (g, x, y, k, c) => { for (let r = 0; r < 5; r++) { const row = g[r]; if (!row) continue; for (let b = 0; b < 3; b++) if (row & (4 >> b)) RF(x + b * k, y + r * k, k, k, c); } };
+    const PT = (s, x, y, k, c, o, al) => { s = String(s).toUpperCase(); k = k || 1; const w0 = tw(s, k); x = Math.round(al === 'c' ? x - w0 / 2 : al === 'r' ? x - w0 : x); y = Math.round(y);
+      if (o != null) for (const [dx, dy] of OUTL) for (let i = 0; i < s.length; i++) { const g = FONT[s[i]]; if (g) glyph(g, x + i * 4 * k + dx, y + dy, k, o); }
+      for (let i = 0; i < s.length; i++) { const g = FONT[s[i]]; if (g) glyph(g, x + i * 4 * k, y, k, c); } return w0; };
+
+
+    /* ---------- world ---------- */
+    const T = 6, WW = 560, WH = 200;
+    const AIR = 0, DIRT = 1, GRASS = 2, STONE = 3, SAND = 4, PLANK = 5, TRUNK = 6, LEAF = 7, COPPER = 8, IRON = 9, GOLD = 10, CRYSTAL = 11, CHEST = 12, TORCH = 13, PLAT = 14, BRICK = 15, BEDROCK = 16, CLAY = 17;
+    const SOLID = new Uint8Array(32); [DIRT, GRASS, STONE, SAND, PLANK, COPPER, IRON, GOLD, BRICK, BEDROCK, CLAY].forEach(t => SOLID[t] = 1);
+    const HARD = { 1: 1, 2: 1, 3: 2.4, 4: 0.8, 5: 1.2, 6: 1.6, 8: 3, 9: 3.8, 10: 5, 11: 2, 12: 1, 13: 0.1, 14: 0.5, 15: 3, 17: 1.4 };
+    const NEEDP = { 10: 2 };
+    const TL = new Uint8Array(WW * WH), WL = new Uint8Array(WW * WH), SURF = new Int16Array(WW);
+    const tl = (x, y) => (x < 0 || x >= WW || y >= WH) ? BEDROCK : y < 0 ? AIR : TL[y * WW + x];
+    const wl = (x, y) => (x < 0 || x >= WW || y < 0 || y >= WH) ? 0 : WL[y * WW + x];
+    const setT = (x, y, v) => { if (x >= 0 && y >= 0 && x < WW && y < WH) TL[y * WW + x] = v; };
+    let SPAWN = [WW / 2, 40];
+    function genWorld(seed) { const R = mulberry(seed >>> 0); TL.fill(AIR); WL.fill(0);
+      const ph = [R() * 9, R() * 9, R() * 9, R() * 9], desert0 = Math.floor(WW * (0.62 + R() * 0.15)), desert1 = desert0 + 50 + Math.floor(R() * 25);
+      for (let x = 0; x < WW; x++) { const h = 62 + Math.sin(x * 0.021 + ph[0]) * 9 + Math.sin(x * 0.053 + ph[1]) * 4 + Math.sin(x * 0.11 + ph[2]) * 1.6 + Math.sin(x * 0.006 + ph[3]) * 10; SURF[x] = Math.round(h); }
+      for (let x = 0; x < WW; x++) { const s = SURF[x], dd = 8 + Math.round(Math.sin(x * 0.07) * 3 + R() * 2), des = x >= desert0 && x < desert1;
+        for (let y = s; y < WH; y++) { let v = y < s + dd ? (des ? SAND : DIRT) : STONE; if (y === s && !des) v = GRASS; if (y >= WH - 3) v = BEDROCK; setT(x, y, v); if (y > s + 1) WL[y * WW + x] = y < s + dd + 4 ? DIRT : STONE; } }
+      const blob = (cx, cy, r, v, onlyIn) => { for (let y = Math.floor(cy - r); y <= cy + r; y++) for (let x = Math.floor(cx - r); x <= cx + r; x++) { if ((x - cx) ** 2 + (y - cy) ** 2 > r * r) continue; const c = tl(x, y); if (c === BEDROCK || y < 0 || y >= WH || x < 0 || x >= WW) continue; if (onlyIn && onlyIn.indexOf(c) < 0) continue; setT(x, y, v); } };
+      for (let i = 0; i < 260; i++) { const x = R() * WW, y = SURF[Math.floor(x)] + 12 + R() * 120; blob(x, y, 1 + R() * 2.5, R() < 0.5 ? DIRT : CLAY, [STONE]); }
+      for (let i = 0; i < 120; i++) { const x = R() * WW, y = SURF[Math.floor(x)] + 2 + R() * 10; blob(x, y, 1 + R() * 2, STONE, [DIRT]); }
+      // caves: wandering worms
+      const worm = (x, y, n, r0) => { let a = R() * TAU; for (let i = 0; i < n; i++) { a += (R() - 0.5) * 0.7; x += Math.cos(a) * 1.2; y += Math.sin(a) * 0.9 + 0.08; const r = r0 + Math.sin(i * 0.13) * 0.8; if (y > WH - 6) a = -Math.PI / 2; blob(x, y, r, AIR, [DIRT, STONE, SAND, CLAY, GRASS]); } };
+      for (let i = 0; i < 46; i++) { const x = R() * WW; worm(x, SURF[Math.floor(x)] + 18 + R() * 110, 80 + R() * 220, 1.4 + R() * 1.8); }
+      for (let i = 0; i < 7; i++) { const x = 30 + R() * (WW - 60); if (Math.abs(x - WW / 2) < 30) continue; worm(x, SURF[Math.floor(x)] - 1, 90 + R() * 60, 1.5 + R() * 0.8); }
+      for (let i = 0; i < 9; i++) { const x = R() * WW, y = SURF[Math.floor(x)] + 50 + R() * 90; blob(x, y, 4 + R() * 4, AIR, [STONE, DIRT, CLAY]); }
+      // ores
+      const vein = (v, n, d0, d1, sz) => { for (let i = 0; i < n; i++) { const x = R() * WW, y = SURF[Math.floor(x)] + d0 + R() * (d1 - d0); let cx = x, cy = y; for (let k = 0; k < 3 + R() * 4; k++) { blob(cx, cy, sz * (0.6 + R() * 0.6), v, [STONE, DIRT, CLAY]); cx += R() * 2 - 1; cy += R() * 2 - 1; } } };
+      vein(COPPER, 150, 4, 70, 1.3); vein(IRON, 120, 26, 120, 1.25); vein(GOLD, 70, 65, 135, 1.2);
+      // grass where dirt touches open sky
+      for (let x = 0; x < WW; x++) { for (let y = 0; y < WH; y++) { const v = tl(x, y); if (v === AIR || v === LEAF || v === TRUNK) continue; if (v === DIRT) setT(x, y, GRASS); break; } }
+      recomputeSurf();
+      // trees
+      for (let x = 6; x < WW - 6; x++) { const s = SURF[x]; if (tl(x, s) !== GRASS || R() > 0.17 || Math.abs(x - WW / 2) < 3) continue; if (tl(x - 1, s - 1) === TRUNK || tl(x - 2, s - 1) === TRUNK || tl(x - 3, s - 1) === TRUNK) continue; const h = 6 + Math.floor(R() * 7); for (let y = 1; y <= h; y++) setT(x, s - y, TRUNK); const cy = s - h - 2; for (let dy = -3; dy <= 2; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy * 1.3 <= 10 && tl(x + dx, cy + dy) === AIR) setT(x + dx, cy + dy, LEAF); }
+      // cacti in the desert
+      for (let x = desert0 + 3; x < desert1 - 3; x += 4 + Math.floor(R() * 6)) { const s = SURF[x]; if (tl(x, s) !== SAND) continue; const h = 2 + Math.floor(R() * 3); for (let y = 1; y <= h; y++) setT(x, s - y, TRUNK); }
+      // life crystals and chests on cave floors
+      let lc = 0, ch = 0, guard = 0; while ((lc < 14 || ch < 12) && guard++ < 40000) { const x = 4 + Math.floor(R() * (WW - 8)), y = SURF[x] + 22 + Math.floor(R() * 150); if (y >= WH - 4) continue; if (tl(x, y) !== AIR || !SOLID[tl(x, y + 1)] || tl(x, y - 1) !== AIR) continue; if (lc < 14 && R() < 0.5) { setT(x, y, CRYSTAL); lc++; } else if (ch < 12) { setT(x, y, CHEST); ch++; } }
+      SPAWN = [WW / 2, SURF[WW / 2] - 3]; }
+    function recomputeSurf() { for (let x = 0; x < WW; x++) { let y = 0; while (y < WH && !SOLID[tl(x, y)] && tl(x, y) !== TRUNK && tl(x, y) !== LEAF) y++; SURF[x] = y; } }
+    const colSurf = x => { let y = 0; while (y < WH && !SOLID[tl(x, y)]) y++; return y; };
+
+    /* ---------- items ---------- */
+    const I = { DIRT, STONE, SAND, PLANK, COPPER, IRON, GOLD, TORCH, PLAT, BRICK, CLAY, WOOD: 30, CPICK: 40, IPICK: 41, GPICK: 42, CSWORD: 50, ISWORD: 51, GSWORD: 52, GEL: 60, LENS: 61, POTION: 62, LIFE: 63, SIGIL: 64, TROPHY: 65 };
+    const INAME = { [DIRT]: 'DIRT', [STONE]: 'STONE', [SAND]: 'SAND', [PLANK]: 'PLANKS', [COPPER]: 'COPPER ORE', [IRON]: 'IRON ORE', [GOLD]: 'GOLD ORE', [TORCH]: 'TORCH', [PLAT]: 'PLATFORM', [BRICK]: 'STONE BRICK', [CLAY]: 'CLAY', 30: 'WOOD', 40: 'COPPER PICKAXE', 41: 'IRON PICKAXE', 42: 'GOLD PICKAXE', 50: 'COPPER SWORD', 51: 'IRON SWORD', 52: 'GOLD SWORD', 60: 'GEL', 61: 'LENS', 62: 'HEALING POTION', 63: 'LIFE CRYSTAL', 64: 'WATCHER SIGIL', 65: 'WATCHER TROPHY' };
+    const PICK = { 40: [4, 1], 41: [6.5, 2], 42: [9.5, 3] }, SWORD = { 50: 9, 51: 14, 52: 20 };
+    const PLACE = { [DIRT]: DIRT, [STONE]: STONE, [SAND]: SAND, [PLANK]: PLANK, [COPPER]: COPPER, [IRON]: IRON, [GOLD]: GOLD, [TORCH]: TORCH, [PLAT]: PLAT, [BRICK]: BRICK, [CLAY]: CLAY, 30: PLANK };
+    const RECIPES = [
+      { out: TORCH, n: 3, need: [[30, 1], [60, 1]] }, { out: PLANK, n: 1, need: [[30, 1]] }, { out: PLAT, n: 2, need: [[30, 1]] }, { out: BRICK, n: 1, need: [[STONE, 2]] },
+      { out: 62, n: 1, need: [[60, 3]] }, { out: 51, n: 1, need: [[IRON, 10], [30, 3]] }, { out: 41, n: 1, need: [[IRON, 12], [30, 4]] },
+      { out: 52, n: 1, need: [[GOLD, 10], [30, 3]] }, { out: 42, n: 1, need: [[GOLD, 12], [30, 4]] }, { out: 64, n: 1, need: [[61, 3], [IRON, 6]] }
+    ];
+
+    /* ---------- textures + light tables ---------- */
+    const NL = 16;
+    const PALS = { [DIRT]: ['#4e3220', '#6e4830', '#8a5c3c', '#a8744c'], [GRASS]: ['#4e3220', '#6e4830', '#8a5c3c', '#a8744c', '#2f7a2a', '#4aa83a', '#7ad450'], [STONE]: ['#3e424e', '#575c6c', '#727889', '#9399ac'], [SAND]: ['#a88040', '#c8a058', '#e0bc70', '#f6dc98'],
+      [PLANK]: ['#5e3a22', '#8a5c34', '#a87444', '#c89058'], [TRUNK]: ['#3e2616', '#5e3c22', '#7a5230', '#946a3e'], [LEAF]: ['#1a4e20', '#2a6e2a', '#3e9234', '#62b848'], [COPPER]: ['#3e424e', '#575c6c', '#727889', '#9399ac', '#9a4a22', '#d8783e', '#ffb07a'],
+      [IRON]: ['#3e424e', '#575c6c', '#727889', '#9399ac', '#6a5c56', '#a8968a', '#e2d6cc'], [GOLD]: ['#3e424e', '#575c6c', '#727889', '#9399ac', '#9a7410', '#d8ac28', '#fff09a'], [BRICK]: ['#2e323c', '#5a6070', '#767c8e', '#9aa0b4'],
+      [BEDROCK]: ['#121018', '#1e1a26', '#2a2434', '#383046'], [CLAY]: ['#6a3226', '#8e4632', '#ac5c44', '#c8765a'], [PLAT]: ['#5e3a22', '#8a5c34', '#a87444', '#c89058'],
+      W1: ['#24160e', '#301e14', '#3c2619'], W3: ['#191b22', '#22252e', '#2c303b'] };
+    const LIT = {}; Object.keys(PALS).forEach(k => { const p = PALS[k].map(HX), a = new Uint32Array(p.length * NL); p.forEach((c, i) => { for (let l = 0; l < NL; l++) a[i * NL + l] = DK(c, Math.pow(l / (NL - 1), 1.15)); }); LIT[k] = a; });
+    const VAR = {}; const mkVar = (k, fn) => { VAR[k] = []; for (let v = 0; v < 4; v++) { const a = new Uint8Array(36); for (let j = 0; j < 6; j++) for (let i = 0; i < 6; i++) a[j * 6 + i] = fn(i, j, v, hs(i + v * 17, j + v * 31)); VAR[k].push(a); } };
+    const noisy = (i, j, v, h) => (h % 7 === 0) ? 3 : (h % 5 === 0) ? 1 : 2;
+    [DIRT, STONE, SAND, CLAY, BEDROCK].forEach(k => mkVar(k, noisy)); mkVar(GRASS, noisy);
+    [COPPER, IRON, GOLD].forEach(k => mkVar(k, (i, j, v, h) => { const ore = [[1, 1], [4, 2], [2, 4], [3, 3], [1, 3], [4, 4]]; for (const [a, b] of ore.slice(v % 2 ? 0 : 2, v % 2 ? 4 : 6)) { if (i === a && j === b) return 6; if ((i === a + 1 && j === b) || (i === a && j === b + 1)) return 5; if (i === a + 1 && j === b + 1) return 4; } return noisy(i, j, v, h); }));
+    mkVar(PLANK, (i, j) => j === 2 || j === 5 ? 0 : (i === 0 && j < 2) || (i === 3 && j > 2) ? 1 : j === 0 || j === 3 ? 3 : 2);
+    mkVar(BRICK, (i, j) => j === 2 || j === 5 ? 0 : (j < 2 ? i === 0 : i === 3) ? 0 : j === 0 || j === 3 ? 3 : 2);
+    mkVar(TRUNK, (i, j, v) => i === 0 || i === 5 ? 0 : (i + v + (j >> 1)) % 3 === 0 ? 1 : i === 2 ? 3 : 2);
+    mkVar(LEAF, (i, j, v, h) => (h % 4 === 0) ? 0 : (h % 3 === 0) ? 3 : (h % 2) ? 1 : 2);
+    mkVar('W1', (i, j, v, h) => h % 3); mkVar('W3', (i, j, v, h) => (i === 0 || j === 0) ? 0 : h % 3 === 0 ? 2 : 1);
+
+    /* ---------- sprites ---------- */
+    const mkS = (w, h, ox, oy, fn, outline) => { const d = new Uint32Array(w * h); const put = (x, y, c) => { x = Math.floor(x) + ox; y = Math.floor(y) + oy; if (x >= 0 && y >= 0 && x < w && y < h) d[y * w + x] = c; };
+      const rect = (x, y, rw, rh, c) => { for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) put(x + i, y + j, c); };
+      const disc = (cx, cy, rx, ry, c) => { for (let y = Math.floor(cy - ry - 1); y <= cy + ry; y++) for (let x = Math.floor(cx - rx - 1); x <= cx + rx; x++) if (((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1) put(x, y, c); };
+      const line = (x0, y0, x1, y1, c) => { const n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))) * 2 + 1; for (let i = 0; i <= n; i++) put(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, c); };
+      fn({ put, rect, disc, line });
+      if (outline) { const o = d.slice(); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (d[y * w + x]) continue; if ((x > 0 && d[y * w + x - 1]) || (x < w - 1 && d[y * w + x + 1]) || (y > 0 && d[(y - 1) * w + x]) || (y < h - 1 && d[(y + 1) * w + x])) o[y * w + x] = outline; } d.set(o); }
+      return { w, h, ox, oy, d }; };
+    const blitS = (sp, x, y, flip, lf, tint) => { x = Math.round(x) - (flip ? sp.w - 1 - sp.ox : sp.ox); y = Math.round(y) - sp.oy; const f = lf == null ? 1 : lf; for (let j = 0; j < sp.h; j++) { const yy = y + j; if (yy < 0 || yy >= LH) continue; for (let i = 0; i < sp.w; i++) { const xx = x + i; if (xx < 0 || xx >= LW) continue; const c = sp.d[j * sp.w + (flip ? sp.w - 1 - i : i)]; if (c) B32[yy * LW + xx] = tint || (f < 0.98 ? DK(c, f) : c); } } };
+    const blitRot = (sp, cx, cy, a, flip, lf) => { const ca = Math.cos(a), sa = Math.sin(a), R = Math.ceil(Math.hypot(sp.w, sp.h)) + 1, f = lf == null ? 1 : lf; for (let j = -R; j <= R; j++) for (let i = -R; i <= R; i++) { const X = Math.floor(cx) + i, Y = Math.floor(cy) + j; if (X < 0 || Y < 0 || X >= LW || Y >= LH) continue; const dx = X + 0.5 - cx, dy = Y + 0.5 - cy; let u = dx * ca + dy * sa, v = -dx * sa + dy * ca; if (flip) u = -u; u += sp.ox; v += sp.oy; if (u < 0 || v < 0 || u >= sp.w || v >= sp.h) continue; const c = sp.d[(v | 0) * sp.w + (u | 0)]; if (c) B32[Y * LW + X] = f < 0.98 ? DK(c, f) : c; } };
+    const K = HX('#0c0a12');
+    const PP = { hair: HX('#6a3a1e'), hairH: HX('#9a5a2e'), skin: HX('#f0b888'), skinD: HX('#c88a60'), eye: HX('#1a2a4a'), shirt: HX('#3a8a4a'), shirtD: HX('#28643a'), belt: HX('#5a3a20'), pant: HX('#4a3a6a'), pantD: HX('#342850'), shoe: HX('#2a1e16') };
+    const PLAYER = ['idle', 'w1', 'w2', 'jump'].map(fr => mkS(12, 20, 5, 19, ({ rect, put }) => { const P = PP;
+      rect(-3, -18, 7, 2, P.hair); rect(-3, -16, 7, 5, P.skin); rect(-3, -16, 2, 3, P.hair); put(-3, -13, P.hair); put(2, -15, P.eye); put(3, -15, P.skin); rect(-2, -11, 5, 1, P.skinD); rect(-2, -18, 4, 1, P.hairH);
+      rect(-3, -10, 7, 5, P.shirt); rect(-3, -10, 1, 5, P.shirtD); rect(-3, -5, 7, 1, P.belt);
+      const L = fr === 'w1' ? [[-3, 1], [2, -1]] : fr === 'w2' ? [[-2, -1], [1, 1]] : fr === 'jump' ? [[-3, -1], [2, 1]] : [[-2, 0], [1, 0]];
+      L.forEach(([lx, s], k) => { rect(lx, -4, 2, 3, k ? P.pant : P.pantD); rect(lx + (s > 0 ? 1 : s < 0 ? -1 : 0), -1, 2, 1, k ? P.pant : P.pantD); rect(lx + (s > 0 ? 1 : s < 0 ? -1 : 0), 0, 3, 1, P.shoe); });
+      rect(fr === 'w1' ? -4 : fr === 'w2' ? 2 : -1, -9, 2, 4, P.skinD); }, K));
+    const ICON = {}; const tileIcon = k => mkS(8, 8, 0, 0, ({ put }) => { const p = PALS[k].map(HX), v = VAR[k] ? VAR[k][1] : null; for (let j = 0; j < 6; j++) for (let i = 0; i < 6; i++) { let s = v ? v[j * 6 + i] : 2; if (k === GRASS && j < 2) s = 5 + (j === 0 ? 1 : 0); put(1 + i, 1 + j, p[Math.min(p.length - 1, s)]); } }, K);
+      [DIRT, STONE, SAND, PLANK, COPPER, IRON, GOLD, BRICK, CLAY].forEach(k => ICON[k] = tileIcon(k));
+    const tier = ['#d8783e', '#c8ccd8', '#ecc848'], tierD = ['#8a4a22', '#7a8090', '#9a7410'];
+    ICON[30] = mkS(8, 8, 0, 0, ({ rect, put }) => { rect(1, 2, 6, 4, HX('#7a5230')); rect(1, 2, 6, 1, HX('#946a3e')); rect(6, 2, 1, 4, HX('#c8a070')); put(6, 3, HX('#7a5230')); }, K);
+    [40, 41, 42].forEach((id, t) => ICON[id] = mkS(9, 9, 0, 0, ({ line, put }) => { line(2, 7, 6, 3, HX('#8a5c34')); line(2, 2, 4, 1, HX(tier[t])); line(4, 1, 7, 2, HX(tier[t])); line(7, 2, 8, 5, HX(tier[t])); put(1, 3, HX(tierD[t])); put(8, 6, HX(tierD[t])); }, K));
+    [50, 51, 52].forEach((id, t) => ICON[id] = mkS(9, 9, 0, 0, ({ line, put }) => { line(2, 7, 7, 2, HX(tier[t])); line(3, 7, 7, 3, HX(tierD[t])); put(8, 1, HX('#ffffff')); line(1, 5, 4, 8, HX('#5a3a20')); put(1, 8, HX('#8a5c34')); }, K));
+    ICON[TORCH] = mkS(8, 8, 0, 0, ({ rect, put }) => { rect(3, 3, 2, 5, HX('#8a5c34')); rect(3, 1, 2, 2, HX('#ffcf4a')); put(3, 0, HX('#fff3b0')); put(4, 2, HX('#ff8a2a')); }, K);
+    ICON[PLAT] = mkS(8, 8, 0, 0, ({ rect }) => { rect(0, 2, 8, 2, HX('#a87444')); rect(1, 4, 1, 3, HX('#5e3a22')); rect(6, 4, 1, 3, HX('#5e3a22')); }, K);
+    ICON[60] = mkS(8, 8, 0, 0, ({ disc, put }) => { disc(4, 5, 3, 2.4, HX('#4aa8ff')); put(3, 4, HX('#c8ecff')); }, K);
+    ICON[61] = mkS(8, 8, 0, 0, ({ disc, put }) => { disc(4, 4, 3, 3, HX('#f4f4f4')); disc(4.5, 4, 1.6, 1.6, HX('#3a7aff')); put(4, 4, K); put(2, 2, HX('#ffffff')); }, K);
+    ICON[62] = mkS(8, 8, 0, 0, ({ rect, disc, put }) => { rect(3, 0, 2, 2, HX('#c8b8a0')); disc(4, 5, 2.8, 2.6, HX('#e8304a')); put(3, 4, HX('#ffb0b8')); }, K);
+    ICON[63] = mkS(8, 8, 0, 0, ({ put }) => { [[1, 2], [2, 1], [3, 2], [4, 2], [5, 1], [6, 2], [1, 3], [2, 2], [5, 2], [6, 3], [2, 4], [5, 4], [3, 5], [4, 5], [2, 3], [3, 3], [4, 3], [5, 3], [3, 4], [4, 4]].forEach(([a, b]) => put(a, b, HX('#ff3a5a'))); put(2, 2, HX('#ffb0c0')); put(3, 6, HX('#a01a30')); put(4, 6, HX('#a01a30')); }, K);
+    ICON[64] = mkS(8, 8, 0, 0, ({ disc, put }) => { disc(4, 4, 3.4, 2.6, HX('#e8e0d0')); disc(4, 4, 1.6, 1.6, HX('#c8303a')); put(4, 4, K); put(1, 1, HX('#ffd23f')); put(6, 6, HX('#ffd23f')); }, K);
+    ICON[65] = mkS(8, 8, 0, 0, ({ rect, disc }) => { rect(2, 6, 4, 2, HX('#9a7410')); disc(4, 3, 3, 3, HX('#ecc848')); disc(4, 3, 1.2, 1.2, HX('#9a2a20')); }, K);
+    ICON[CRYSTAL] = ICON[63];
+    const SPR = {
+      slime: [0, 1].map(f => mkS(12, 9, 6, 8, ({ disc, put }) => { const c = HX('#4ac85a'); disc(0, f ? -3 : -3.5, f ? 5.5 : 4.5, f ? 3.2 : 4, c); disc(-2, -5, 1.5, 1, HX('#b8ffb0')); put(-2, -3, K); put(2, -3, K); }, K)),
+      zombie: [0, 1].map(f => mkS(10, 20, 4, 19, ({ rect }) => { const s = HX('#7aa86a'), sd = HX('#4a7a44'), cl = HX('#4a5a8a'), cd = HX('#343e66'); rect(-3, -17, 6, 6, s); rect(1, -15, 1, 1, HX('#ff3030')); rect(-3, -17, 6, 1, sd); rect(-3, -11, 6, 6, cl); rect(1, -10, 5, 2, s); rect(-3, -5, 2, 5 + (f ? 0 : -1), cd); rect(1, -5, 2, 5 + (f ? -1 : 0), cd); }, K)),
+      eye: [0, 1].map(f => mkS(16, 10, 6, 5, ({ disc, line, put }) => { line(-6, f ? -2 : 1, -2, 0, HX('#a83a3a')); line(-6, f ? 2 : -1, -2, 1, HX('#a83a3a')); disc(1, 0, 4.5, 4.5, HX('#f4ecec')); disc(2.5, 0, 2, 2, HX('#3a7aff')); put(3, 0, K); put(-1, -2, HX('#ffffff')); put(-1, 2, HX('#d84a4a')); }, K)),
+      bat: [0, 1].map(f => mkS(14, 8, 7, 4, ({ disc, line, put }) => { disc(0, 0, 2.2, 2.2, HX('#5a3a6a')); if (f) { line(-6, -3, -2, 0, HX('#3a2448')); line(6, -3, 2, 0, HX('#3a2448')); } else { line(-6, 2, -2, 0, HX('#3a2448')); line(6, 2, 2, 0, HX('#3a2448')); } put(-1, -1, HX('#ff5a5a')); put(1, -1, HX('#ff5a5a')); }, K)),
+      servant: [0, 1].map(f => mkS(10, 8, 4, 4, ({ disc, put }) => { disc(0, 0, 3, 3, HX('#f4ecec')); disc(1.4, 0, 1.3, 1.3, HX('#c8303a')); put(-4, f ? -1 : 1, HX('#a83a3a')); put(-5, 0, HX('#a83a3a')); }, K))
+    };
+    const ESPEC = { slime: [10, 7, 14, 8], zombie: [8, 18, 34, 14], eye: [10, 8, 22, 12], bat: [9, 6, 12, 9], servant: [7, 7, 8, 10], boss: [26, 26, 900, 18] };
+
+    /* ---------- state ---------- */
+    const G = { mode: 'title', t: 0, clock: 0.25, P: null, inv: [], sel: 0, en: [], drops: [], parts: [], keys: {}, ptrs: {}, joy: null, mouse: null, mdown: false, touch: false, use: null, mine: null, cam: { x: 0, y: 0 }, invOpen: false, held: -1, toasts: [], spawnT: 0, boss: null, dead: 0, saveT: 0, day: 1, seed: 0, swing: 0, useCd: 0, hasSave: false };
+    const SAVE_K = 'gregsnap_deepland_v1';
+    const rle = a => { const o = []; let v = a[0], n = 1; for (let i = 1; i < a.length; i++) { if (a[i] === v && n < 4000) n++; else { o.push(v.toString(36) + '.' + n.toString(36)); v = a[i]; n = 1; } } o.push(v.toString(36) + '.' + n.toString(36)); return o.join(','); };
+    const unrle = (s, a) => { let k = 0; s.split(',').forEach(p => { const [v, n] = p.split('.').map(x => parseInt(x, 36)); a.fill(v, k, k + n); k += n; }); };
+    function saveGame() { if (!G.P) return; try { localStorage.setItem(SAVE_K, JSON.stringify({ v: 1, seed: G.seed, t: rle(TL), w: rle(WL), inv: G.inv, hp: G.P.hp, mhp: G.P.mhp, x: G.P.x, y: G.P.y, clock: G.clock, day: G.day, sp: SPAWN, boss: G.bossDown || 0 })); G.hasSave = true; } catch (_) {} }
+    function loadGame() { try { const s = JSON.parse(localStorage.getItem(SAVE_K) || 'null'); if (!s || s.v !== 1) return false; unrle(s.t, TL); unrle(s.w, WL); recomputeSurf(); G.seed = s.seed; SPAWN = s.sp; newPlayer(); G.inv = s.inv; G.P.hp = s.hp; G.P.mhp = s.mhp; G.P.x = s.x; G.P.y = s.y; G.clock = s.clock; G.day = s.day; G.bossDown = s.boss; return true; } catch (_) { return false; } }
+    try { G.hasSave = !!localStorage.getItem(SAVE_K); } catch (_) {}
+    function newPlayer() { G.P = { x: SPAWN[0] * T, y: SPAWN[1] * T - 18, w: 8, h: 17, vx: 0, vy: 0, face: 1, on: false, hp: 100, mhp: 100, inv: 0, regen: 0, anim: 0, fallY: 0 }; G.en = []; G.drops = []; G.parts = []; G.boss = null; G.dead = 0; }
+    function newWorld() { G.seed = (Math.random() * 1e9) | 0; genWorld(G.seed); newPlayer(); G.inv = new Array(20).fill(null); G.inv[0] = { id: 40, n: 1 }; G.inv[1] = { id: 50, n: 1 }; G.inv[2] = { id: TORCH, n: 12 }; G.inv[3] = { id: 30, n: 20 }; G.sel = 0; G.clock = 0.26; G.day = 1; G.bossDown = 0; G.camInit = true; saveGame(); }
+    const addItem = (id, n) => { for (const s of G.inv) if (s && s.id === id && id < 40 || (s && s.id === id && id >= 60 && id <= 64)) { s.n += n; return true; } const k = G.inv.indexOf(null); if (k < 0) return false; G.inv[k] = { id, n }; return true; };
+    const countItem = id => G.inv.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0);
+    const takeItem = (id, n) => { for (let i = 0; i < G.inv.length && n > 0; i++) { const s = G.inv[i]; if (s && s.id === id) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (s.n <= 0) G.inv[i] = null; } } };
+    const toast = (t, c) => { G.toasts.push({ t, c: c || HX('#ffffff'), age: 0 }); if (G.toasts.length > 4) G.toasts.shift(); };
+    const puff = (x, y, n, cols, sp, life, g) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = sp * (0.3 + Math.random() * 0.7); G.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, l: 0, ml: life * (0.5 + Math.random() * 0.6), c: cols[Math.floor(Math.random() * cols.length)], g: g || 0 }); } };
+    const drop = (id, n, x, y) => G.drops.push({ id, n, x, y, vx: (Math.random() - 0.5) * 50, vy: -70, t: 0 });
+    const solidPx = (px, py) => SOLID[tl(Math.floor(px / T), Math.floor(py / T))];
+    function moveBox(o, dt, step, plat) { o.on = false; o.hitW = 0; const n = Math.max(1, Math.ceil(Math.max(Math.abs(o.vx), Math.abs(o.vy)) * dt / 2.5));
+      for (let s = 0; s < n; s++) { const sx = o.vx * dt / n, sy = o.vy * dt / n;
+        o.x += sx; { const y0 = Math.floor(o.y / T), y1 = Math.floor((o.y + o.h - 0.01) / T); const tx = sx > 0 ? Math.floor((o.x + o.w) / T) : Math.floor(o.x / T); if (sx !== 0) { let blk = -1; for (let ty = y0; ty <= y1; ty++) if (SOLID[tl(tx, ty)]) blk = ty; if (blk >= 0) { let stepped = false; if (step && o.onPrev && blk === y1) { let free = true; for (let ty = y0 - 1; ty < y1; ty++) if (SOLID[tl(tx, ty)]) free = false; const ny = y1 * T - o.h; if (free && !SOLID[tl(Math.floor(o.x / T), Math.floor((ny) / T))]) { o.y = ny - 0.01; stepped = true; } } if (!stepped) { o.x = sx > 0 ? tx * T - o.w - 0.001 : (tx + 1) * T + 0.001; o.vx = 0; o.hitW = sx > 0 ? 1 : -1; } } } }
+        const pb = o.y + o.h; o.y += sy; { const x0 = Math.floor(o.x / T), x1 = Math.floor((o.x + o.w - 0.01) / T); if (sy > 0) { const ty = Math.floor((o.y + o.h) / T); for (let tx = x0; tx <= x1; tx++) { const v = tl(tx, ty); if (SOLID[v] || (plat && v === PLAT && pb <= ty * T + 0.5 && !o.dropT)) { o.y = ty * T - o.h; o.vy = 0; o.on = true; break; } } } else if (sy < 0) { const ty = Math.floor(o.y / T); for (let tx = x0; tx <= x1; tx++) if (SOLID[tl(tx, ty)]) { o.y = (ty + 1) * T; o.vy = 0; break; } } } }
+      o.onPrev = o.on; }
+
+    /* ---------- light ---------- */
+    let LX0 = 0, LY0 = 0, LWd = 0, LHd = 0, LG = new Float32Array(1);
+    const sunLevel = () => { const c = G.clock; const d = Math.sin((c - 0.2) / 0.62 * Math.PI); return c > 0.2 && c < 0.82 ? 0.34 + 0.66 * Math.min(1, d * 2.2) : 0.34; };
+    function computeLight() { const tx0 = Math.floor(CX / T) - 14, ty0 = Math.floor(CY / T) - 14, w = Math.ceil(LW / T) + 29, h = Math.ceil(LH / T) + 29; LX0 = tx0; LY0 = ty0; LWd = w; LHd = h; if (LG.length < w * h) LG = new Float32Array(w * h); const sun = sunLevel();
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const x = tx0 + i, y = ty0 + j, v = tl(x, y); let l = 0; if (!SOLID[v] && !wl(x, y) && y <= (SURF[x] != null ? SURF[x] + 30 : 0)) l = sun; if (v === TORCH) l = 1; else if (v === CRYSTAL) l = Math.max(l, 0.55); LG[j * w + i] = l; }
+      if (G.P) { const pi = Math.floor((G.P.x + 4) / T) - tx0, pj = Math.floor((G.P.y + 6) / T) - ty0; if (pi >= 0 && pj >= 0 && pi < w && pj < h) LG[pj * w + pi] = Math.max(LG[pj * w + pi], 0.5); }
+      const dec = (x, y) => SOLID[tl(x, y)] ? 0.15 : 0.066;
+      for (let pass = 0; pass < 2; pass++) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const k = j * w + i, d = dec(tx0 + i, ty0 + j); let l = LG[k]; if (i > 0) l = Math.max(l, LG[k - 1] - d); if (j > 0) l = Math.max(l, LG[k - w] - d); LG[k] = l; }
+        for (let j = h - 1; j >= 0; j--) for (let i = w - 1; i >= 0; i--) { const k = j * w + i, d = dec(tx0 + i, ty0 + j); let l = LG[k]; if (i < w - 1) l = Math.max(l, LG[k + 1] - d); if (j < h - 1) l = Math.max(l, LG[k + w] - d); LG[k] = l; } } }
+    const lightAt = (tx, ty) => { const i = tx - LX0, j = ty - LY0; if (i < 0 || j < 0 || i >= LWd || j >= LHd) return 0; return LG[j * LWd + i]; };
+    const lightPx = (px, py) => Math.max(0.06, lightAt(Math.floor(px / T), Math.floor(py / T)));
+
+    /* ---------- drawing ---------- */
+    let CX = 0, CY = 0, GX = 0, GY = 0, GW = 0, GH = 0, PSZ = 2;
+    const skyCols = () => { const c = G.clock; const D = ['#4aa0ff', '#bfe6ff'], N = ['#050a1e', '#16264e'], S = ['#3a2a6a', '#ff9a5a']; let a, b, f; const sun = sunLevel();
+      if (c > 0.15 && c < 0.27) { f = (c - 0.15) / 0.12; return [MX(N[0], S[0], Math.min(1, f * 2)), f < 0.5 ? MX(N[1], S[1], f * 2) : MX(S[1], D[1], (f - 0.5) * 2), f]; } if (c > 0.75 && c < 0.87) { f = (c - 0.75) / 0.12; return [MX(D[0], S[0], f), f < 0.5 ? MX(D[1], S[1], f * 2) : MX(S[1], N[1], (f - 0.5) * 2), 1 - f]; } return c >= 0.27 && c <= 0.75 ? [HX(D[0]), HX(D[1]), 1] : [HX(N[0]), HX(N[1]), 0]; };
+    const STARS = []; { const r = mulberry(9); for (let i = 0; i < 90; i++) STARS.push([r(), r() * 0.7, r()]); }
+    function drawSky(t) { const [c0, c1, dayf] = skyCols(); for (let y = 0; y < LH; y++) { const f = Math.min(1, y / (LH * 0.9)), lv = Math.floor(f * 8), fr = f * 8 - lv, a = BL(c0, c1, lv / 8), b = BL(c0, c1, Math.min(1, (lv + 1) / 8)), row = y * LW, by = (y & 3) * 4; for (let x = 0; x < LW; x++) B32[row + x] = fr > BAY[by + (x & 3)] ? b : a; }
+      if (dayf < 0.7) STARS.forEach((s, i) => { if ((hs(i, Math.floor(t * 2)) & 7) === 0) return; PX(((s[0] * LW * 1.3 - CX * 0.01) % LW + LW) % LW, s[1] * LH, s[2] > 0.8 ? HX('#ffffff') : HX('#a8b8e8')); });
+      const c = G.clock, isDay = c > 0.2 && c < 0.82, ang = isDay ? (c - 0.2) / 0.62 : ((c + (c < 0.2 ? 1 : 0)) - 0.82) / 0.38, sx = LW * (0.1 + 0.8 * ang), sy = GY + GH * 0.5 - Math.sin(ang * Math.PI) * GH * 0.38, R = isDay ? 7 : 5;
+      for (let y = -R - 4; y <= R + 4; y++) for (let x = -R - 4; x <= R + 4; x++) { const d = Math.hypot(x + 0.5, y + 0.5), X = Math.floor(sx + x), Y = Math.floor(sy + y); if (X < 0 || Y < 0 || X >= LW || Y >= LH) continue; if (d <= R) B32[Y * LW + X] = isDay ? HX(d > R - 1.3 ? '#ffe070' : '#fff6c0') : ((Math.hypot(x + 2, y - 1) < 1.6) ? HX('#c8ccd8') : HX('#eef0f8')); else if (d < R + 4 && (d - R) / 4 < BAY[(Y & 3) * 4 + (X & 3)] && ((X + Y) & 1)) B32[Y * LW + X] = BL(B32[Y * LW + X], isDay ? HX('#fff0a0') : HX('#c8d4ff'), 0.4); }
+      const sun = sunLevel(), base = SURF[Math.floor(clamp((CX + LW / 2) / T, 0, WW - 1))] * T - CY, hill = (par, amp, freq, col, off) => { const o = Math.floor(CX * par); for (let x = 0; x < LW; x++) { const u = x + o, top = Math.round(base - off + (-CY * 0) - amp * (0.5 + 0.3 * Math.sin(u * freq) + 0.2 * Math.sin(u * freq * 2.7 + 1))); for (let y = Math.max(0, top); y < LH; y++) B32[y * LW + x] = y === top ? DK(col, 1.2 * sun + 0.1) : DK(col, sun * 0.9 + 0.1); } };
+      hill(0.15, 50, 0.011, HX('#6a8ab8'), 40); hill(0.35, 30, 0.023, HX('#3a7a4a'), 18); }
+    function drawTiles(t) { const tx0 = Math.floor(CX / T), ty0 = Math.floor(CY / T), tx1 = Math.ceil((CX + LW) / T), ty1 = Math.ceil((CY + LH) / T);
+      for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) { const v = tl(tx, ty), w = wl(tx, ty); if (v === AIR && !w) continue; const X = tx * T - CX, Y = ty * T - CY;
+        const l00 = (lightAt(tx, ty) + lightAt(tx - 1, ty) + lightAt(tx, ty - 1) + lightAt(tx - 1, ty - 1)) / 4, l10 = (lightAt(tx, ty) + lightAt(tx + 1, ty) + lightAt(tx, ty - 1) + lightAt(tx + 1, ty - 1)) / 4, l01 = (lightAt(tx, ty) + lightAt(tx - 1, ty) + lightAt(tx, ty + 1) + lightAt(tx - 1, ty + 1)) / 4, l11 = (lightAt(tx, ty) + lightAt(tx + 1, ty) + lightAt(tx, ty + 1) + lightAt(tx + 1, ty + 1)) / 4;
+        const solid = SOLID[v], drawW = !solid && w; let tab = null, vr = null, up = 0, dn = 0, lf = 0, rt = 0;
+        if (solid) { tab = LIT[v]; vr = VAR[v][hs(tx, ty) & 3]; up = !SOLID[tl(tx, ty - 1)]; dn = !SOLID[tl(tx, ty + 1)]; lf = !SOLID[tl(tx - 1, ty)]; rt = !SOLID[tl(tx + 1, ty)]; }
+        for (let j = 0; j < T; j++) { const yy = Y + j; if (yy < 0 || yy >= LH) continue; const fy = (j + 0.5) / T; for (let i = 0; i < T; i++) { const xx = X + i; if (xx < 0 || xx >= LW) continue; const fx = (i + 0.5) / T; const l = (l00 * (1 - fx) + l10 * fx) * (1 - fy) + (l01 * (1 - fx) + l11 * fx) * fy; let lv = l * (NL - 1); const li = Math.min(NL - 1, Math.floor(lv) + (lv - Math.floor(lv) > BAY[(yy & 3) * 4 + (xx & 3)] ? 1 : 0));
+            if (solid) { let s = vr[j * 6 + i]; if (v === GRASS && up) { if (j < 2) s = j === 0 ? 6 : 5; else if (j === 2 && (hs(tx * 6 + i, 3) & 1)) s = 4; } if ((up && j === 0 && v !== GRASS) || (lf && i === 0) || (rt && i === T - 1) || (dn && j === T - 1)) s = 0; B32[yy * LW + xx] = tab[s * NL + li]; }
+            else if (drawW) { const wk = w === DIRT ? 'W1' : 'W3', vv = VAR[wk][hs(tx, ty) & 3]; B32[yy * LW + xx] = LIT[wk][vv[j * 6 + i] * NL + li]; } } }
+        if (!solid && v !== AIR) { const lf2 = Math.max(0.12, lightAt(tx, ty));
+          if (v === TRUNK) { const vr2 = VAR[TRUNK][hs(tx, ty) & 3], tb = LIT[TRUNK], li = Math.round(lf2 * (NL - 1)); for (let j = 0; j < T; j++) for (let i = 1; i < T - 1; i++) PX(X + i, Y + j, tb[vr2[j * 6 + i] * NL + li]); }
+          else if (v === LEAF) { const vr2 = VAR[LEAF][hs(tx, ty) & 3], tb = LIT[LEAF], li = Math.round(lf2 * (NL - 1)); for (let j = 0; j < T; j++) for (let i = 0; i < T; i++) { const s = vr2[j * 6 + i]; const edge = (tl(tx, ty - 1) !== LEAF && j === 0 && (hs(tx * 6 + i, ty) & 1)) || (tl(tx - 1, ty) !== LEAF && i === 0 && (hs(tx, ty * 6 + j) & 1)) || (tl(tx + 1, ty) !== LEAF && i === 5 && (hs(tx + 3, ty * 6 + j) & 1)); if (!edge) PX(X + i, Y + j, tb[s * NL + li]); } }
+          else if (v === PLAT) { const tb = LIT[PLAT], li = Math.round(lf2 * (NL - 1)); for (let i = 0; i < T; i++) { PX(X + i, Y, tb[3 * NL + li]); PX(X + i, Y + 1, tb[2 * NL + li]); PX(X + i, Y + 2, tb[0 * NL + li]); } }
+          else if (v === TORCH) { const fl = Math.floor(t * 10 + tx) & 1; RF(X + 2, Y + 2, 2, 4, HX('#8a5c34')); PX(X + 2, Y + 1, HX('#ffcf4a')); PX(X + 3, Y + 1, HX(fl ? '#ff8a2a' : '#ffcf4a')); PX(X + 2 + fl, Y, HX('#fff3b0')); }
+          else if (v === CRYSTAL) { const b = Math.sin(t * 3 + tx) > 0 ? 0 : 1; blitS(ICON[63], X - 1, Y - 2 + b, false, 1); }
+          else if (v === CHEST) { RF(X, Y + 1, 6, 5, DK(HX('#8a5c34'), lf2 + 0.2)); RF(X, Y + 1, 6, 1, DK(HX('#c89058'), lf2 + 0.2)); RF(X, Y + 3, 6, 1, DK(HX('#5e3a22'), lf2 + 0.2)); PX(X + 2, Y + 3, DK(HX('#ecc848'), lf2 + 0.3)); PX(X + 3, Y + 3, DK(HX('#ecc848'), lf2 + 0.3)); } } } }
+    function drawMineCrack() { const m = G.mine; if (!m || m.d <= 0) return; const X = m.x * T - CX, Y = m.y * T - CY, f = m.d / m.h; for (let k = 0; k < Math.floor(f * 9); k++) { const h = hs(m.x * 7 + k, m.y); PX(X + (h % 6), Y + ((h >> 4) % 6), K); } }
+    function drawCursor() { const c = G.cursor; if (!c) return; const X = c.tx * T - CX, Y = c.ty * T - CY, col = c.ok ? HX('#ffffff') : HX('#ff5a5a'); for (let i = 0; i < T; i += 2) { PX(X + i, Y - 1, col); PX(X + i, Y + T, col); PX(X - 1, Y + i, col); PX(X + T, Y + i, col); } }
+    function drawEnts(t) { const P = G.P;
+      for (const d of G.drops) { const ic = ICON[d.id]; if (ic) blitS(ic, d.x - 4 - CX, d.y - 7 - CY + Math.round(Math.sin(t * 4 + d.x) * 0.6), false, Math.max(0.35, lightPx(d.x, d.y))); }
+      for (const e of G.en) { const X = e.x + e.w / 2 - CX, Y = e.y + e.h - CY; if (X < -40 || X > LW + 40) continue; const fr = Math.floor(t * 6 + e.id) & 1, lfac = e.k === 'boss' ? 1 : Math.max(0.3, lightPx(e.x + e.w / 2, e.y + e.h / 2)), tint = e.hf > 0 ? HX('#ffffff') : 0;
+        if (e.k === 'boss') drawBoss(e, t); else if (e.k === 'eye' || e.k === 'servant') blitRot(SPR[e.k][fr], X, e.y + e.h / 2 - CY, Math.atan2(e.vy, e.vx), false, lfac); else blitS(SPR[e.k][e.k === 'slime' ? (e.on ? 0 : 1) : fr], X, Y - 1, e.face < 0, lfac, tint); }
+      if (P && !G.dead) { const blink = P.inv > 0 && (Math.floor(P.inv * 16) & 1); const lf = Math.max(0.4, lightPx(P.x + 4, P.y + 8)); if (!blink) { const fr = !P.on ? 3 : Math.abs(P.vx) > 8 ? 1 + (Math.floor(P.anim / 7) & 1) : 0; blitS(PLAYER[fr], P.x + 4 - CX, P.y + P.h - 1 - CY, P.face < 0, lf); }
+        const it = G.inv[G.sel]; if (it && ICON[it.id]) { const sw = G.swing, base = sw > 0 ? (-2.2 + (1 - sw / 0.3) * 3.2) : -0.6, a = P.face > 0 ? base : Math.PI - base, sx = P.x + 4 - CX + P.face * 2, sy = P.y + 8 - CY; const ic = ICON[it.id]; blitRot(ic, sx + Math.cos(a) * 6, sy + Math.sin(a) * 6, a + Math.PI / 4 * (P.face > 0 ? 1 : -1) + (P.face < 0 ? Math.PI : 0), P.face < 0, lf); } }
+      for (const q of G.parts) { const X = Math.floor(q.x - CX), Y = Math.floor(q.y - CY); if (q.l > q.ml * 0.6 && ((X + Y) & 1)) continue; PX(X, Y, q.c); } }
+    function drawBoss(e, t) { const cx = e.x + e.w / 2 - CX, cy = e.y + e.h / 2 - CY, P = G.P, a = Math.atan2(P.y + 8 - (e.y + e.h / 2), P.x + 4 - (e.x + e.w / 2)), ph2 = e.ph2 && e.morph <= 0, R = 12;
+      const ta = Math.atan2(-e.vy, -e.vx); for (let k = 0; k < 5; k++) { const w = Math.sin(t * 8 + k) * 0.5, aa = ta + (k - 2) * 0.35 + w * 0.2; for (let r = R; r < R + 7 + k % 2 * 3; r++) PX(cx + Math.cos(aa) * r, cy + Math.sin(aa) * r, HX('#a83a3a')); }
+      for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) { const d = Math.hypot(x + 0.5, y + 0.5); if (d > R) continue; let c = d > R - 1 ? HX('#6a2a2a') : HX('#f2e8e4'); const va = Math.atan2(y, x); if (d > 6 && (Math.abs(Math.sin(va * 5 + 1)) < 0.08)) c = HX('#d84a4a'); const lx = x * Math.cos(-a) - y * Math.sin(-a), ly = x * Math.sin(-a) + y * Math.cos(-a);
+        if (ph2) { if (lx > 3 && Math.abs(ly) < (lx - 3) * 0.9) c = (Math.abs(ly) > (lx - 3) * 0.9 - 1.5 && (Math.floor(lx) & 1)) ? HX('#ffffff') : HX('#3a0a12'); } else { const ix = lx - 5.5, d2 = Math.hypot(ix, ly); if (d2 < 4.5) c = d2 < 2 ? K : d2 < 4 ? HX(e.st === 'dash' ? '#ff3a3a' : '#2a6aff') : HX('#1a2a4a'); if (Math.hypot(ix + 1.5, ly + 1.5) < 0.8) c = HX('#ffffff'); }
+        if (e.hf > 0) c = BL(c, HX('#ffffff'), 0.6); PX(cx + x, cy + y, c); } }
+    const W_ = HX('#ffffff'), INK = HX('#0c0a12'), DIMC = HX('#a8a0b8'), SLOT = HX('#1e2a48'), SLOTB = HX('#4a5a8a'), SLOTS = HX('#ffd23f');
+    function hotbarRects() { const n = 10, s = Math.min(14, Math.floor((GW - 12) / n)), x0 = Math.floor(GX + (GW - n * s) / 2), y0 = Math.floor(GY + 4); return { n, s, x0, y0 }; }
+    function drawSlot(x, y, s, it, sel, mark) { BOX(x, y, s - 1, s - 1, sel ? HX('#3a4a7a') : SLOT, sel ? SLOTS : mark ? HX('#7dffa0') : SLOTB); if (it) { const ic = ICON[it.id]; if (ic) blitS(ic, x + Math.floor((s - 1 - ic.w) / 2), y + Math.floor((s - 1 - ic.h) / 2)); if (it.n > 1) PT(String(it.n), x + s - 2, y + s - 6, 1, W_, INK, 'r'); } }
+    function heart(x, y, f) { const pts = [[1, 0], [2, 0], [4, 0], [5, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [2, 4], [3, 4], [4, 4], [3, 5]]; pts.forEach(([a, b]) => PX(x + a, y + b, a / 6 <= f && f > 0 ? HX(b < 2 && a < 3 ? '#ff9aa8' : '#e8304a') : HX('#3a2030'))); }
+    function btns() { const touch = G.touch || (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches), r = 12; return { touch, r, jump: [GX + GW - r - 6, GY + GH - r - 8], bag: [GX + GW - 13, GY + 26], joy: [GX + 26, GY + GH - 28] }; }
+    function circ(cx, cy, r, fill, edge) { for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) { const d = Math.hypot(x, y); if (d > r + 0.3) continue; PX(cx + x, cy + y, d > r - 1 ? edge : fill); } }
+    const invRects = () => { const cols = 5, s = 14, w = cols * s, x0 = Math.floor(GX + (GW - w) / 2), y0 = Math.floor(GY + 30); return { cols, s, x0, y0, rx: Math.floor(GX + 3), ry: y0 + 4 * s + 8, rw: Math.floor(GW - 6) }; };
+    function drawHUD(t) { const P = G.P, H = hotbarRects(); for (let i = 0; i < H.n; i++) drawSlot(H.x0 + i * H.s, H.y0, H.s, G.inv[i], i === G.sel, false);
+      const it = G.inv[G.sel]; if (it && !G.invOpen) PT(INAME[it.id] || '', GX + GW / 2, H.y0 + H.s + 2, 1, W_, INK, 'c');
+      const nh = Math.ceil(P.mhp / 20); for (let i = 0; i < nh; i++) heart(Math.floor(GX + 5 + (i % 10) * 8), Math.floor(GY + 22 + Math.floor(i / 10) * 7), clamp((P.hp - i * 20) / 20, 0, 1));
+      const c = G.clock, hrs = Math.floor((c * 24 + 0) % 24), mins = Math.floor((c * 24 * 60) % 60); PT((hrs % 12 || 12) + ':' + (mins < 10 ? '0' : '') + mins + (hrs < 12 ? ' AM' : ' PM'), GX + 5, GY + 31 + (nh > 10 ? 7 : 0), 1, DIMC, INK);
+      const B = btns(); BOX(B.bag[0] - 6, B.bag[1] - 6, 13, 13, G.invOpen ? HX('#3a4a7a') : SLOT, SLOTB); RF(B.bag[0] - 3, B.bag[1] - 2, 7, 5, HX('#a87444')); RF(B.bag[0] - 2, B.bag[1] - 4, 5, 2, HX('#a87444')); RF(B.bag[0] - 3, B.bag[1], 7, 1, HX('#5e3a22'));
+      if (G.boss) { const e = G.boss, bw = Math.floor(GW * 0.6), bx = Math.floor(GX + (GW - bw) / 2), by = Math.floor(GY + 44); PT('THE WATCHER', GX + GW / 2, by - 7, 1, HX('#ff9a8a'), INK, 'c'); RF(bx - 1, by - 1, bw + 2, 5, INK); RF(bx, by, Math.round(bw * e.hp / e.mh), 3, HX('#e8304a')); }
+      G.toasts.forEach((ts, i) => { if (ts.age > 1.8 && (Math.floor(ts.age * 30) & 1)) return; PT(ts.t, GX + GW / 2, GY + GH * 0.3 + i * 8, 1, ts.c, INK, 'c'); });
+      if (G.dead) { DV(0, 0, LW, LH, INK, 0); PT('YOU WERE SLAIN', GX + GW / 2, GY + GH * 0.42, 2, HX('#ff5a5a'), INK, 'c'); PT('RESPAWNING IN ' + Math.ceil(G.dead), GX + GW / 2, GY + GH * 0.42 + 16, 1, DIMC, INK, 'c'); }
+      if (B.touch && !G.invOpen) { const [jx, jy] = G.joy ? [G.joy.ox, G.joy.oy] : B.joy; circ(Math.floor(jx), Math.floor(jy), 16, HX('#141a2a'), HX('#4a5670')); const kx = G.joy ? clamp(G.joy.x - G.joy.ox, -11, 11) : 0, ky = G.joy ? clamp(G.joy.y - G.joy.oy, -11, 11) : 0; circ(Math.floor(jx + kx), Math.floor(jy + ky), 6, HX('#8a96ac'), HX('#c8d0e0'));
+        const on = Object.values(G.ptrs).indexOf('jump') >= 0; circ(Math.floor(B.jump[0]), Math.floor(B.jump[1]), B.r, on ? HX('#e8eef8') : HX('#1c2434'), on ? W_ : HX('#6a7a98')); PT('JUMP', B.jump[0] + 1, B.jump[1] - 2, 1, on ? INK : W_, null, 'c'); }
+      if (G.invOpen) drawInv(t); }
+    let recipeRows = [];
+    function drawInv(t) { const R = invRects(); DV(0, 0, LW, LH, INK, 0); BOX(R.rx, R.y0 - 6, R.rw, R.ry - R.y0 + 4 + RECIPES.length * 11 + 14, HX('#121a30'), SLOTB); PT('INVENTORY', GX + GW / 2, R.y0 - 3, 1, W_, null, 'c');
+      for (let i = 0; i < 20; i++) { const x = R.x0 + (i % 5) * R.s, y = R.y0 + 4 + Math.floor(i / 5) * R.s; drawSlot(x, y, R.s, G.inv[i], i === G.sel, i === G.held); }
+      PT('CRAFTING', GX + GW / 2, R.ry - 2, 1, HX('#ffd23f'), null, 'c'); recipeRows = [];
+      RECIPES.forEach((r, k) => { const y = R.ry + 6 + k * 11, ok = r.need.every(([id, n]) => countItem(id) >= n); recipeRows.push({ x: R.rx + 2, y: y - 1, w: R.rw - 4, h: 10, r, ok }); if (ok) RF(R.rx + 2, y - 1, R.rw - 4, 10, HX('#1e3a2a')); blitS(ICON[r.out], R.rx + 4, y); PT((r.n > 1 ? r.n + ' ' : '') + INAME[r.out], R.rx + 14, y + 1, 1, ok ? W_ : HX('#6a7088'));
+        PT(r.need.map(([id, n]) => n + (id === 30 ? 'W' : id === 60 ? 'G' : id === 61 ? 'L' : id === IRON ? 'FE' : id === GOLD ? 'AU' : id === STONE ? 'S' : '')).join(' '), R.rx + R.rw - 4, y + 1, 1, ok ? HX('#7dffa0') : HX('#6a7088'), null, 'r'); }); }
+    function drawTitle(t) { if (!G.titleWorld) { genWorld(12345); G.titleWorld = true; } G.clock = 0.3 + (t * 0.002) % 0.4; CX = Math.floor(WW * T / 2 - LW / 2 + Math.sin(t * 0.05) * 200); CY = Math.floor(SURF[Math.floor((CX + LW / 2) / T)] * T - LH * 0.6); computeLight(); drawSky(t); drawTiles(t);
+      const ty = Math.floor(GY + GH * 0.15); PT('DEEPLAND', GX + GW / 2, ty, 4, HX('#7ad450'), INK, 'c'); PT('DIG . BUILD . SURVIVE', GX + GW / 2, ty + 26, 1, W_, INK, 'c');
+      panel.length = 0; const bw = 90, bx = Math.floor(GX + (GW - bw) / 2); let by = Math.floor(GY + GH * 0.45); if (G.hasSave) { uiBtn('cont', bx, by, bw, 16, 'CONTINUE', HX('#2f9a58')); by += 22; } uiBtn('new', bx, by, bw, 16, 'NEW WORLD', HX('#3a4a7a'));
+      const tch = btns().touch; (tch ? ['STICK TO MOVE, UP OR JUMP TO JUMP', 'TAP THE WORLD TO DIG, BUILD OR SWING', 'BAG FOR INVENTORY AND CRAFTING'] : ['A D MOVE   SPACE JUMP', 'MOUSE TO DIG, BUILD OR SWING', '1-0 OR WHEEL ITEMS   E INVENTORY']).forEach((s, i) => PT(s, GX + GW / 2, by + 30 + i * 8, 1, W_, INK, 'c')); }
+    const panel = []; function uiBtn(id, x, y, w, h, label, col) { BOX(x, y, w, h, col, INK, DK(col, 1.4)); PT(label, x + w / 2, y + Math.floor(h / 2) - 2, 1, W_, null, 'c'); panel.push({ id, x, y, w, h }); }
+
+    /* ---------- simulation ---------- */
+    const REACH = 6.5 * T;
+    const isNight = () => G.clock < 0.2 || G.clock > 0.82;
+    function spawnE(k, x, y) { const [w, h, hp, dmg] = ESPEC[k]; const e = { k, id: (Math.random() * 1e6) | 0, x: x - w / 2, y: y - h, w, h, vx: 0, vy: 0, hp, mh: hp, dmg, face: -1, t: Math.random(), hf: 0, on: false, st: 'hover', st2: 0, n: 0 }; G.en.push(e); return e; }
+    function trySpawn() { const P = G.P, ptx = Math.floor((P.x + 4) / T), deep = (P.y / T) > SURF[clamp(ptx, 0, WW - 1)] + 14, cnt = G.en.filter(e => e.k !== 'boss' && e.k !== 'servant').length; if (cnt >= (isNight() ? 6 : 3)) return;
+      const side = Math.random() < 0.5 ? -1 : 1, sx = P.x + side * (LW / 2 + 20 + Math.random() * 50), tx = clamp(Math.floor(sx / T), 2, WW - 3);
+      if (!deep) { if (isNight()) { if (Math.random() < 0.6) spawnE('zombie', tx * T + 3, colSurf(tx) * T); else spawnE('eye', sx, P.y - 60 - Math.random() * 40); } else if (Math.random() < 0.45) spawnE('slime', tx * T + 3, colSurf(tx) * T); }
+      else { for (let k = 0; k < 30; k++) { const x = tx + Math.floor((Math.random() - 0.5) * 10), y = Math.floor(P.y / T) + Math.floor((Math.random() - 0.5) * 30); if (tl(x, y) === AIR && tl(x, y - 1) === AIR && tl(x, y - 2) === AIR && SOLID[tl(x, y + 1)]) { const e = spawnE(Math.random() < 0.5 ? 'bat' : 'slime', x * T + 3, (y + 1) * T); if (e.k === 'slime') e.blue = true; break; } } } }
+    function hurtP(n, fromX) { const P = G.P; if (P.inv > 0 || G.dead) return; P.hp -= n; P.inv = 0.7; P.regen = 0; P.vx = (P.x + 4 < fromX ? -1 : 1) * 120; P.vy = -120; sfx(130, 0.15, 0.06, 'sawtooth'); puff(P.x + 4, P.y + 8, 8, [HX('#e8304a')], 70, 0.4, 200); G.shake = 0.3; if (P.hp <= 0) { P.hp = 0; G.dead = 4; puff(P.x + 4, P.y + 8, 30, [HX('#e8304a'), HX('#a01a30')], 110, 0.9, 250); sfx(90, 0.5, 0.08, 'sawtooth'); if (G.boss) { G.en = G.en.filter(e => e.k !== 'boss' && e.k !== 'servant'); G.boss = null; toast('THE WATCHER HAS LEFT', HX('#ff9a8a')); } } }
+    function hitE(e, dmg, fromX) { e.hp -= dmg; e.hf = 0.12; if (e.k !== 'boss') { e.vx = (e.x + e.w / 2 > fromX ? 1 : -1) * 110; e.vy = -90; } puff(e.x + e.w / 2, e.y + e.h / 2, 5, [HX('#ffffff'), HX('#e8304a')], 70, 0.3); sfx(210, 0.06, 0.05, 'square');
+      if (e.hp <= 0) { e.dead = true; puff(e.x + e.w / 2, e.y + e.h / 2, e.k === 'boss' ? 70 : 14, e.k === 'slime' ? [HX(e.blue ? '#4a8aff' : '#4ac85a')] : [HX('#c8303a'), HX('#f4ecec')], 100, 0.6, 150);
+        if (e.k === 'slime') drop(60, 1 + (Math.random() < 0.5 ? 1 : 0), e.x + e.w / 2, e.y); if (e.k === 'eye' && Math.random() < 0.55) drop(61, 1, e.x + e.w / 2, e.y); if (e.k === 'zombie' && Math.random() < 0.3) drop(60, 1, e.x + e.w / 2, e.y);
+        if (e.k === 'boss') { G.boss = null; G.bossDown = (G.bossDown || 0) + 1; for (let i = 0; i < 5; i++) drop(GOLD, 5, e.x + 13, e.y + 13); drop(65, 1, e.x + 13, e.y + 13); drop(62, 3, e.x + 13, e.y + 13); toast('THE WATCHER HAS BEEN DEFEATED!', HX('#ffd23f')); try { JING('win'); } catch (_) {} G.en.forEach(o => { if (o.k === 'servant') o.dead = true; }); } } }
+    function breakTile(tx, ty) { const v = tl(tx, ty); setT(tx, ty, AIR); const cx = tx * T + 3, cy = ty * T + 3; const pc = PALS[v] ? PALS[v].map(HX) : [HX('#ffffff')]; puff(cx, cy, 6, pc.slice(0, 4), 50, 0.4, 250); sfx(v === STONE || v >= COPPER && v <= GOLD ? 160 : 110, 0.05, 0.05, 'square');
+      if (v === TRUNK) { let n = 1, y = ty - 1; while (tl(tx, y) === TRUNK) { setT(tx, y, AIR); n++; y--; } for (let dy = -6; dy <= 3; dy++) for (let dx = -4; dx <= 4; dx++) if (tl(tx + dx, y + dy) === LEAF) { setT(tx + dx, y + dy, AIR); if (Math.random() < 0.15) puff((tx + dx) * T, (y + dy) * T, 2, [HX('#3e9234')], 30, 0.6, 80); } drop(30, n + Math.floor(n / 2), cx, cy); sfx(90, 0.2, 0.06, 'square'); }
+      else if (v === GRASS) drop(DIRT, 1, cx, cy); else if (v === CRYSTAL) drop(63, 1, cx, cy);
+      else if (v === CHEST) { const r = Math.random; drop(TORCH, 8 + Math.floor(r() * 12), cx, cy); drop(62, 1 + Math.floor(r() * 3), cx, cy); drop(r() < 0.5 ? IRON : GOLD, 6 + Math.floor(r() * 8), cx, cy); if (r() < 0.35) drop(63, 1, cx, cy); if (r() < 0.25) drop(r() < 0.5 ? 51 : 41, 1, cx, cy); toast('CHEST OPENED!', HX('#ffd23f')); sfx(660, 0.15, 0.05, 'triangle'); }
+      else if (v === LEAF) {} else drop(v, 1, cx, cy);
+      if (SURF[tx] === ty) SURF[tx] = colSurf(tx); }
+    function canPlace(tx, ty, v) { if (tx < 0 || ty < 0 || tx >= WW || ty >= WH) return false; const c = tl(tx, ty); if (c !== AIR && c !== LEAF) return false; const P = G.P; if (SOLID[v] && ov([P.x, P.y, P.x + P.w, P.y + P.h], [tx * T, ty * T, tx * T + T, ty * T + T])) return false;
+      if (SOLID[v] && G.en.some(e => ov([e.x, e.y, e.x + e.w, e.y + e.h], [tx * T, ty * T, tx * T + T, ty * T + T]))) return false;
+      return wl(tx, ty) || [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const n = tl(tx + a, ty + b); return SOLID[n] || n === PLAT || n === TRUNK; }); }
+    const ov = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+    function useItem(dt) { const P = G.P, it = G.inv[G.sel]; G.cursor = null; if (!G.use || !it) { G.mine = null; return; } const wx = G.use[0], wy = G.use[1], tx = Math.floor(wx / T), ty = Math.floor(wy / T), pcx = P.x + 4, pcy = P.y + 8; let inR = Math.hypot(tx * T + 3 - pcx, ty * T + 3 - pcy) <= REACH;
+      P.face = wx >= pcx ? 1 : -1; G.cursor = { tx, ty, ok: inR };
+      if (SWORD[it.id]) { if (G.useCd <= 0) { G.useCd = 0.32; G.swing = 0.3; sfx(320, 0.05, 0.04, 'sawtooth'); for (const e of G.en) { const ex = e.x + e.w / 2, ey = e.y + e.h / 2; if (Math.hypot(ex - pcx, ey - pcy) < 20 + e.w / 2 && (ex - pcx) * P.face > -6) hitE(e, SWORD[it.id] + Math.floor(Math.random() * 4), pcx); } } return; }
+      if (it.id >= 62 && it.id <= 64) { inR = true; }
+      if (!inR) { G.mine = null; return; }
+      if (PICK[it.id]) { const v = tl(tx, ty); if (v === AIR || v === BEDROCK || v === LEAF) { G.mine = null; return; } if (G.swing <= 0) G.swing = 0.3; if (NEEDP[v] && PICK[it.id][1] < NEEDP[v]) { if (!G.needT || G.t - G.needT > 1.5) { toast('NEEDS A BETTER PICKAXE', HX('#ff9a8a')); G.needT = G.t; } return; }
+        if (!G.mine || G.mine.x !== tx || G.mine.y !== ty) G.mine = { x: tx, y: ty, d: 0, h: HARD[v] || 1 }; G.mine.d += PICK[it.id][0] * dt; if (Math.random() < 0.12) sfx(200 + Math.random() * 80, 0.03, 0.025, 'square'); if (G.mine.d >= G.mine.h) { breakTile(tx, ty); G.mine = null; } return; }
+      const pv = PLACE[it.id]; if (pv != null) { if (G.useCd <= 0 && canPlace(tx, ty, pv)) { setT(tx, ty, pv); if (SOLID[pv] && ty < SURF[tx]) SURF[tx] = ty; G.useCd = 0.11; it.n--; if (it.n <= 0) G.inv[G.sel] = null; sfx(140, 0.04, 0.04, 'square'); } return; }
+      if (G.useCd > 0) return;
+      if (it.id === 62) { if (P.hp < P.mhp) { P.hp = Math.min(P.mhp, P.hp + 50); it.n--; G.useCd = 1; toast('+50 HP', HX('#7dffa0')); sfx(523, 0.2, 0.05, 'triangle'); } }
+      else if (it.id === 63) { if (P.mhp < 300) { P.mhp += 20; P.hp += 20; it.n--; G.useCd = 0.6; toast('MAX LIFE +20', HX('#ff9aa8')); sfx(784, 0.25, 0.05, 'triangle'); } else { toast('MAX LIFE REACHED'); G.useCd = 0.6; } }
+      else if (it.id === 64) { if (!G.boss) { it.n--; G.useCd = 1; const e = spawnE('boss', P.x + 150, P.y - 80); e.st = 'hover'; e.st2 = 3; G.boss = e; toast('THE WATCHER HAS AWOKEN!', HX('#ff5a5a')); sfx(70, 0.9, 0.09, 'sawtooth'); sfx(55, 1.1, 0.07, 'square'); } }
+      if (it.n <= 0) G.inv[G.sel] = null; }
+    function step(dt) { const P = G.P; G.clock = (G.clock + dt / 300) % 1; if (G.clock < dt / 300) G.day++;
+      if (G.dead > 0) { G.dead -= dt; if (G.dead <= 0) { G.dead = 0; P.x = SPAWN[0] * T; P.y = (colSurf(SPAWN[0])) * T - P.h - 1; P.hp = P.mhp; P.vx = P.vy = 0; P.inv = 2; G.camInit = true; } return; }
+      const K = G.keys; let mx = (K.r ? 1 : 0) - (K.l ? 1 : 0), jmp = !!K.j, down = !!K.d; if (G.joy) { const dx = G.joy.x - G.joy.ox, dy = G.joy.y - G.joy.oy; if (Math.abs(dx) > 4) mx = Math.sign(dx); if (dy < -12) jmp = true; if (dy > 12) down = true; } if (Object.values(G.ptrs).indexOf('jump') >= 0) jmp = true;
+      P.inv = Math.max(0, P.inv - dt); G.useCd = Math.max(0, G.useCd - dt); G.swing = Math.max(0, G.swing - dt); if ((G.use && G.inv[G.sel] && PICK[G.inv[G.sel].id]) && G.swing <= 0 && G.mine) G.swing = 0.3;
+      P.vx += (mx * 72 - P.vx) * Math.min(1, dt * (P.on ? 14 : 7)); if (mx && !G.use) P.face = mx;
+      if (jmp && P.on) { P.vy = -190; P.on = false; P.jumpH = 0.22; sfx(400, 0.04, 0.03, 'square'); } if (jmp && P.jumpH > 0 && P.vy < 0) { P.jumpH -= dt; P.vy -= 260 * dt; } else P.jumpH = 0;
+      P.vy = Math.min(380, P.vy + 640 * dt); P.dropT = down; const vyb = P.vy; moveBox(P, dt, true, true); if (P.on && vyb > 360) { const dmg = Math.floor((vyb - 360) / 2 + 8); hurtP(dmg, P.x + 4); toast('OUCH'); }
+      P.x = clamp(P.x, T, (WW - 2) * T); P.anim += Math.abs(P.vx) * dt; P.regen += dt; if (P.regen > 4 && P.hp < P.mhp) { P.hp = Math.min(P.mhp, P.hp + dt * 2.2); }
+      useItem(dt);
+      // enemies
+      G.spawnT -= dt; if (G.spawnT <= 0) { G.spawnT = 2 + Math.random() * 2.5; trySpawn(); }
+      const pb = [P.x, P.y, P.x + P.w, P.y + P.h], pcx = P.x + 4, pcy = P.y + 8;
+      for (const e of G.en) { e.hf = Math.max(0, e.hf - dt); e.t -= dt; const dx = pcx - (e.x + e.w / 2), dy = pcy - (e.y + e.h / 2), d = Math.hypot(dx, dy);
+        if (d > 520 && e.k !== 'boss') { e.dead = true; continue; }
+        if (e.k === 'slime') { e.vy = Math.min(380, e.vy + 640 * dt); if (e.on) { e.vx *= Math.max(0, 1 - dt * 8); if (e.t <= 0) { e.face = Math.sign(dx) || 1; e.vy = -150 - Math.random() * 60; e.vx = e.face * (40 + Math.random() * 25); e.t = 0.9 + Math.random() * 1.2; } } moveBox(e, dt, false, true); }
+        else if (e.k === 'zombie') { e.face = Math.sign(dx) || 1; e.vx += (e.face * 34 - e.vx) * Math.min(1, dt * 4); e.vy = Math.min(380, e.vy + 640 * dt); moveBox(e, dt, true, true); if (e.hitW && e.on) e.vy = -190; }
+        else if (e.k === 'eye' || e.k === 'bat' || e.k === 'servant') { const acc = e.k === 'bat' ? 160 : e.k === 'servant' ? 220 : 120, mxs = e.k === 'bat' ? 70 : e.k === 'servant' ? 110 : 80; e.vx += (dx / (d || 1) * acc + (e.k === 'bat' ? Math.sin(G.t * 7 + e.id) * 120 : 0)) * dt; e.vy += (dy / (d || 1) * acc + (e.k === 'bat' ? Math.cos(G.t * 5 + e.id) * 120 : 0)) * dt; const s = Math.hypot(e.vx, e.vy); if (s > mxs) { e.vx *= mxs / s; e.vy *= mxs / s; } if (e.k === 'servant') { e.x += e.vx * dt; e.y += e.vy * dt; } else { moveBox(e, dt, false, false); if (e.hitW) e.vx = -e.vx * 0.8; } }
+        else if (e.k === 'boss') bossAI(e, dt, dx, dy, d);
+        if (!G.dead && P.inv <= 0 && ov(pb, [e.x + 1, e.y + 1, e.x + e.w - 1, e.y + e.h - 1])) hurtP(e.k === 'boss' && e.ph2 ? 28 : e.dmg, e.x + e.w / 2); }
+      G.en = G.en.filter(e => !e.dead);
+      for (const dr of G.drops) { dr.t += dt; const ddx = pcx - dr.x, ddy = pcy - dr.y, dd = Math.hypot(ddx, ddy); if (dr.t > 0.35 && dd < 30) { dr.x += ddx / (dd || 1) * 160 * dt; dr.y += ddy / (dd || 1) * 160 * dt; if (dd < 7 && addItem(dr.id, dr.n)) { dr.dead = true; sfx(700 + Math.random() * 200, 0.03, 0.03, 'square'); } } else { dr.vy = Math.min(300, dr.vy + 500 * dt); dr.vx *= 0.96; const nx = dr.x + dr.vx * dt, ny = dr.y + dr.vy * dt; if (!solidPx(nx, dr.y)) dr.x = nx; else dr.vx = 0; if (!solidPx(dr.x, ny)) dr.y = ny; else dr.vy = 0; } } G.drops = G.drops.filter(d => !d.dead);
+      // grass slowly creeps over bare dirt in sunlight
+      for (let k = 0; k < 30; k++) { const x = Math.floor(CX / T) + Math.floor(Math.random() * (LW / T)), y = Math.floor(CY / T) + Math.floor(Math.random() * (LH / T)); if (tl(x, y) === DIRT && !SOLID[tl(x, y - 1)] && !wl(x, y - 1) && (tl(x - 1, y) === GRASS || tl(x + 1, y) === GRASS || tl(x - 1, y - 1) === GRASS || tl(x + 1, y + 1) === GRASS) && Math.random() < 0.02) setT(x, y, GRASS); }
+      G.saveT += dt; if (G.saveT > 15) { G.saveT = 0; saveGame(); } }
+    function bossAI(e, dt, dx, dy, d) { const P = G.P; e.st2 -= dt; if (!e.ph2 && e.hp < e.mh * 0.5) { e.ph2 = true; e.morph = 1.3; e.st = 'morph'; toast('THE WATCHER IS ENRAGED!', HX('#ff5a5a')); sfx(60, 0.8, 0.09, 'sawtooth'); G.shake = 0.8; }
+      if (e.st === 'morph') { e.morph -= dt; e.vx *= 0.9; e.vy *= 0.9; e.spin = (e.spin || 0) + dt * 20; if (e.morph <= 0) { e.st = 'dash'; e.n = 5; e.st2 = 0; } }
+      else if (e.st === 'hover') { const tx = dx, ty = dy - 70; e.vx += (tx * 3 - e.vx) * dt * 2; e.vy += (ty * 3 - e.vy) * dt * 2; const s = Math.hypot(e.vx, e.vy); if (s > 160) { e.vx *= 160 / s; e.vy *= 160 / s; } e.t2 = (e.t2 || 0) - dt; if (!e.ph2 && e.t2 <= 0 && G.en.filter(o => o.k === 'servant').length < 4) { e.t2 = 0.8; const s2 = spawnE('servant', e.x + 13, e.y + 20); s2.vy = 40; sfx(300, 0.08, 0.04, 'triangle'); } if (e.st2 <= 0) { e.st = 'dash'; e.n = e.ph2 ? 5 : 3; e.st2 = 0; } }
+      else if (e.st === 'dash') { if (e.st2 <= 0) { if (e.n <= 0) { e.st = 'hover'; e.st2 = e.ph2 ? 1.6 : 3; } else { e.n--; const sp = e.ph2 ? 330 : 255; e.vx = dx / (d || 1) * sp; e.vy = dy / (d || 1) * sp; e.st2 = e.ph2 ? 0.55 : 0.75; sfx(e.ph2 ? 140 : 110, 0.2, 0.06, 'sawtooth'); } } else if (e.st2 < 0.2) { e.vx *= 0.9; e.vy *= 0.9; } }
+      e.x += e.vx * dt; e.y += e.vy * dt; }
+
+    let prevPtr = null;
+    return Object.assign({
+      sk, hold: true, title: 'Deepland', how: 'Dig, build and survive in a 2D world. Craft better tools, find life crystals and summon the Watcher.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      geom() { const dp = Math.min(window.devicePixelRatio || 1, 2), st = dp >= 2 ? 0.5 : 1; PSZ = Math.max(2, Math.round(Math.min(this.w || 300, (this.h || 500) * 0.62) / 200 / st) * st); GX = (this.ox || 0) / PSZ; GY = (this.oy || 0) / PSZ; GW = (this.w || 300) / PSZ; GH = (this.h || 500) / PSZ; },
+      layout() { this.geom(); }, reset() { this.geom(); G.mode = 'title'; this.state = 'ready'; }, enter() { this.geom(); },
+      begin(load) { if (!(load && loadGame())) newWorld(); G.mode = 'play'; this.state = 'run'; G.camInit = true; G.titleWorld = false; G.invOpen = false; G.toasts = []; toast(load ? 'WELCOME BACK' : 'A NEW WORLD AWAITS', HX('#7ad450')); try { JING('start'); } catch (_) {} },
+      ui(q) { // returns true if a UI element took the press
+        if (G.mode === 'title') { for (const b of panel) if (q[0] >= b.x && q[1] >= b.y && q[0] < b.x + b.w && q[1] < b.y + b.h) { this.begin(b.id === 'cont'); return true; } return true; }
+        const H = hotbarRects(); if (q[1] >= H.y0 && q[1] < H.y0 + H.s && q[0] >= H.x0 && q[0] < H.x0 + H.n * H.s) { G.sel = Math.floor((q[0] - H.x0) / H.s); return true; }
+        const B = btns(); if (Math.abs(q[0] - B.bag[0]) < 9 && Math.abs(q[1] - B.bag[1]) < 9) { G.invOpen = !G.invOpen; G.held = -1; sfx(500, 0.04, 0.03, 'square'); return true; }
+        if (G.invOpen) { const R = invRects(); for (let i = 0; i < 20; i++) { const x = R.x0 + (i % 5) * R.s, y = R.y0 + 4 + Math.floor(i / 5) * R.s; if (q[0] >= x && q[1] >= y && q[0] < x + R.s && q[1] < y + R.s) { if (G.held < 0) { G.held = i; if (i < 10) G.sel = i; } else { const tmp = G.inv[i]; G.inv[i] = G.inv[G.held]; G.inv[G.held] = tmp; G.held = -1; } return true; } }
+          for (const r of recipeRows) if (q[0] >= r.x && q[1] >= r.y && q[0] < r.x + r.w && q[1] < r.y + r.h) { if (r.ok) { r.r.need.forEach(([id, n]) => takeItem(id, n)); if (!addItem(r.r.out, r.r.n)) drop(r.r.out, r.r.n, G.P.x + 4, G.P.y); toast('CRAFTED ' + INAME[r.r.out], HX('#7dffa0')); sfx(660, 0.08, 0.05, 'triangle'); } else sfx(150, 0.08, 0.04, 'square'); return true; }
+          G.invOpen = false; return true; }
+        return false; },
+      bind(cv) { this.cv = cv; cv.addEventListener('contextmenu', e => e.preventDefault());
+        const low = e => { const p = ptrPos(cv, e); return [(p[0] + this.ox) / PSZ, (p[1] + this.oy) / PSZ]; };
+        cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') G.touch = true; this.geom(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} const q = low(e);
+          if (this.ui(q)) return; if (G.mode !== 'play') return; const B = btns();
+          if (B.touch && e.pointerType !== 'mouse') { if (Math.hypot(q[0] - B.jump[0], q[1] - B.jump[1]) < B.r + 5) { G.ptrs[e.pointerId] = 'jump'; return; } if (q[0] < GX + GW * 0.38 && q[1] > GY + GH * 0.55) { G.joy = { id: e.pointerId, ox: q[0], oy: q[1], x: q[0], y: q[1] }; return; } }
+          G.ptrs[e.pointerId] = 'use'; G.useId = e.pointerId; G.use = [q[0] + CX, q[1] + CY]; G.useLow = q; });
+        cv.addEventListener('pointermove', e => { const q = low(e); if (e.pointerType === 'mouse') G.mouse = q; if (G.joy && G.joy.id === e.pointerId) { G.joy.x = q[0]; G.joy.y = q[1]; } else if (G.useId === e.pointerId && G.ptrs[e.pointerId] === 'use') G.useLow = q; });
+        cv.addEventListener('wheel', e => { if (G.mode !== 'play') return; e.preventDefault(); G.sel = (G.sel + (e.deltaY > 0 ? 1 : 9)) % 10; }, { passive: false });
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => cv.addEventListener(t, e => { if (G.ptrs[e.pointerId] === 'use') { G.use = null; G.useId = null; G.mine = null; } delete G.ptrs[e.pointerId]; if (G.joy && G.joy.id === e.pointerId) G.joy = null; }));
+        addEventListener('pagehide', () => { if (G.mode === 'play') saveGame(); });
+        this.__g = G; this.__tl = tl; this.__setT = setT; this.__surf = SURF; },
+      key(e) { const d = e.type === 'keydown', c = e.code; if (G.mode === 'title') { if (d && (c === 'Enter' || c === 'Space')) { this.begin(G.hasSave); return true; } return false; }
+        const m = { KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r', KeyW: 'j', ArrowUp: 'j', Space: 'j', KeyS: 'd', ArrowDown: 'd' }[c]; if (m) { G.keys[m] = d; return true; }
+        if (d && /^Digit[0-9]$/.test(c)) { const n = +c.slice(5); G.sel = n === 0 ? 9 : n - 1; return true; }
+        if (d && (c === 'KeyE' || c === 'KeyI' || c === 'Tab') && !e.repeat) { G.invOpen = !G.invOpen; G.held = -1; return true; }
+        if (d && c === 'KeyQ') { const it = G.inv[G.sel]; if (it) { drop(it.id, 1, G.P.x + 4 + G.P.face * 12, G.P.y + 4); it.n--; if (it.n <= 0) G.inv[G.sel] = null; } return true; }
+        return false; },
+      tick(dt) { this.decay(dt); G.t += dt; if (G.mode !== 'play') return; G.toasts.forEach(x => x.age += dt); G.toasts = G.toasts.filter(x => x.age < 2.4);
+        if (G.useLow && G.use) G.use = [G.useLow[0] + CX, G.useLow[1] + CY];
+        if (!G.invOpen || true) { const n = Math.ceil(dt / (1 / 120)); for (let i = 0; i < n; i++) step(dt / n); }
+        for (const q of G.parts) { q.l += dt; q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; } G.parts = G.parts.filter(q => q.l < q.ml); if (G.parts.length > 400) G.parts.splice(0, G.parts.length - 400);
+        G.shake = Math.max(0, G.shake - dt * 2.5);
+        const P = G.P, tx = P.x + 4 - (GX + GW * 0.5), ty = P.y + 8 - (GY + GH * 0.5); if (G.camInit) { G.cam.x = tx; G.cam.y = ty; G.camInit = false; } else { G.cam.x += (tx - G.cam.x) * Math.min(1, dt * 7); G.cam.y += (ty - G.cam.y) * Math.min(1, dt * 7); }
+        G.cam.x = clamp(G.cam.x, 0, WW * T - LW); G.cam.y = clamp(G.cam.y, -40, WH * T - LH);
+        this.score = (G.bossDown || 0) * 100 + G.inv.reduce((a, s) => a + (s ? s.n : 0), 0); },
+      draw() { const c = this.ctx; this.geom(); if (!this.W || !this.H) return; ensureBuf(this.W, this.H, PSZ); const t = G.t;
+        if (G.mode === 'title') drawTitle(t);
+        else { CX = Math.round(G.cam.x + (G.shake > 0 ? (Math.random() - 0.5) * 5 * G.shake : 0)); CY = Math.round(G.cam.y); if (G.mouse && !G.touch && !G.use) { const q = G.mouse, tx = Math.floor((q[0] + CX) / T), ty = Math.floor((q[1] + CY) / T); G.cursor = { tx, ty, ok: Math.hypot(tx * T + 3 - G.P.x - 4, ty * T + 3 - G.P.y - 8) <= REACH }; }
+          computeLight(); drawSky(t); drawTiles(t); drawMineCrack(); drawEnts(t); if (G.cursor && !G.invOpen) drawCursor(); drawHUD(t); }
+        lx.putImageData(img, 0, 0); c.save(); c.imageSmoothingEnabled = false; c.drawImage(lc, -this.ox, -this.oy, LW * PSZ, LH * PSZ); c.restore(); }
+    }, MIX);
+  }
+  skin('deep', { bg: ['#4aa0ff', '#1a2a1a'], pat: 'none', fg: '#ffffff', dim: '#e8f2ff', panel: '#1e2a48', pfg: '#ffffff', dark: true, line: '#0c0a12', lw: 0, r: 0, pal: ['#7ad450', '#ffd23f', '#4aa0ff', '#e8304a'], good: '#7ad450', bad: '#e8304a', font: '"Press Start 2P","Courier New",monospace', fw: 400, fs: 0.6, mono: '"Press Start 2P","Courier New",monospace', mw: 400, ms: 0.5, veil: 'rgba(12,10,18,.6)', vfg: '#ffffff', slide: '#1a2a1a', sbgc: '#1a2a1a', sfg: '#ffffff', sdim: '#d8e8d0', stag: '#7ad450', tsize: 17, tfw: 400, tls: '.02em', frame: '' });
+  NEW_SLIDES.push(mk(makeDeep(SKINS.deep), 'Deepland', SKINS.deep, 'A whole 2D world to dig through. Chop trees, mine copper, iron and gold, craft better gear, survive the night and summon the Watcher.', '#sandbox #mining #pixelart', 24.6e9, 7.9e9, 5.2e9, 'deep'));
 
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
