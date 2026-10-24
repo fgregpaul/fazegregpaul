@@ -7897,7 +7897,7 @@ const SUMMIT_LEVELS = [
     const MS = [1, 1, 1.5], RAD = [RWH, RWH, RT], MSUM = 3.5;
     const TREST = [-2, -11];
     const L01 = 20, L02 = Math.hypot(-10 - TREST[0], TREST[1]), L12 = Math.hypot(10 - TREST[0], TREST[1]);
-    const T_ = { KS: 0.2, DAMP: 0.05, ACC: 300, WHL: 0.6, VMAX: 250, BRK: 720, VREV: 60, REVA: 220, ROLL: 0.1, A_G: 16, A_A: 36, WMAX: 11, AIRD: 0.7, BOOSTV: 390, AIRG: 0.62 };
+    const T_ = { KS: 0.2, DAMP: 0.05, ACC: 300, WHL: 0.6, VMAX: 250, BRK: 720, VREV: 60, REVA: 220, ROLL: 0.1, A_G: 16, A_A: 28, WMAX: 8.4, AIRD: 0.7, BOOSTV: 390, AIRG: 0.62 };
     const newBike = () => ({ p: [[0, 0], [0, 0], [0, 0]], q: [[0, 0], [0, 0], [0, 0]], v: [[0, 0], [0, 0], [0, 0]], cn: [[0, -1], [0, -1], [0, -1]], ci: [0, 0, 0], ck: ['g', 'g', 'g'], ice: [0, 0, 0], air: 0, ang: 0, angU: 0, spin: [0, 0], rot: [0, 0], loop: null, loopA: 0, loopPrev: 0, landV: 0 });
     let bk = newBike();
     const M = { mode: 'menu', season: 0, sel: 0, li: 0, L: null, P: null, keys: {}, ptrs: {}, touch: false, t: 0, clk: 0, time: 0, started: false, bonus: 0, flips: 0, faults: 0, cam: { x: 0, y: 0 }, parts: [], rings: [], wx: [], toasts: [], shake: 0, pose: 0, crash: null, rag: null, pend: null, acc: 0, done: null, paused: false, cpi: 0, dyn: [], obs: [], crum: [], introT: 0, puff: 0, dust: 0, boostT: 0, lastTick: 0, inp: { gas: false, brake: false, lean: 0 }, bot: false, hint: 0 };
