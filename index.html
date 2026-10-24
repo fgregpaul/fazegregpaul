@@ -1484,6 +1484,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     crash: ['cashed at 1.01 like a coward', 'it went to 40x and i left at 2x', 'auto 2x is the strat', 'crashed at 1.00 instantly', 'held too long every time'],
     mines: ['one more tile', '10 mines is insane', 'cashed out at 5 gems', 'boom on the first tile', 'the next gem multiplier gets me'],
     voxel: ['built a house in 5 minutes', 'flying around the island is so peaceful', 'dug straight down and found bedrock', 'the glass looks so good', 'my tower reaches the clouds', 'how is this running on my phone', 'made a moat with the water', 'the trees look like real ones'],
+    moto: ['winter 3 took me 40 tries', 'the backflips knocking seconds off is so smart', 'that first loop scared me', 'barrels are the real final boss', 'got 3 stars on dune run finally', 'the snow falling is so pretty', 'crumbling bridges are pure evil', 'the pixel art on the rider is so clean', 'i keep landing on my head', 'spring levels are so cozy', 'aurora run at night goes crazy', 'frontflip into a loop is the move'],
     sling: ['angry birds who', 'why does the target move', 'the aim line helps a lot', 'i keep overshooting']
   };
   const MORECM = {
@@ -7613,6 +7614,643 @@ const SUMMIT_LEVELS = [
   }
   skin('isle', { bg: ['#3f6fa8', '#264a72'], pat: 'none', fg: '#ffffff', dim: '#e8f2ff', panel: '#3a5a2a', pfg: '#ffffff', dark: true, line: '#2a3a1a', lw: 0, r: 4, pal: ['#6aaa42', '#ffd23f', '#3d7bff', '#8a6043'], good: '#ffe14d', bad: '#ff6b6b', font: '"Silkscreen","Courier New",monospace', fw: 700, fs: 0.95, mono: '"Silkscreen","Courier New",monospace', mw: 400, ms: 0.8, veil: 'rgba(30,50,80,.55)', vfg: '#ffffff', slide: '#264a72', sbgc: '#264a72', sfg: '#ffffff', sdim: '#e0f0d8', stag: '#ffe14d', tsize: 24, tfw: 700, tls: '.02em', frame: '' });
   NEW_SLIDES.push(mk(makeVoxel(SKINS.isle), 'Block Isle', SKINS.isle, 'A little 3D island made of blocks. Dig it, build on it, fly around it. Nine blocks to build with.', '#blocks #sandbox #3d', 21.4e9, 6.8e9, 4.4e9, 'voxel'));
+
+  /* ===== Moto Seasons: pixel-art stunt bike, 12 levels across spring, summer, fall and winter ===== */
+  function makeMoto(sk) {
+    /* ---------- colour helpers + software pixel buffer ---------- */
+    const rgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const pk = (r, g, b) => ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+    const HXC = new Map(); const HX = h => { let v = HXC.get(h); if (v === undefined) { const c = rgb(h); v = pk(c[0], c[1], c[2]); HXC.set(h, v); } return v; };
+    const MX = (a, b, t) => { const A = rgb(a), B = rgb(b); return pk(Math.round(A[0] + (B[0] - A[0]) * t), Math.round(A[1] + (B[1] - A[1]) * t), Math.round(A[2] + (B[2] - A[2]) * t)); };
+    const DK = (c, f) => pk(Math.min(255, Math.round((c & 255) * f)), Math.min(255, Math.round((c >> 8 & 255) * f)), Math.min(255, Math.round((c >> 16 & 255) * f)));
+    const BL = (c, d, t) => pk(Math.round((c & 255) + ((d & 255) - (c & 255)) * t), Math.round((c >> 8 & 255) + ((d >> 8 & 255) - (c >> 8 & 255)) * t), Math.round((c >> 16 & 255) + ((d >> 16 & 255) - (c >> 16 & 255)) * t));
+    const hs = (x, y) => { let h = Math.imul(x | 0, 374761393) ^ Math.imul((y | 0) + 0x9e37, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return (h ^ (h >>> 16)) >>> 0; };
+    const BAY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
+    const wrapA = a => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+    let LW = 0, LH = 0, lc = null, lx = null, img = null, B32 = null;
+    const ensureBuf = (W0, H0, s) => { const nw = Math.max(16, Math.ceil(W0 / s)), nh = Math.max(16, Math.ceil(H0 / s)); if (nw !== LW || nh !== LH || !lc) { LW = nw; LH = nh; lc = document.createElement('canvas'); lc.width = LW; lc.height = LH; lx = lc.getContext('2d'); img = lx.createImageData(LW, LH); B32 = new Uint32Array(img.data.buffer); } };
+    const PX = (x, y, c) => { x = Math.floor(x); y = Math.floor(y); if (x >= 0 && y >= 0 && x < LW && y < LH) B32[y * LW + x] = c; };
+    const RF = (x, y, w, h, c) => { x = Math.floor(x); y = Math.floor(y); const x1 = Math.min(LW, x + Math.floor(w)), y1 = Math.min(LH, y + Math.floor(h)); x = Math.max(0, x); y = Math.max(0, y); if (x1 <= x) return; for (let j = y; j < y1; j++) B32.fill(c, j * LW + x, j * LW + x1); };
+    const DV = (x, y, w, h, c, ph) => { x = Math.floor(x); y = Math.floor(y); const x1 = Math.min(LW, x + w), y1 = Math.min(LH, y + h); for (let j = Math.max(0, y); j < y1; j++) for (let i = Math.max(0, x); i < x1; i++) if (((i + j + (ph || 0)) & 1) === 0) B32[j * LW + i] = c; };
+    const DIM = (x, y, w, h, f) => { x = Math.floor(x); y = Math.floor(y); const x1 = Math.min(LW, x + w), y1 = Math.min(LH, y + h); for (let j = Math.max(0, y); j < y1; j++) for (let i = Math.max(0, x); i < x1; i++) { const o = j * LW + i; B32[o] = DK(B32[o], f); } };
+    const LINE = (x0, y0, x1, y1, c) => { const n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))); for (let i = 0; i <= n; i++) { const t = n ? i / n : 0; PX(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, c); } };
+    const BOX = (x, y, w, h, fill, edge, hi) => { x = Math.floor(x); y = Math.floor(y); RF(x + 1, y, w - 2, 1, edge); RF(x + 1, y + h - 1, w - 2, 1, edge); RF(x, y + 1, 1, h - 2, edge); RF(x + w - 1, y + 1, 1, h - 2, edge); RF(x + 1, y + 1, w - 2, h - 2, fill); if (hi != null) { RF(x + 2, y + 1, w - 4, 1, hi); } };
+
+    /* ---------- 3x5 bitmap font ---------- */
+    const FONT = { '0': [7, 5, 5, 5, 7], '1': [2, 6, 2, 2, 7], '2': [7, 1, 7, 4, 7], '3': [7, 1, 3, 1, 7], '4': [5, 5, 7, 1, 1], '5': [7, 4, 7, 1, 7], '6': [7, 4, 7, 5, 7], '7': [7, 1, 1, 2, 2], '8': [7, 5, 7, 5, 7], '9': [7, 5, 7, 1, 7],
+      A: [2, 5, 7, 5, 5], B: [6, 5, 6, 5, 6], C: [3, 4, 4, 4, 3], D: [6, 5, 5, 5, 6], E: [7, 4, 6, 4, 7], F: [7, 4, 6, 4, 4], G: [3, 4, 5, 5, 3], H: [5, 5, 7, 5, 5], I: [7, 2, 2, 2, 7], J: [1, 1, 1, 5, 2], K: [5, 5, 6, 5, 5], L: [4, 4, 4, 4, 7], M: [5, 7, 7, 5, 5], N: [6, 5, 5, 5, 5], O: [2, 5, 5, 5, 2], P: [6, 5, 6, 4, 4], Q: [2, 5, 5, 6, 3], R: [6, 5, 6, 5, 5], S: [3, 4, 2, 1, 6], T: [7, 2, 2, 2, 2], U: [5, 5, 5, 5, 7], V: [5, 5, 5, 5, 2], W: [5, 5, 7, 7, 5], X: [5, 5, 2, 5, 5], Y: [5, 5, 2, 2, 2], Z: [7, 1, 2, 4, 7],
+      ' ': [0, 0, 0, 0, 0], '.': [0, 0, 0, 0, 2], ',': [0, 0, 0, 2, 4], ':': [0, 2, 0, 2, 0], '-': [0, 0, 7, 0, 0], '+': [0, 2, 7, 2, 0], '!': [2, 2, 2, 0, 2], '?': [6, 1, 2, 0, 2], '/': [1, 1, 2, 4, 4], "'": [2, 2, 0, 0, 0], '(': [1, 2, 2, 2, 1], ')': [4, 2, 2, 2, 4], '*': [0, 5, 2, 5, 0], '<': [1, 2, 4, 2, 1], '>': [4, 2, 1, 2, 4], '=': [0, 7, 0, 7, 0], '#': [5, 7, 5, 7, 5], '%': [5, 1, 2, 4, 5], '&': [2, 5, 2, 5, 3] };
+    const OUTL = [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    const tw = (s, k) => Math.max(0, String(s).length * 4 - 1) * (k || 1);
+    const glyph = (g, x, y, k, c) => { for (let r = 0; r < 5; r++) { const row = g[r]; if (!row) continue; for (let b = 0; b < 3; b++) if (row & (4 >> b)) RF(x + b * k, y + r * k, k, k, c); } };
+    const PT = (s, x, y, k, c, o, al) => { s = String(s).toUpperCase(); k = k || 1; const w0 = tw(s, k); x = Math.round(al === 'c' ? x - w0 / 2 : al === 'r' ? x - w0 : x); y = Math.round(y);
+      if (o != null) for (const [dx, dy] of OUTL) for (let i = 0; i < s.length; i++) { const g = FONT[s[i]]; if (g) glyph(g, x + i * 4 * k + dx, y + dy, k, o); }
+      for (let i = 0; i < s.length; i++) { const g = FONT[s[i]]; if (g) glyph(g, x + i * 4 * k, y, k, c); } return w0; };
+
+    /* ---------- sprites: rasterised from primitives, upscaled 4x with scale2x for clean rotation ---------- */
+    const s2x = (d, w, h) => { const o = new Uint32Array(w * h * 4), W2 = w * 2; const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? 0 : d[y * w + x];
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const P0 = d[y * w + x], A = at(x, y - 1), Bb = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1); let e0 = P0, e1 = P0, e2 = P0, e3 = P0;
+        if (C === A && C !== D && A !== Bb) e0 = A; if (A === Bb && A !== C && Bb !== D) e1 = Bb; if (D === C && D !== Bb && C !== A) e2 = C; if (Bb === D && Bb !== A && D !== C) e3 = D;
+        o[2 * y * W2 + 2 * x] = e0; o[2 * y * W2 + 2 * x + 1] = e1; o[(2 * y + 1) * W2 + 2 * x] = e2; o[(2 * y + 1) * W2 + 2 * x + 1] = e3; } return o; };
+    const mkSpr = (w, h, ox, oy, fn, outline) => { const d = new Uint32Array(w * h);
+      const put = (x, y, c) => { x = Math.floor(x) + ox; y = Math.floor(y) + oy; if (x >= 0 && y >= 0 && x < w && y < h) d[y * w + x] = c; };
+      const line = (x0, y0, x1, y1, c, th) => { th = th || 1; const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2) + 1; for (let i = 0; i <= n; i++) { const t = i / n, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t; for (let a = 0; a < th; a++) for (let b = 0; b < th; b++) put(x + a - (th - 1) / 2, y + b - (th - 1) / 2, c); } };
+      const rect = (x, y, rw, rh, c) => { for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) put(x + i, y + j, c); };
+      const disc = (cx, cy, r, c) => { for (let y = Math.floor(cy - r - 1); y <= cy + r; y++) for (let x = Math.floor(cx - r - 1); x <= cx + r; x++) if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= r * r) put(x, y, c); };
+      fn({ put, line, rect, disc });
+      if (outline) { const o = d.slice(); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (d[y * w + x]) continue; if ((x > 0 && d[y * w + x - 1]) || (x < w - 1 && d[y * w + x + 1]) || (y > 0 && d[(y - 1) * w + x]) || (y < h - 1 && d[(y + 1) * w + x])) o[y * w + x] = outline; } d.set(o); }
+      return { w, h, ox, oy, d, hd: s2x(s2x(d, w, h), w * 2, h * 2) };
+    };
+    const blit = (sp, x, y, flip) => { x = Math.round(x) - sp.ox; y = Math.round(y) - sp.oy; for (let j = 0; j < sp.h; j++) { const yy = y + j; if (yy < 0 || yy >= LH) continue; for (let i = 0; i < sp.w; i++) { const xx = x + i; if (xx < 0 || xx >= LW) continue; const c = sp.d[j * sp.w + (flip ? sp.w - 1 - i : i)]; if (c) B32[yy * LW + xx] = c; } } };
+    const blitR = (sp, x, y, a) => { const ca = Math.cos(a), sa = Math.sin(a), hd = sp.hd, W4 = sp.w * 4, H4 = sp.h * 4;
+      const R = Math.ceil(Math.hypot(Math.max(sp.ox, sp.w - sp.ox), Math.max(sp.oy, sp.h - sp.oy))) + 1, cx = Math.floor(x), cy = Math.floor(y);
+      for (let j = -R; j <= R; j++) { const yy = cy + j; if (yy < 0 || yy >= LH) continue; const dy = yy + 0.5 - y;
+        for (let i = -R; i <= R; i++) { const xx = cx + i; if (xx < 0 || xx >= LW) continue; const dx = xx + 0.5 - x;
+          const u = (dx * ca + dy * sa + sp.ox) * 4, v = (-dx * sa + dy * ca + sp.oy) * 4; if (u < 0 || v < 0 || u >= W4 || v >= H4) continue; const c = hd[(v | 0) * W4 + (u | 0)]; if (c) B32[yy * LW + xx] = c; } } };
+
+    const OUT = HX('#1a1222');
+    const C_ = { red: HX('#e8312f'), redH: HX('#ff7464'), redD: HX('#a51d2a'), wht: HX('#f6f4ef'), sil: HX('#d4d9e2'), silD: HX('#8b92a3'), eng: HX('#4b4d5c'), engH: HX('#787b8e'), blk: HX('#25212c'), seat: HX('#2b2733'), seatH: HX('#4a4456'),
+      jer: HX('#2f7bff'), jerH: HX('#7fb2ff'), jerD: HX('#1f4fb8'), pant: HX('#27304a'), pantH: HX('#3d4a6e'), boot: HX('#1f1d26'), helm: HX('#fbfbfb'), helmS: HX('#ff3b3b'), visor: HX('#1d2d4a'), visH: HX('#7fd3ff'), glove: HX('#1c1a22'), skin: HX('#f2c49a'), yel: HX('#ffd23f') };
+    const BIKE = mkSpr(40, 22, 20, 17, ({ put, line, rect }) => {
+      line(-10, 0, -2, -3, C_.eng, 2); line(-9, -1, -3, -3, C_.engH, 1);
+      line(-2, -3, -11, -8, C_.silD, 1); rect(-17, -10, 7, 2, C_.sil); rect(-17, -10, 1, 2, C_.blk); rect(-15, -10, 4, 1, C_.wht);
+      rect(-5, -6, 7, 5, C_.eng); rect(-4, -5, 5, 1, C_.engH); rect(-4, -3, 5, 1, C_.engH); rect(-1, -2, 2, 1, C_.blk);
+      line(-3, -6, -11, -10, C_.blk, 1);
+      rect(-12, -12, 10, 2, C_.seat); rect(-11, -12, 8, 1, C_.seatH);
+      line(-19, -13, -11, -10, C_.red, 2); put(-19, -14, C_.red); line(-18, -14, -12, -12, C_.redH, 1);
+      rect(-10, -10, 6, 3, C_.wht); put(-8, -9, C_.blk); put(-7, -9, C_.blk);
+      rect(-2, -13, 7, 4, C_.red); rect(-1, -13, 5, 1, C_.redH); rect(-2, -11, 7, 1, C_.wht); rect(1, -9, 4, 4, C_.redD); rect(2, -9, 2, 3, C_.red);
+      line(4, -10, 0, -4, C_.blk, 1);
+      line(10, 0, 6, -12, C_.sil, 2); line(10, 0, 8, -5, C_.silD, 2);
+      line(4, -15, 8, -14, C_.blk, 1); put(3, -15, C_.blk);
+      line(7, -8, 15, -7, C_.red, 2); line(8, -9, 14, -8, C_.redH, 1);
+      rect(6, -12, 3, 3, C_.wht); put(7, -11, C_.yel);
+    }, OUT);
+    // rider: origin is the seat particle. poses: 0 neutral, 1 lean back, 2 lean forward, 3 crash
+    const POSES = [
+      { hip: [-1, 0], knee: [4, 2], foot: [2, 7], sh: [2, -6], head: [3.5, -9.5], elb: [5, -4], hand: [8, -3] },
+      { hip: [-3, 0], knee: [3, 2], foot: [2, 7], sh: [-1, -6], head: [-0.5, -9.8], elb: [3, -5], hand: [8, -3] },
+      { hip: [0, -1], knee: [5, 1], foot: [2, 7], sh: [5, -5], head: [7, -7.5], elb: [6, -2], hand: [8, -3] },
+      { hip: [0, 0], knee: [4, 4], foot: [6, 7], sh: [-1, -6], head: [-2, -9.5], elb: [-5, -6], hand: [-7, -9] }
+    ];
+    const RIDER = POSES.map(P => mkSpr(26, 26, 12, 14, ({ put, line, disc }) => {
+      line(P.knee[0], P.knee[1], P.foot[0], P.foot[1], C_.pant, 2); line(P.hip[0], P.hip[1], P.knee[0], P.knee[1], C_.pant, 2); line(P.hip[0], P.hip[1] - 1, P.knee[0], P.knee[1] - 1, C_.pantH, 1);
+      line(P.foot[0] - 1, P.foot[1], P.foot[0] + 1, P.foot[1], C_.boot, 2);
+      line(P.hip[0], P.hip[1], P.sh[0], P.sh[1], C_.jer, 3); line(P.hip[0] + 1, P.hip[1] - 1, P.sh[0] + 1, P.sh[1], C_.jerD, 1); line(P.hip[0] - 1, P.hip[1] - 1, P.sh[0] - 0.5, P.sh[1], C_.jerH, 1);
+      line(P.sh[0], P.sh[1], P.elb[0], P.elb[1], C_.jer, 2); line(P.elb[0], P.elb[1], P.hand[0], P.hand[1], C_.jerD, 1); put(P.hand[0], P.hand[1], C_.glove);
+      disc(P.head[0], P.head[1], 2.9, C_.helm); line(P.head[0] - 2.4, P.head[1] - 1, P.head[0] + 1.5, P.head[1] - 2.6, C_.helmS, 1);
+      put(P.head[0] + 1, P.head[1], C_.visor); put(P.head[0] + 2, P.head[1], C_.visor); put(P.head[0] + 2, P.head[1] - 1, C_.visH); put(P.head[0] + 2, P.head[1] + 1, C_.visor);
+      line(P.head[0] + 1.5, P.head[1] + 1.8, P.head[0] + 3.4, P.head[1] + 1.4, C_.helmS, 1);
+    }, OUT));
+    const BARREL = mkSpr(12, 14, 6, 13, ({ rect, put }) => {
+      rect(-4, -11, 8, 11, C_.red); rect(-3, -11, 2, 11, C_.redH); rect(2, -11, 2, 11, C_.redD);
+      rect(-4, -9, 8, 1, C_.redD); rect(-4, -3, 8, 1, C_.redD); rect(-4, -8, 8, 4, C_.yel); rect(-1, -7, 2, 2, C_.blk); put(-3, -8, HX('#fff3a0'));
+      rect(-3, -12, 6, 1, C_.silD);
+    }, OUT);
+    const STAR = [[2, 0], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [1, 3], [2, 3], [3, 3], [1, 4], [3, 4]];
+    const drawStarK = (x, y, k, c, o) => { x = Math.floor(x); y = Math.floor(y); if (o != null) STAR.forEach(([a, b]) => RF(x + a * k - 1, y + b * k - 1, k + 2, k + 2, o)); STAR.forEach(([a, b]) => RF(x + a * k, y + b * k, k, k, c)); };
+    const drawStar = (x, y, c, o) => { x = Math.floor(x); y = Math.floor(y); if (o != null) STAR.forEach(([a, b]) => { PX(x + a - 1, y + b, o); PX(x + a + 1, y + b, o); PX(x + a, y + b - 1, o); PX(x + a, y + b + 1, o); }); STAR.forEach(([a, b]) => PX(x + a, y + b, c)); };
+    const drawLock = (x, y, c) => { RF(x + 1, y, 3, 1, c); RF(x, y + 1, 1, 2, c); RF(x + 4, y + 1, 1, 2, c); RF(x, y + 3, 5, 3, c); };
+
+    /* ---------- the four seasons ---------- */
+    const SEAS = {
+      spring: { name: 'SPRING', sky: ['#5fb8ff', '#9ad8ff', '#d9f6ff'], sun: '#fff3a8', cloud: '#ffffff', cloudSh: '#cfe9ff', far: '#86b6dc', farHi: '#a7cfee', mid: '#62bb57', midHi: '#88d870', near: '#3b8a45',
+        grass: ['#b9f27e', '#6ed24f', '#4cab3c'], dirt: ['#8c5a3b', '#76492f', '#5c3825'], speck: '#a97a52', speck2: '#4e2f20', plat: 'wood', tree: 'blossom', fx: 'petal', ui: '#ff8fc8', tab: '#6ed24f' },
+      summer: { name: 'SUMMER', sky: ['#2a7bff', '#69b4ff', '#ffe4a6'], sun: '#fff0a0', cloud: '#ffffff', cloudSh: '#ffe0c0', far: '#d48a5c', farHi: '#eca674', mid: '#e8b866', midHi: '#f6d08c', near: '#c48744',
+        grass: ['#fff6c2', '#f3d282', '#e2b762'], dirt: ['#daa45c', '#c68c4a', '#a9733b'], speck: '#eab976', speck2: '#9a6634', plat: 'stone', tree: 'cactus', fx: 'heat', ui: '#ffd23f', tab: '#ffb13d', strata: true },
+      fall: { name: 'FALL', sky: ['#3d2c74', '#a1528a', '#ffa45c'], sun: '#ffcf70', cloud: '#ffb47a', cloudSh: '#c46a7a', far: '#6f4a86', farHi: '#8e639e', mid: '#a84e2e', midHi: '#cf6b38', near: '#55242e',
+        grass: ['#f0c64e', '#cf9a2c', '#9c7020'], dirt: ['#6e4128', '#593320', '#45271a'], speck: '#8a5634', speck2: '#331c12', plat: 'wood', tree: 'autumn', fx: 'leaf', ui: '#ff8a3d', tab: '#ff7a2a' },
+      winter: { name: 'WINTER', sky: ['#22386e', '#5675b4', '#b5cdef'], sun: '#f2f6ff', cloud: '#e8f0ff', cloudSh: '#a9bde0', far: '#7088bc', farHi: '#ffffff', mid: '#2e4b6e', midHi: '#5a7aa0', near: '#1c3150',
+        grass: ['#ffffff', '#e6f2ff', '#bcd5f2'], dirt: ['#566a8e', '#46587c', '#374767'], speck: '#7a8fb5', speck2: '#2c3a58', plat: 'ice', tree: 'pine', fx: 'snow', ui: '#9ad8ff', tab: '#8fd0ff', stars: true }
+    };
+    const NIGHT = {
+      spring: { sky: ['#101a40', '#2c3f7a', '#6b7fc0'], far: '#34467e', farHi: '#4a5c96', mid: '#2a5a4a', midHi: '#3d7a5e', near: '#15302a', sun: '#f6f1d0', cloud: '#5a6aa0', cloudSh: '#3a4a80', stars: true, moon: true },
+      summer: { sky: ['#1e1446', '#7a3a78', '#ff8a5a'], far: '#5a2f52', farHi: '#7a4466', mid: '#a85a4a', midHi: '#c8745a', near: '#4a2234', sun: '#ffd27a', cloud: '#ff9a7a', cloudSh: '#a8506a', stars: true },
+      fall: { sky: ['#0c0c24', '#26204a', '#523a6a'], far: '#2e2648', farHi: '#3e335c', mid: '#4a2a2a', midHi: '#643a30', near: '#1c1018', sun: '#ffe9b0', cloud: '#3a3456', cloudSh: '#2a2440', stars: true, moon: true },
+      winter: { sky: ['#060b20', '#14244a', '#2d4a78'], far: '#24345e', farHi: '#cfe0ff', mid: '#16283e', midHi: '#2c4460', near: '#0c1828', sun: '#eef4ff', cloud: '#2a3a5e', cloudSh: '#1c2846', stars: true, moon: true, aurora: true }
+    };
+    const palCache = {};
+    const pal = (id, night) => { const key = id + (night ? 'n' : ''); if (palCache[key]) return palCache[key]; const s = Object.assign({}, SEAS[id], night ? NIGHT[id] : {}); const P = { id, name: s.name, raw: s };
+      ['sun', 'cloud', 'cloudSh', 'far', 'farHi', 'mid', 'midHi', 'near', 'speck', 'speck2', 'ui', 'tab'].forEach(k => P[k] = HX(s[k])); P.grass = s.grass.map(HX); P.dirt = s.dirt.map(HX);
+      P.sky = s.sky; P.stars = !!s.stars; P.moon = !!s.moon; P.aurora = !!s.aurora; P.night = !!night; P.tree = s.tree; P.fx = s.fx; P.plat = s.plat; P.strata = !!s.strata;
+      if (night) { P.grass = id === 'winter' ? ['#e4ecff', '#b9c9ef', '#8ea4d6'].map(HX) : P.grass.map(c => DK(c, 0.62)); P.dirt = P.dirt.map(c => DK(c, 0.6)); P.speck = DK(P.speck, 0.6); P.speck2 = DK(P.speck2, 0.6); }
+      P.skyRows = null; P.trees = mkTrees(s.tree, night); palCache[key] = P; return P; };
+    function mkTrees(kind, night) { const f = night ? 0.55 : 1, T = [];
+      const c = h => DK(HX(h), f);
+      if (kind === 'blossom') for (let v = 0; v < 3; v++) T.push(mkSpr(13, 15, 6, 14, ({ rect, disc, put }) => { rect(-1, -6, 2, 6, c('#7a4a32')); put(1, -4, c('#5a3424')); const cc = [c('#ffb3d9'), c('#ff8fc8'), c('#ffd1e8')][v]; disc(0, -9, 4.6 + v * 0.4, cc); disc(-2, -10, 2.2, c('#ffd8ec')); put(2, -8, c('#e86aa8')); put(-3, -7, c('#e86aa8')); put(1, -12, c('#ffffff')); }));
+      if (kind === 'cactus') { T.push(mkSpr(11, 16, 5, 15, ({ rect, put }) => { rect(-1, -13, 3, 13, c('#3f9a4a')); rect(0, -13, 1, 13, c('#66c46a')); rect(-4, -9, 2, 4, c('#3f9a4a')); rect(-3, -6, 2, 1, c('#3f9a4a')); rect(3, -11, 2, 5, c('#3f9a4a')); rect(2, -7, 2, 1, c('#3f9a4a')); put(0, -14, c('#ff6b9a')); })); T.push(mkSpr(13, 14, 6, 13, ({ rect, line }) => { line(0, 0, 1, -10, c('#8a6a3a'), 2); rect(-5, -12, 11, 2, c('#3faa5a')); line(1, -11, -5, -8, c('#3faa5a'), 1); line(1, -11, 6, -8, c('#3faa5a'), 1); rect(-1, -10, 2, 2, c('#7a4a2a')); })); }
+      if (kind === 'autumn') for (let v = 0; v < 3; v++) T.push(mkSpr(13, 15, 6, 14, ({ rect, disc, put }) => { rect(-1, -6, 2, 6, c('#4a2c1e')); const cc = [c('#ff7a2a'), c('#e8432e'), c('#ffc23a')][v]; disc(0, -9, 4.6 + v * 0.3, cc); disc(-1.5, -10.5, 2.2, DK(cc, 1.25)); put(2, -7, DK(cc, 0.7)); put(-3, -8, DK(cc, 0.7)); }));
+      if (kind === 'pine') for (let v = 0; v < 2; v++) T.push(mkSpr(13, 18, 6, 17, ({ rect, line }) => { rect(-1, -3, 2, 3, c('#3a2a24')); for (let i = 0; i < 4; i++) { const y = -3 - i * 3, hw = 5 - i; rect(-hw, y - 2, hw * 2 + 1, 2, c(v ? '#1f5a4a' : '#24644f')); line(-hw, y - 2, hw, y - 2, c('#f2f8ff'), 1); } rect(0, -16, 1, 2, c('#f2f8ff')); }));
+      return T; }
+
+    /* ---------- level builder: a little track language ---------- */
+    const CELL = 32;
+    function build(def) {
+      const G = [], LP = [], OB = [], CPS = [], ICE = [], CR = [], DEC = []; let fin = null;
+      let x = 0, y = 0, cur = [[-400, 0], [0, 0]], curTh = 0, mode = 0;
+      const pt = (nx, ny) => { if (!cur) { cur = [[x, y]]; curTh = mode; } cur.push([nx, ny]); x = nx; y = ny; };
+      const curve = (len, f) => { const x0 = x, y0 = y, n = Math.max(2, Math.ceil(len / 5)); for (let i = 1; i <= n; i++) { const t = i / n; pt(x0 + len * t, y0 + f(t)); } };
+      const endG = () => { if (cur && cur.length > 1) G.push({ pts: cur, th: curTh }); cur = null; };
+      const P = s => { const [k, a, b, c, d, e, f] = s;
+        if (k === 'flat') pt(x + a, y);
+        else if (k === 'line') pt(x + a, y + b);
+        else if (k === 'slope') curve(a, t => b * (1 - Math.cos(Math.PI * t)) / 2);
+        else if (k === 'ramp') curve(a, t => -b * t * t);
+        else if (k === 'land') curve(a, t => b * (1 - (1 - t) * (1 - t)));
+        else if (k === 'hill') curve(a, t => -b * (1 - Math.cos(TAU * t)) / 2);
+        else if (k === 'bumps') curve(a, t => -b * (1 - Math.cos(TAU * t * c)) / 2);
+        else if (k === 'step') pt(x + 2, y + a);
+        else if (k === 'gap') { endG(); x += a; y += (b || 0); }
+        else if (k === 'kick') { P(['ramp', b || 50, a]); P(['step', a]); }
+        else if (k === 'jump') { const h = c || 22; P(['ramp', 60, h]); P(['gap', a, h + (b || 0)]); P(['land', d || 90, 16]); }
+        else if (k === 'P') mode = a || 8;
+        else if (k === 'G') mode = 0;
+        else if (k === 'loop') { LP.push({ cx: x + a, cy: y - a, R: a }); pt(x + 2 * a, y); }
+        else if (k === 'crumble') { endG(); const y0 = y + (b || 0); CR.push({ x0: x, y0, x1: x + a, y1: y0, th: c || 7 }); x += a; y = y0; }
+        else if (k === 'barrel') OB.push({ t: 'barrel', x: x + (a || 0), hy: y, n: b || 1 });
+        else if (k === 'saw') OB.push({ t: 'saw', x: x + a, hy: y, dy: b, r: c || 9, ax: d || 0, ay: e || 0, per: f || 2 });
+        else if (k === 'orbit') OB.push({ t: 'orbit', x: x + a, hy: y, dy: b, R: c, w: d, r: e || 7, ph: f || 0 });
+        else if (k === 'spikes') OB.push({ t: 'spikes', x: x + a, x1: x + a + b, hy: y });
+        else if (k === 'boost') OB.push({ t: 'boost', x: x + (a || 0), x1: x + (a || 0) + (b || 34), hy: y });
+        else if (k === 'spring') OB.push({ t: 'spring', x: x + (a || 0), x1: x + (a || 0) + 16, hy: y, pow: b || 430 });
+        else if (k === 'cp') { CPS.push({ x: x + 20, hy: y }); pt(x + 170, y); }
+        else if (k === 'ice') ICE.push([x, x + a]);
+        else if (k === 'sign') DEC.push({ t: 'sign', x: x + (a || 0), hy: y, k: b || 0 });
+        else if (k === 'finish') fin = { x: x + (a || 0), hy: y };
+      };
+      def.parts.forEach(P); endG();
+      const L = { def, G, LP, OB, CPS, ICE, CR, DEC, fin, end: x };
+      const iceAt = xx => ICE.some(r => xx >= r[0] && xx <= r[1]);
+      L.surf = (xx, hint) => { let best = null, bd = 1e9; const test = yy => { const dd = Math.abs(yy - hint); if (dd < bd) { bd = dd; best = yy; } };
+        for (const g of G) { const q = g.pts; if (xx < q[0][0] || xx > q[q.length - 1][0]) continue; for (let i = 1; i < q.length; i++) if (xx <= q[i][0] && xx >= q[i - 1][0] && q[i][0] > q[i - 1][0]) { const t = (xx - q[i - 1][0]) / (q[i][0] - q[i - 1][0]); test(q[i - 1][1] + (q[i][1] - q[i - 1][1]) * t); break; } }
+        for (const p of CR) if (xx >= p.x0 && xx <= p.x1) test(p.y0);
+        return best == null ? hint : best; };
+      OB.forEach(o => { o.y = L.surf(o.x, o.hy); if (o.x1 != null) o.y1 = L.surf(o.x1, o.hy); if (o.t === 'saw' || o.t === 'orbit') o.cy = o.y + o.dy; });
+      CPS.forEach(c => c.y = L.surf(c.x, c.hy)); DEC.forEach(c => c.y = L.surf(c.x, c.hy));
+      if (!fin) fin = { x: x - 200, hy: y }; fin.y = L.surf(fin.x, fin.hy); L.fin = fin;
+      CPS.unshift({ x: 70, y: L.surf(70, 0), hy: 0, start: true });
+      const SEG = [], GRID = new Map();
+      const addS = (x1, y1, x2, y2, ice, kind) => { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy; if (l2 < 1e-6) return; const s = { x1, y1, x2, y2, dx, dy, l2, ice, kind }; SEG.push(s);
+        for (let c = Math.floor((Math.min(x1, x2) - 1) / CELL); c <= Math.floor((Math.max(x1, x2) + 1) / CELL); c++) { let a = GRID.get(c); if (!a) GRID.set(c, a = []); a.push(s); } };
+      G.forEach(g => { const q = g.pts, th = g.th, ice0 = th && def.season === 'winter'; for (let i = 1; i < q.length; i++) addS(q[i - 1][0], q[i - 1][1], q[i][0], q[i][1], ice0 || iceAt((q[i - 1][0] + q[i][0]) / 2), q[i][0] - q[i - 1][0] < 0.5 ? 'w' : 'g');
+        const a = q[0], z = q[q.length - 1]; if (!th) { addS(a[0], a[1] + 2000, a[0], a[1], false, 'w'); addS(z[0], z[1], z[0], z[1] + 2000, false, 'w'); }
+        else { addS(z[0], z[1], z[0], z[1] + th, false, 'w'); for (let i = q.length - 1; i > 0; i--) addS(q[i][0], q[i][1] + th, q[i - 1][0], q[i - 1][1] + th, false, 'b'); addS(a[0], a[1] + th, a[0], a[1], false, 'w'); } });
+      L.SEG = SEG; L.GRID = GRID; L.iceAt = iceAt;
+      L.kill = []; const nb = Math.ceil((x + 600) / 64); for (let i = 0; i < nb; i++) { let m = -1e9; const xa = i * 64 - 320, xb = i * 64 + 384;
+        G.forEach(g => g.pts.forEach(q => { if (q[0] >= xa && q[0] <= xb) m = Math.max(m, q[1] + (g.th || 0)); })); CR.forEach(p => { if (p.x1 >= xa && p.x0 <= xb) m = Math.max(m, p.y0 + p.th); }); L.kill.push(m > -1e9 ? m + 120 : 400); }
+      L.killAt = xx => L.kill[Math.max(0, Math.min(L.kill.length - 1, Math.floor(xx / 64)))];
+      return L;
+    }
+
+    /* ---------- the twelve tracks ---------- */
+    const LEVELS = [
+      { id: 'sp1', season: 'spring', name: 'First Bloom', stars: [24, 33], parts: [
+        ['flat', 220], ['slope', 160, -26], ['flat', 60], ['slope', 160, 26], ['flat', 60], ['hill', 160, 24], ['flat', 40], ['bumps', 200, 6, 3], ['flat', 80],
+        ['cp'], ['sign', 20, 1], ['flat', 60], ['jump', 80, 0, 18], ['flat', 120],
+        ['hill', 220, 40], ['flat', 60], ['sign', 10, 0], ['flat', 40], ['kick', 22], ['barrel', 70], ['flat', 220],
+        ['cp'], ['boost', 20], ['flat', 120], ['loop', 56], ['flat', 120],
+        ['slope', 200, -60], ['flat', 60], ['jump', 120, 60, 22], ['flat', 100],
+        ['cp'], ['bumps', 240, 8, 4], ['flat', 60], ['hill', 200, 36], ['flat', 80], ['kick', 20], ['spikes', 50, 30], ['flat', 180],
+        ['slope', 160, -40], ['flat', 40], ['jump', 100, 40], ['flat', 60], ['finish', 60], ['flat', 320]] },
+      { id: 'sp2', season: 'spring', name: 'Petal Loop', stars: [27, 37], parts: [
+        ['flat', 200], ['hill', 180, 30], ['flat', 40], ['boost', 0], ['flat', 100], ['loop', 56], ['flat', 100],
+        ['kick', 22], ['barrel', 50], ['barrel', 75], ['flat', 220],
+        ['cp'], ['slope', 160, -40], ['flat', 50], ['spring', 30, 336], ['flat', 110], ['step', -90], ['flat', 360],
+        ['jump', 110, 50], ['flat', 60], ['hill', 200, 40], ['flat', 40], ['kick', 22], ['spikes', 40, 50], ['flat', 200],
+        ['cp'], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 40], ['loop', 56], ['flat', 120],
+        ['slope', 200, -50], ['flat', 40], ['P', 8], ['jump', 80, 0, 18], ['flat', 60], ['jump', 80, 10, 16], ['flat', 60], ['G'], ['jump', 90, 30, 16], ['flat', 80],
+        ['cp'], ['hill', 240, 50], ['flat', 60], ['kick', 24], ['barrel', 50], ['barrel', 66, 2], ['barrel', 82], ['flat', 200], ['finish', 40], ['flat', 320]] },
+      { id: 'sp3', season: 'spring', night: true, name: 'Moonlit Meadow', stars: [28, 38], parts: [
+        ['flat', 200], ['jump', 100, 20], ['flat', 80], ['kick', 22], ['barrel', 60, 2], ['flat', 220],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 20], ['flat', 80],
+        ['boost', 0], ['flat', 90], ['loop', 56], ['flat', 30], ['loop', 56], ['flat', 120],
+        ['cp'], ['flat', 40], ['spring', 30, 349], ['flat', 110], ['step', -100], ['flat', 300], ['jump', 150, 100, 24], ['flat', 80],
+        ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['P', 8], ['jump', 80, 0, 18], ['flat', 40], ['jump', 70, 0, 18], ['flat', 40], ['G'], ['jump', 80, 20, 18], ['flat', 80],
+        ['cp'], ['hill', 220, 44], ['bumps', 180, 6, 3], ['flat', 140], ['kick', 24], ['barrel', 42], ['barrel', 60], ['barrel', 78], ['flat', 220], ['finish', 40], ['flat', 320]] },
+
+      { id: 'su1', season: 'summer', name: 'Dune Run', stars: [28, 38], parts: [
+        ['flat', 200], ['hill', 240, 40], ['hill', 260, 56], ['flat', 40], ['boost', 0], ['flat', 80], ['jump', 150, 50, 26], ['flat', 80],
+        ['cp'], ['hill', 280, 64], ['hill', 220, 40], ['flat', 60], ['kick', 22], ['barrel', 60], ['flat', 220], ['boost', 0], ['flat', 80], ['loop', 64], ['flat', 100],
+        ['cp'], ['slope', 240, -80], ['flat', 40], ['jump', 160, 90, 26], ['flat', 60], ['hill', 220, 50], ['bumps', 220, 8, 4], ['flat', 60],
+        ['kick', 24], ['spikes', 40, 60], ['flat', 200], ['hill', 300, 70], ['flat', 40], ['jump', 140, 40, 24], ['flat', 60],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 60], ['hill', 260, 50], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'su2', season: 'summer', name: 'Mesa Hop', stars: [26, 36], parts: [
+        ['flat', 220], ['jump', 90, 0, 20], ['flat', 120], ['jump', 100, 10, 20], ['flat', 120],
+        ['cp'], ['saw', 140, -36, 10, 0, 14, 2.2], ['flat', 260], ['spring', 30, 336], ['flat', 120], ['step', -90], ['flat', 260], ['jump', 120, 40, 22], ['flat', 60],
+        ['cp'], ['boost', 0], ['flat', 90], ['loop', 60], ['flat', 80], ['kick', 22], ['spikes', 40, 50], ['flat', 200], ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 240],
+        ['slope', 160, -40], ['jump', 140, 60, 24], ['flat', 60], ['P', 10], ['jump', 70, -10, 18], ['flat', 70], ['jump', 70, -10, 18], ['flat', 70], ['G'], ['jump', 90, 30, 18], ['flat', 60],
+        ['cp'], ['kick', 24], ['barrel', 50], ['barrel', 70, 2], ['flat', 220], ['hill', 220, 40], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'su3', season: 'summer', night: true, name: 'Canyon Blaze', stars: [25, 34], parts: [
+        ['flat', 200], ['orbit', 200, -40, 30, 2.2, 7], ['flat', 320], ['jump', 120, 30, 22], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 30], ['loop', 58], ['flat', 120], ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220],
+        ['cp'], ['saw', 120, -36, 10, 0, 14, 2.4], ['flat', 240], ['spring', 30, 349], ['flat', 120], ['step', -100], ['flat', 80], ['orbit', 140, -40, 28, -2.4, 7], ['flat', 300],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 100, 30], ['flat', 60],
+        ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['slope', 200, -50], ['jump', 160, 80, 26], ['flat', 80], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 100], ['finish', 40], ['flat', 320]] },
+
+      { id: 'fa1', season: 'fall', name: 'Leaf Lane', stars: [28, 38], parts: [
+        ['flat', 200], ['slope', 160, -30], ['flat', 60], ['flat', 20], ['gap', 22, 3], ['crumble', 120], ['gap', 24, 3], ['flat', 60], ['flat', 80],
+        ['cp'], ['hill', 200, 34], ['flat', 40], ['kick', 22], ['barrel', 60], ['flat', 220], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 100],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 24], ['flat', 80],
+        ['hill', 200, 40], ['flat', 40], ['jump', 120, 40, 22], ['flat', 80], ['kick', 22], ['barrel', 50], ['barrel', 75], ['flat', 220],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 80], ['kick', 22], ['barrel', 50, 2], ['flat', 330], ['P', 8], ['jump', 80, 0, 18], ['flat', 50], ['jump', 80, 0, 18], ['flat', 50], ['G'], ['jump', 100, 30, 18], ['flat', 80],
+        ['cp'], ['slope', 200, -50], ['flat', 40], ['jump', 140, 70, 24], ['flat', 60], ['hill', 180, 30], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'fa2', season: 'fall', name: 'Hollow Woods', stars: [31, 42], parts: [
+        ['flat', 200], ['saw', 160, -36, 10, 0, 14, 2.2], ['flat', 280], ['slope', 140, 30], ['flat', 40], ['jump', 100, 30, 22], ['flat', 60],
+        ['cp'], ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['kick', 22], ['saw', 60, -9, 9], ['flat', 220], ['jump', 120, 30, 24], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 60], ['spring', 30, 323], ['flat', 120], ['step', -80], ['flat', 80], ['orbit', 120, -36, 28, 2.4, 7], ['flat', 260],
+        ['P', 8], ['jump', 80, 0, 18], ['flat', 50], ['jump', 80, 10, 18], ['flat', 50], ['G'], ['jump', 100, 40, 18], ['flat', 60],
+        ['cp'], ['kick', 24], ['barrel', 50, 2], ['barrel', 75], ['flat', 220], ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 220], ['jump', 130, 60, 24], ['flat', 80], ['finish', 40], ['flat', 320]] },
+      { id: 'fa3', season: 'fall', night: true, name: 'Harvest Moon', stars: [28, 38], parts: [
+        ['flat', 200], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 80, 20], ['flat', 60],
+        ['cp'], ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220], ['orbit', 120, -36, 30, 2.6, 7], ['flat', 260], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 30], ['loop', 60], ['flat', 100],
+        ['cp'], ['kick', 22], ['spikes', 40, 70], ['flat', 200], ['spring', 30, 361], ['flat', 120], ['step', -110], ['flat', 80], ['kick', 22], ['saw', 60, -9, 9], ['flat', 260],
+        ['cp'], ['P', 8], ['jump', 80, 10, 18], ['flat', 40], ['jump', 70, 0, 18], ['flat', 40], ['jump', 70, -10, 18], ['flat', 40], ['G'], ['jump', 120, 80, 22], ['flat', 60],
+        ['saw', 120, -36, 11, 0, 14, 2.2], ['flat', 240], ['hill', 240, 50], ['flat', 150], ['kick', 24], ['spikes', 40, 55], ['flat', 220], ['finish', 40], ['flat', 320]] },
+
+      { id: 'wi1', season: 'winter', name: 'Frost Trail', stars: [27, 37], parts: [
+        ['flat', 200], ['hill', 180, 30], ['ice', 340], ['flat', 140], ['slope', 160, 30], ['flat', 40], ['jump', 90, 20, 20], ['flat', 80],
+        ['cp'], ['hill', 200, 40], ['flat', 40], ['ice', 260], ['slope', 200, 40], ['flat', 60], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 100],
+        ['cp'], ['kick', 22], ['barrel', 60], ['flat', 220], ['slope', 180, -50], ['jump', 130, 70, 24], ['flat', 60], ['ice', 300], ['flat', 120], ['slope', 180, 40],
+        ['cp'], ['bumps', 220, 6, 4], ['flat', 120], ['kick', 22], ['spikes', 40, 50], ['flat', 200], ['P', 10], ['jump', 80, 0, 18], ['flat', 60], ['jump', 80, 10, 18], ['flat', 60], ['G'], ['jump', 90, 30, 18], ['flat', 80],
+        ['cp'], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 80], ['hill', 200, 36], ['ice', 200], ['slope', 200, 40], ['flat', 60], ['finish', 40], ['flat', 320]] },
+      { id: 'wi2', season: 'winter', name: 'Glacier Gap', stars: [33, 45], parts: [
+        ['flat', 200], ['P', 10], ['jump', 80, 0, 18], ['flat', 80], ['jump', 80, -10, 18], ['flat', 80], ['G'], ['jump', 90, 30, 18], ['flat', 60],
+        ['cp'], ['ice', 400], ['slope', 160, 40], ['flat', 120], ['flat', 60], ['kick', 22], ['spikes', 40, 60], ['flat', 200], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 100],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 30], ['flat', 60],
+        ['saw', 120, -36, 10, 0, 14, 2.2], ['flat', 260], ['jump', 130, 50, 24], ['flat', 60], ['ice', 300], ['slope', 240, 60], ['flat', 60],
+        ['cp'], ['kick', 24], ['barrel', 50], ['barrel', 70, 2], ['flat', 220], ['boost', 0], ['flat', 80], ['loop', 58], ['flat', 30], ['loop', 58], ['flat', 80], ['spring', 30, 336], ['flat', 120], ['step', -90], ['flat', 300], ['jump', 150, 90, 24], ['flat', 60],
+        ['cp'], ['hill', 200, 36], ['flat', 120], ['kick', 22], ['saw', 60, -9, 9], ['flat', 200], ['finish', 40], ['flat', 320]] },
+      { id: 'wi3', season: 'winter', night: true, name: 'Aurora Run', stars: [28, 38], parts: [
+        ['flat', 200], ['ice', 300], ['slope', 200, 40], ['flat', 60], ['jump', 130, 40, 22], ['flat', 60],
+        ['cp'], ['orbit', 120, -36, 28, 2.4, 7], ['flat', 260], ['boost', 0], ['flat', 80], ['loop', 60], ['flat', 30], ['loop', 60], ['flat', 100],
+        ['cp'], ['flat', 20], ['gap', 22, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['crumble', 90], ['gap', 24, 3], ['land', 90, 30], ['flat', 60],
+        ['P', 10], ['jump', 80, 0, 18], ['flat', 40], ['jump', 80, 0, 18], ['flat', 40], ['G'], ['jump', 100, 40, 18], ['flat', 60],
+        ['cp'], ['kick', 22], ['spikes', 40, 70], ['flat', 200], ['spring', 30, 361], ['flat', 120], ['step', -110], ['flat', 80], ['kick', 22], ['saw', 60, -9, 9], ['flat', 260],
+        ['kick', 24], ['barrel', 45], ['barrel', 65, 2], ['barrel', 85], ['flat', 220], ['slope', 200, -40], ['jump', 160, 90, 26], ['flat', 60], ['ice', 200], ['flat', 200], ['finish', 40], ['flat', 320]] }
+    ];
+    const SEASON_ORDER = ['spring', 'summer', 'fall', 'winter'];
+    const BUILT = {};
+    const getL = i => BUILT[i] || (BUILT[i] = build(LEVELS[i]));
+
+    /* ---------- bike physics: two wheels + a sprung seat, solved as position-based particles ---------- */
+    const GRAV = 430, HSTEP = 1 / 480, RWH = 5, RT = 3, HR = 2.6;
+    const MS = [1, 1, 1.5], RAD = [RWH, RWH, RT], MSUM = 3.5;
+    const TREST = [-2, -11];
+    const L01 = 20, L02 = Math.hypot(-10 - TREST[0], TREST[1]), L12 = Math.hypot(10 - TREST[0], TREST[1]);
+    const T_ = { KS: 0.2, DAMP: 0.05, ACC: 300, WHL: 0.6, VMAX: 250, BRK: 720, VREV: 60, REVA: 220, ROLL: 0.1, A_G: 16, A_A: 27, WMAX: 8.6, AIRD: 0.7, BOOSTV: 390 };
+    const newBike = () => ({ p: [[0, 0], [0, 0], [0, 0]], q: [[0, 0], [0, 0], [0, 0]], v: [[0, 0], [0, 0], [0, 0]], cn: [[0, -1], [0, -1], [0, -1]], ci: [0, 0, 0], ck: ['g', 'g', 'g'], ice: [0, 0, 0], air: 0, ang: 0, angU: 0, spin: [0, 0], rot: [0, 0], loop: null, loopA: 0, loopPrev: 0, landV: 0 });
+    let bk = newBike();
+    const M = { mode: 'menu', season: 0, sel: 0, li: 0, L: null, P: null, keys: {}, ptrs: {}, touch: false, t: 0, clk: 0, time: 0, started: false, bonus: 0, flips: 0, faults: 0, cam: { x: 0, y: 0 }, parts: [], rings: [], wx: [], toasts: [], shake: 0, pose: 0, crash: null, rag: null, pend: null, acc: 0, done: null, paused: false, cpi: 0, dyn: [], obs: [], crum: [], introT: 0, puff: 0, dust: 0, boostT: 0, lastTick: 0, inp: { gas: false, brake: false, lean: 0 }, bot: false, hint: 0 };
+
+    const dist = (i, j, L0, k) => { const a = bk.p[i], b = bk.p[j]; const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1e-6, wi = 1 / MS[i], wj = 1 / MS[j], c = (d - L0) / d / (wi + wj) * k; a[0] += dx * c * wi; a[1] += dy * c * wi; b[0] -= dx * c * wj; b[1] -= dy * c * wj; };
+    const damp = (i, j) => { const a = bk.p[i], b = bk.p[j], va = bk.v[i], vb = bk.v[j]; let dx = b[0] - a[0], dy = b[1] - a[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d; const vr = (vb[0] - va[0]) * dx + (vb[1] - va[1]) * dy, wi = 1 / MS[i], wj = 1 / MS[j], s = vr * T_.DAMP / (wi + wj); va[0] += dx * s * wi; va[1] += dy * s * wi; vb[0] -= dx * s * wj; vb[1] -= dy * s * wj; };
+    const keepT = () => { const a = bk.p[0], b = bk.p[1], t = bk.p[2]; let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l; const ux = dy, uy = -dx, s = (t[0] - a[0]) * ux + (t[1] - a[1]) * uy; if (s < 6) { const k = 6 - s; t[0] += ux * k * 0.8; t[1] += uy * k * 0.8; a[0] -= ux * k * 0.1; a[1] -= uy * k * 0.1; b[0] -= ux * k * 0.1; b[1] -= uy * k * 0.1; } };
+    const pushOut = (s, P, r, i) => { if ((s.x1 < s.x2 ? s.x2 : s.x1) < P[0] - r || (s.x1 < s.x2 ? s.x1 : s.x2) > P[0] + r) return 0; let t = ((P[0] - s.x1) * s.dx + (P[1] - s.y1) * s.dy) / s.l2; t = t < 0 ? 0 : t > 1 ? 1 : t; const dx = P[0] - (s.x1 + s.dx * t), dy = P[1] - (s.y1 + s.dy * t), d2 = dx * dx + dy * dy; if (d2 >= r * r || d2 < 1e-10) return 0; const d = Math.sqrt(d2), k = (r - d) / d; P[0] += dx * k; P[1] += dy * k;
+      if (i >= 0) { bk.cn[i] = [dx / d, dy / d]; bk.ci[i] = 1; bk.ck[i] = s.kind; bk.ice[i] = s.ice ? 1 : 0; if (s.cr && s.cr.st === 0 && i < 2 && dy / d < -0.5) { s.cr.st = 1; s.cr.t = 0; sfx(140, 0.08, 0.04, 'square'); } } return 1; };
+    const collideP = i => { const P = bk.p[i], r = RAD[i], L = M.L; const c0 = Math.floor((P[0] - r) / CELL), c1 = Math.floor((P[0] + r) / CELL);
+      for (let c = c0; c <= c1; c++) { const A = L.GRID.get(c); if (A) for (let k = 0; k < A.length; k++) pushOut(A[k], P, r, i); }
+      for (let k = 0; k < M.dyn.length; k++) pushOut(M.dyn[k], P, r, i);
+      if (bk.loop) { const lp = bk.loop, dx = P[0] - lp.cx, dy = P[1] - lp.cy, d = Math.hypot(dx, dy), lim = lp.R - r; if (d > lim) { P[0] = lp.cx + dx / d * lim; P[1] = lp.cy + dy / d * lim; bk.cn[i] = [-dx / d, -dy / d]; bk.ci[i] = 1; bk.ck[i] = 'loop'; bk.ice[i] = 0; } } };
+    const near = (P, r) => { const L = M.L, c0 = Math.floor((P[0] - r) / CELL), c1 = Math.floor((P[0] + r) / CELL); for (let c = c0; c <= c1; c++) { const A = L.GRID.get(c); if (A) for (const s of A) { let t = ((P[0] - s.x1) * s.dx + (P[1] - s.y1) * s.dy) / s.l2; t = t < 0 ? 0 : t > 1 ? 1 : t; const dx = P[0] - (s.x1 + s.dx * t), dy = P[1] - (s.y1 + s.dy * t); if (dx * dx + dy * dy < r * r) return true; } }
+      for (const s of M.dyn) { let t = ((P[0] - s.x1) * s.dx + (P[1] - s.y1) * s.dy) / s.l2; t = t < 0 ? 0 : t > 1 ? 1 : t; const dx = P[0] - (s.x1 + s.dx * t), dy = P[1] - (s.y1 + s.dy * t); if (dx * dx + dy * dy < r * r) return true; }
+      if (bk.loop) { const lp = bk.loop; if (Math.hypot(P[0] - lp.cx, P[1] - lp.cy) > lp.R - r) return true; } return false; };
+    const frameDir = () => { const a = bk.p[0], b = bk.p[1]; let dx = b[0] - a[0], dy = b[1] - a[1]; const l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
+    const headPt = () => { const [dx, dy] = frameDir(), t = bk.p[2], h = POSES[M.pose].head; return [t[0] + dx * h[0] - dy * h[1], t[1] + dy * h[0] + dx * h[1]]; };
+    const com = () => { const p = bk.p; return [(p[0][0] + p[1][0] + p[2][0] * 1.5) / MSUM, (p[0][1] + p[1][1] + p[2][1] * 1.5) / MSUM]; };
+    const comV = () => { const v = bk.v; return [(v[0][0] + v[1][0] + v[2][0] * 1.5) / MSUM, (v[0][1] + v[1][1] + v[2][1] * 1.5) / MSUM]; };
+
+    function sub(inp) {
+      const p = bk.p, v = bk.v, q = bk.q, L = M.L;
+      const [cx, cy] = com(), grounded = bk.ci[0] || bk.ci[1];
+      let Lm = 0, In = 0; for (let i = 0; i < 3; i++) { const rx = p[i][0] - cx, ry = p[i][1] - cy; Lm += MS[i] * (rx * v[i][1] - ry * v[i][0]); In += MS[i] * (rx * rx + ry * ry); } const w = Lm / (In || 1);
+      let dw = 0;
+      if (inp.lean) { dw = inp.lean * (grounded ? T_.A_G : T_.A_A) * HSTEP; const nw = w + dw; if (Math.abs(nw) > T_.WMAX && Math.abs(nw) > Math.abs(w)) dw = Math.sign(nw) * T_.WMAX - w; if (dw * inp.lean < 0) dw = 0; }
+      else if (!grounded) dw = -w * T_.AIRD * HSTEP;
+      if (dw) for (let i = 0; i < 3; i++) { v[i][0] -= (p[i][1] - cy) * dw; v[i][1] += (p[i][0] - cx) * dw; }
+      for (let i = 0; i < 3; i++) { v[i][1] += GRAV * HSTEP; q[i][0] = p[i][0]; q[i][1] = p[i][1]; p[i][0] += v[i][0] * HSTEP; p[i][1] += v[i][1] * HSTEP; }
+      // loops switch on when you roll into the bottom and off once you have gone all the way round
+      const mx = (p[0][0] + p[1][0]) / 2, my = (p[0][1] + p[1][1]) / 2;
+      if (!bk.loop) { for (const lp of L.LP) { if (lp.done) continue; if (mx >= lp.cx && mx < lp.cx + 24 && my > lp.cy && Math.hypot(mx - lp.cx, my - lp.cy) < lp.R + 4 && (v[0][0] + v[1][0]) > 0) { bk.loop = lp; bk.loopA = 0; bk.loopPrev = Math.atan2(my - lp.cy, mx - lp.cx); lp.done = true; } } }
+      else { const lp = bk.loop, a = Math.atan2(my - lp.cy, mx - lp.cx); bk.loopA += wrapA(a - bk.loopPrev); bk.loopPrev = a; if (bk.loopA < -TAU + 0.18 || bk.loopA > 0.5) bk.loop = null; }
+      bk.ci[0] = bk.ci[1] = bk.ci[2] = 0;
+      for (let it = 0; it < 4; it++) { dist(0, 1, L01, 1); dist(0, 2, L02, T_.KS); dist(1, 2, L12, T_.KS); keepT(); collideP(0); collideP(1); collideP(2); }
+      for (let i = 0; i < 3; i++) { v[i][0] = (p[i][0] - q[i][0]) / HSTEP; v[i][1] = (p[i][1] - q[i][1]) / HSTEP; }
+      damp(0, 2); damp(1, 2);
+      for (let i = 0; i < 2; i++) { if (!bk.ci[i]) { bk.rot[i] += bk.spin[i] * HSTEP; if (i === 0) bk.spin[0] += ((inp.gas ? 60 : 0) - bk.spin[0]) * HSTEP * 1.5; continue; }
+        const n = bk.cn[i], tx = -n[1], ty = n[0], vn = v[i][0] * n[0] + v[i][1] * n[1]; if (vn < 0) { v[i][0] -= n[0] * vn; v[i][1] -= n[1] * vn; }
+        const vt = v[i][0] * tx + v[i][1] * ty, ic = bk.ice[i], drive = bk.ck[i] === 'loop' || n[1] < -0.2; let dv = 0;
+        let body = 0;
+        if (i === 0 && inp.gas && drive && vt < T_.VMAX) { body = Math.min(T_.VMAX - vt, T_.ACC * (ic ? 0.42 : 1) * HSTEP); dv += body * T_.WHL; }
+        if (inp.brake && drive) { if (vt > 3) body -= Math.min(vt, T_.BRK * (ic ? 0.22 : 1) * HSTEP) * 0.5; else if (i === 0 && vt > -T_.VREV) body -= T_.REVA * HSTEP; }
+        if (!ic) dv -= vt * T_.ROLL * HSTEP;
+        v[i][0] += tx * dv; v[i][1] += ty * dv; if (body) for (let k = 0; k < 3; k++) { v[k][0] += tx * body; v[k][1] += ty * body; } bk.spin[i] = (vt + dv + body) / RWH; bk.rot[i] += bk.spin[i] * HSTEP; }
+      if (bk.ci[0] || bk.ci[1]) { if (bk.air > 0.3) bk.landV = bk.air; bk.air = 0; } else bk.air += HSTEP;
+      const [dx, dy] = frameDir(), a = Math.atan2(dy, dx), da = wrapA(a - bk.ang); bk.ang = a; if (bk.air > 0.06) bk.angU += da; else if (bk.air === 0) { const n = Math.floor((Math.abs(bk.angU) + 0.9) / TAU); if (n > 0 && !M.crash) M.pend = { n, back: bk.angU < 0, t: 0 }; bk.angU = 0; }
+    }
+
+    /* ---------- level runtime ---------- */
+    const SAVE_K = 'gregsnap_moto_v1';
+    let SAVE = { best: {}, stars: {} };
+    try { const s = JSON.parse(localStorage.getItem(SAVE_K) || 'null'); if (s && s.best && s.stars) SAVE = s; } catch (_) {}
+    const save = () => { try { localStorage.setItem(SAVE_K, JSON.stringify(SAVE)); } catch (_) {} };
+    const unlocked = i => i % 3 === 0 || (SAVE.stars[LEVELS[i - 1].id] || 0) > 0;
+    const fmtT = s => { s = Math.max(0, s); const m = Math.floor(s / 60), r = s - m * 60; return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1); };
+    function placeBike(x, hy) { const L = M.L; bk = newBike(); const yR = L.surf(x - 10, hy) - RWH - 0.3, yF = L.surf(x + 10, hy) - RWH - 0.3; bk.p[0] = [x - 10, yR]; bk.p[1] = [x + 10, yF];
+      const [dx, dy] = frameDir(), mx = x, my = (yR + yF) / 2; bk.p[2] = [mx + dx * TREST[0] - dy * TREST[1], my + dy * TREST[0] + dx * TREST[1]]; bk.ang = Math.atan2(dy, dx); bk.ci = [1, 1, 0]; bk.p.forEach((p, i) => { bk.q[i] = p.slice(); }); }
+    function resetHaz() { M.obs = M.L.OB.map(o => Object.assign({}, o, { dead: false, cool: 0, sq: 0 })); M.crum = M.L.CR.map(c => Object.assign({}, c, { st: 0, t: 0, dy: 0, vy: 0 })); M.L.LP.forEach(lp => lp.done = false); M.dyn = []; }
+    function startLevel(i) { M.li = i; M.L = getL(i); M.P = pal(LEVELS[i].season, LEVELS[i].night); M.mode = 'play'; M.time = 0; M.clk = 0; M.started = false; M.bonus = 0; M.flips = 0; M.faults = 0; M.parts = []; M.rings = []; M.toasts = []; M.crash = null; M.rag = null; M.pend = null; M.done = null; M.paused = false; M.cpi = 0; M.keys = {}; M.ptrs = {}; M.introT = 0; M.acc = 0; M.hint = 0; M.log = [];
+      M.L.CPS.forEach((c, k) => c.hit = k === 0); resetHaz(); placeBike(M.L.CPS[0].x, M.L.CPS[0].y); M.camInit = true; initWeather(); try { JING('start'); } catch (_) {} }
+    function respawn() { const cp = M.L.CPS[M.cpi]; if (M.bot) M.botWait = Math.random() * 1.6; resetHaz(); placeBike(cp.x, cp.y); M.crash = null; M.rag = null; M.pend = null; M.acc = 0; }
+    const toast = (t, c, k, life) => { M.toasts.push({ t, c: c || HX('#ffffff'), k: k || 2, age: 0, life: life || 1.1 }); if (M.toasts.length > 3) M.toasts.shift(); };
+    const burst = (x, y, n, cols, sp, g, life, sz) => { for (let i = 0; i < n; i++) { const a = Math.random() * TAU, s = sp * (0.3 + Math.random() * 0.7); M.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - sp * 0.3, l: 0, ml: life * (0.5 + Math.random() * 0.7), c: cols[Math.floor(Math.random() * cols.length)], g: g, s: sz || 1 }); } };
+    const FIRE = ['#fff3a0', '#ffd23f', '#ff8a2a', '#e8432e', '#7a7a86'].map(HX), SMOKE = ['#8a8a96', '#6a6a76', '#b0b0ba'].map(HX), CONF = ['#ff4d6d', '#ffd23f', '#3ddc84', '#3d9bff', '#b26bff', '#ffffff'].map(HX);
+    function crash(kind) { if (M.crash || M.done) return; M.crash = { t: 0, kind }; M.faults++; M.log.push(kind + '@' + Math.round(bk.p[2][0])); const T = bk.p[2], v = comV(), [dx, dy] = frameDir();
+      M.rag = { x: T[0] + dy * 6, y: T[1] - dx * 6, vx: v[0] * 0.9 + 20, vy: v[1] * 0.6 - 140, a: bk.ang, w: (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 5) }; M.shake = 0.5; M.pose = 3;
+      toast(pick(['OUCH!', 'WIPEOUT!', 'BONK!', 'CRASH!']), HX('#ff6b6b')); sfx(110, 0.25, 0.08, 'sawtooth'); sfx(70, 0.35, 0.07, 'square'); try { navigator.vibrate && navigator.vibrate(60); } catch (_) {} }
+    function explode(x, y) { burst(x, y, 46, FIRE, 160, 120, 0.7, 2); burst(x, y, 14, SMOKE, 60, -30, 1.3, 2); M.rings.push({ x, y, r: 2, t: 0 }); M.shake = 0.8; sfx(60, 0.45, 0.12, 'sawtooth'); sfx(45, 0.6, 0.1, 'square');
+      bk.p.forEach((p, i) => { const dx = p[0] - x, dy = p[1] - y, d = Math.hypot(dx, dy) || 1, f = Math.max(0, 1 - d / 60) * 340; bk.v[i][0] += dx / d * f; bk.v[i][1] += dy / d * f - f * 0.3; bk.q[i][0] = p[0] - bk.v[i][0] * HSTEP; bk.q[i][1] = p[1] - bk.v[i][1] * HSTEP; }); }
+    function finishLevel() { const lv = LEVELS[M.li], fin = Math.max(0, M.time - M.bonus), st = fin <= lv.stars[0] ? 3 : fin <= lv.stars[1] ? 2 : 1, prev = SAVE.best[lv.id];
+      const nb = prev == null || fin < prev; if (nb) SAVE.best[lv.id] = +fin.toFixed(2); SAVE.stars[lv.id] = Math.max(SAVE.stars[lv.id] || 0, st); save();
+      M.done = { t: 0, raw: M.time, fin, st, nb, prev }; const f = M.L.fin; for (let i = 0; i < 70; i++) M.parts.push({ x: f.x + (Math.random() - 0.5) * 60, y: f.y - 40 - Math.random() * 30, vx: (Math.random() - 0.5) * 80, vy: -60 - Math.random() * 90, l: 0, ml: 1.6 + Math.random(), c: CONF[i % CONF.length], g: 140, s: 1, conf: true });
+      try { JING('win'); } catch (_) {} }
+    const sawPos = o => o.t === 'orbit' ? [o.x + Math.cos(o.ph + o.w * M.clk) * o.R, o.cy + Math.sin(o.ph + o.w * M.clk) * o.R] : [o.x + o.ax * Math.sin(TAU * M.clk / o.per), o.cy + o.ay * Math.sin(TAU * M.clk / o.per)];
+    function buildDyn() { const out = [], bx = bk.p[2][0]; for (const c of M.crum) { if (c.dy > 300 || c.x1 < bx - 120 || c.x0 > bx + 120) continue; const dy = c.dy, a = { x1: c.x0, y1: c.y0 + dy, x2: c.x1, y2: c.y1 + dy, ice: M.P.id === 'winter', kind: 'p', cr: c };
+        const segs = [a, { x1: c.x1, y1: c.y1 + dy, x2: c.x1, y2: c.y1 + dy + c.th, kind: 'w', cr: null }, { x1: c.x1, y1: c.y1 + dy + c.th, x2: c.x0, y2: c.y0 + dy + c.th, kind: 'b', cr: null }, { x1: c.x0, y1: c.y0 + dy + c.th, x2: c.x0, y2: c.y0 + dy, kind: 'w', cr: null }];
+        segs.forEach(s => { s.dx = s.x2 - s.x1; s.dy = s.y2 - s.y1; s.l2 = s.dx * s.dx + s.dy * s.dy || 1e-6; out.push(s); }); } return out; }
+    function input() { const K = M.keys, T = Object.values(M.ptrs); if (M.bot) { if (M.botWait > 0) { M.botWait -= 1 / 60; return { gas: false, brake: false, lean: 0 }; } return botInput(); } return { gas: !!(K.gas || T.indexOf('gas') >= 0), brake: !!(K.brake || T.indexOf('brake') >= 0), lean: ((K.fwd || T.indexOf('fwd') >= 0) ? 1 : 0) - ((K.back || T.indexOf('back') >= 0) ? 1 : 0) }; }
+    function botInput() { // simple autopilot used for testing that every track can be finished
+      const L = M.L, [cx, cy] = com(), v = comV(), a = bk.ang, grounded = bk.ci[0] || bk.ci[1]; let lean = 0; const p = bk.p, w = ((p[1][1] - p[0][1]) - (bk.q[1][1] - bk.q[0][1])) / 20 / HSTEP;
+      const slopeAt = (x, hy) => { const y0 = L.surf(x - 6, hy), y1 = L.surf(x + 6, hy); return Math.atan2(y1 - y0, 12); };
+      if (bk.loop) return { gas: true, brake: false, lean: 0 };
+      if (grounded) { const s = slopeAt(cx, cy); const e = wrapA(a - s); if (e < -0.32) lean = 1; else if (e > 0.25) lean = -1; }
+      else { let x = cx, y = cy, vx = v[0], vy = v[1], tgt = 0; for (let k = 0; k < 120; k++) { x += vx / 60; vy += GRAV / 60; y += vy / 60; const sy = L.surf(x, y); if (y + 10 >= sy && Math.abs(sy - y) < 40) { tgt = slopeAt(x, y); break; } } const e = wrapA(tgt - a), u = e * 5 - w * 0.55; lean = u > 0.25 ? 1 : u < -0.25 ? -1 : 0; }
+      return { gas: true, brake: false, lean }; }
+
+    function play(dt) {
+      const L = M.L; M.introT += dt; M.hint += dt;
+      if (M.paused) return;
+      M.clk += dt;
+      const inp = (M.crash || M.done) ? { gas: false, brake: !!M.done, lean: 0 } : input(); M.inp = inp;
+      if (!M.started && (inp.gas || inp.brake || inp.lean)) M.started = true;
+      if (M.started && !M.done) M.time += dt;
+      if (!M.crash) M.pose = inp.lean < 0 ? 1 : inp.lean > 0 ? 2 : 0;
+      for (const c of M.crum) { if (c.st === 1) { c.t += dt; if (c.t > 0.42) { c.st = 2; c.vy = 0; sfx(90, 0.12, 0.05, 'square'); } } else if (c.st === 2) { c.vy += GRAV * dt; c.dy += c.vy * dt; } }
+      M.dyn = buildDyn();
+      M.acc += dt; let n = 0; while (M.acc >= HSTEP && n < 30) { M.acc -= HSTEP; n++; sub(inp); if (!M.crash && !M.done && near(headPt(), HR)) crash('head'); }
+      const [cx, cy] = com(), v = comV(), hp = headPt();
+      if (!M.crash && !M.done) {
+        for (let k = M.cpi + 1; k < L.CPS.length; k++) if (cx >= L.CPS[k].x) { M.cpi = k; L.CPS[k].hit = true; toast('CHECKPOINT', HX('#7dffa0'), 1, 1.2); sfx(880, 0.1, 0.06, 'triangle'); setTimeout(() => sfx(1320, 0.12, 0.05, 'triangle'), 90); }
+        if (cx >= L.fin.x) finishLevel();
+        const pts = [bk.p[0], bk.p[1], bk.p[2], hp];
+        for (const o of M.obs) { if (Math.abs(o.x - cx) > 160) continue; o.cool = Math.max(0, o.cool - dt); o.sq = Math.max(0, o.sq - dt * 4);
+          if (o.t === 'barrel' && !o.dead) { for (let k = 0; k < o.n; k++) { const bx = o.x, by = o.y - 6 - k * 12; if (pts.some((p, i) => Math.hypot(p[0] - bx, p[1] - by) < (i < 2 ? RWH : i === 2 ? RT : HR) + 5)) { o.dead = true; explode(bx, by); crash('boom'); break; } } }
+          else if (o.t === 'saw' || o.t === 'orbit') { const [sx, sy] = sawPos(o); if (pts.some((p, i) => Math.hypot(p[0] - sx, p[1] - sy) < o.r + (i < 2 ? RWH : i === 2 ? RT : HR) - 1.5)) { burst(sx, sy, 16, [HX('#ffe9a0'), HX('#ffffff'), HX('#ffb03a')], 120, 200, 0.4, 1); crash('saw'); } }
+          else if (o.t === 'spikes') { for (let i = 0; i < 2; i++) { const p = bk.p[i]; if (p[0] >= o.x - 2 && p[0] <= o.x1 + 2) { const sy = o.y + (o.y1 - o.y) * (p[0] - o.x) / Math.max(1, o.x1 - o.x); if (p[1] + RWH > sy - 5) { crash('spikes'); break; } } } }
+          else if (o.t === 'boost' || o.t === 'spring') { for (let i = 0; i < 2; i++) { const p = bk.p[i]; if (!bk.ci[i] || p[0] < o.x - 2 || p[0] > o.x1 + 2) continue; const n0 = bk.cn[i];
+              if (o.t === 'boost') { const tx = -n0[1], ty = n0[0]; bk.v.forEach(vv => { const vt = vv[0] * tx + vv[1] * ty; if (vt < T_.BOOSTV) { vv[0] += tx * (T_.BOOSTV - vt); vv[1] += ty * (T_.BOOSTV - vt); } }); if (M.boostT <= 0) { sfx(220, 0.25, 0.05, 'sawtooth'); sfx(440, 0.2, 0.04, 'triangle'); } M.boostT = 0.25; break; }
+              else if (o.cool <= 0) { bk.v.forEach(vv => { const vn = vv[0] * n0[0] + vv[1] * n0[1]; if (vn < o.pow) { vv[0] += n0[0] * (o.pow - vn); vv[1] += n0[1] * (o.pow - vn); } }); o.cool = 0.5; o.sq = 1; sfx(300, 0.08, 0.06, 'square'); setTimeout(() => sfx(600, 0.14, 0.05, 'triangle'), 50); break; } } } }
+        if (cy > L.killAt(cx)) crash('fall');
+        if (M.pend) { M.pend.t += dt; if (M.pend.t > 0.3) { const f = M.pend; M.pend = null; M.flips += f.n; M.bonus += f.n; toast((f.n > 1 ? f.n + 'X ' : '') + (f.back ? 'BACKFLIP!' : 'FRONTFLIP!'), HX('#ffe14d'), 2, 1.3); toast('-' + f.n + '.0 SEC', HX('#7dffa0'), 1, 1.3); sfx(660, 0.1, 0.06, 'triangle'); setTimeout(() => sfx(990, 0.14, 0.06, 'triangle'), 80); } }
+        // dust, exhaust and landing puffs
+        if (bk.ci[0] && inp.gas && Math.random() < 0.6) { const p = bk.p[0], n0 = bk.cn[0]; M.parts.push({ x: p[0] - n0[0] * RWH, y: p[1] - n0[1] * RWH, vx: -30 - Math.random() * 40 + n0[1] * 30, vy: -20 - Math.random() * 30, l: 0, ml: 0.35 + Math.random() * 0.3, c: Math.random() < 0.5 ? M.P.dirt[0] : M.P.grass[1], g: 120, s: 1 }); }
+        M.puff -= dt; if (M.puff <= 0) { M.puff = inp.gas ? 0.06 : 0.18; const [dx, dy] = frameDir(), m0 = [(bk.p[0][0] + bk.p[1][0]) / 2, (bk.p[0][1] + bk.p[1][1]) / 2], ex = m0[0] + dx * -17 - dy * -9, ey = m0[1] + dy * -17 + dx * -9; M.parts.push({ x: ex, y: ey, vx: -dx * 30 - 10, vy: -10 - Math.random() * 10, l: 0, ml: 0.5, c: HX('#c8c8d2'), g: -20, s: 1, smoke: true }); }
+        if (bk.landV > 0) { const p = bk.p[bk.ci[0] ? 0 : 1]; if (bk.landV > 0.45) { burst(p[0], p[1] + RWH, 10, [M.P.dirt[0], M.P.grass[1], M.P.grass[0]], 60, 200, 0.4, 1); sfx(120, 0.06, 0.05, 'square'); } bk.landV = 0; }
+        M.boostT -= dt; if (M.boostT > 0) { const p = bk.p[0]; M.parts.push({ x: p[0] - 4, y: p[1] + 2, vx: -80 - Math.random() * 60, vy: -Math.random() * 20, l: 0, ml: 0.3, c: FIRE[Math.floor(Math.random() * 3)], g: 0, s: 1 }); }
+      } else if (M.crash) { M.crash.t += dt; const r = M.rag; if (r) { r.vy += GRAV * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.a += r.w * dt; const P = [r.x, r.y]; let hit = false; for (let it = 0; it < 2; it++) { const c0 = Math.floor((P[0] - 4) / CELL); for (let c = c0; c <= c0 + 1; c++) { const A = L.GRID.get(c); if (A) for (const s of A) if (pushOut(s, P, 4, -1)) hit = true; } }
+          if (hit) { const nx = P[0] - r.x, ny = P[1] - r.y, l = Math.hypot(nx, ny) || 1; const vn = (r.vx * nx + r.vy * ny) / l; if (vn < 0) { r.vx -= 1.4 * vn * nx / l; r.vy -= 1.4 * vn * ny / l; } r.vx *= 0.86; r.w *= 0.8; r.x = P[0]; r.y = P[1]; } }
+        if (M.crash.t > 1.35) respawn(); }
+      else if (M.done) M.done.t += dt;
+      for (const pp of M.parts) { pp.l += dt; pp.vy += pp.g * dt; pp.x += pp.vx * dt; pp.y += pp.vy * dt; if (pp.conf) { pp.vx *= 0.98; pp.vy = Math.min(pp.vy, 40); } } M.parts = M.parts.filter(pp => pp.l < pp.ml); if (M.parts.length > 400) M.parts.splice(0, M.parts.length - 400);
+      M.rings.forEach(r => { r.t += dt; r.r += dt * 120; }); M.rings = M.rings.filter(r => r.t < 0.35);
+      M.toasts.forEach(t => t.age += dt); M.toasts = M.toasts.filter(t => t.age < t.life);
+      M.shake = Math.max(0, M.shake - dt * 2.2);
+      // camera
+      const lead = clamp(v[0], -120, 260) / 260, tx = cx - (GX + GW * 0.4) + GW * 0.22 * lead, ty = cy + clamp(v[1] * 0.12, -30, 40) - M.ay;
+      if (M.camInit) { M.cam.x = tx; M.cam.y = ty; M.camInit = false; } else { const k = Math.min(1, dt * 3.2); M.cam.x += (tx - M.cam.x) * k; M.cam.y += (ty - M.cam.y) * Math.min(1, dt * 4); }
+      engine(M.crash || M.done ? 0 : 0.018 + (inp.gas ? 0.018 : 0), 46 + Math.min(260, Math.abs(bk.spin[0] * RWH)) * 0.36 + (inp.gas ? 18 : 0));
+    }
+
+    /* ---------- engine hum ---------- */
+    let eng = null;
+    const engine = (vol, f) => { try { if (!soundOn || !ac) { if (eng) eng.g.gain.setTargetAtTime(0, ac.currentTime, 0.05); return; } if (!eng) { const o = ac.createOscillator(), o2 = ac.createOscillator(), fl = ac.createBiquadFilter(), g = ac.createGain(); o.type = 'sawtooth'; o2.type = 'square'; fl.type = 'lowpass'; fl.frequency.value = 520; g.gain.value = 0; o.connect(fl); o2.connect(fl); fl.connect(g); g.connect(ac.destination); o.start(); o2.start(); eng = { o, o2, fl, g }; }
+      const t = ac.currentTime; eng.o.frequency.setTargetAtTime(f, t, 0.04); eng.o2.frequency.setTargetAtTime(f * 0.5, t, 0.04); eng.fl.frequency.setTargetAtTime(380 + f * 3, t, 0.05); eng.g.gain.setTargetAtTime(vol, t, 0.06); M.lastTick = performance.now(); } catch (_) {} };
+    setInterval(() => { if (eng && performance.now() - M.lastTick > 180) { try { eng.g.gain.setTargetAtTime(0, ac.currentTime, 0.03); } catch (_) {} } }, 200);
+
+    /* ---------- weather ---------- */
+    function initWeather() { M.wx = []; const fx = M.P ? M.P.fx : 'none', n = fx === 'snow' ? 70 : fx === 'heat' ? 18 : fx === 'none' ? 0 : 34; for (let i = 0; i < n; i++) M.wx.push({ x: Math.random() * 400, y: Math.random() * 500, par: 0.5 + Math.random() * 0.6, ph: Math.random() * TAU, k: Math.floor(Math.random() * 3) }); M.wcx = null; }
+    const LEAF = ['#ff7a2a', '#e8432e', '#ffc23a'].map(HX), PETAL = ['#ffb3d9', '#ff8fc8', '#ffffff'].map(HX);
+    function drawWeather(P, dt, CX, CY, t) { if (!M.wx.length) return; if (M.wcx == null) { M.wcx = CX; M.wcy = CY; } const ddx = CX - M.wcx, ddy = CY - M.wcy; M.wcx = CX; M.wcy = CY; const fx = P.fx, Wd = LW + 20, Hd = LH + 20;
+      for (const f of M.wx) { f.x -= ddx * f.par; f.y -= ddy * f.par; f.ph += dt * 2;
+        if (fx === 'snow') { f.x += (-8 + Math.sin(f.ph) * 6) * dt * f.par; f.y += 18 * f.par * dt; } else if (fx === 'heat') { f.x -= 70 * dt * f.par; f.y += Math.sin(f.ph * 2) * 4 * dt; } else { f.x += (-18 + Math.sin(f.ph) * 10) * dt; f.y += (12 + Math.cos(f.ph * 1.3) * 6) * dt; }
+        f.x = ((f.x % Wd) + Wd) % Wd; f.y = ((f.y % Hd) + Hd) % Hd; const X = Math.floor(f.x) - 10, Y = Math.floor(f.y) - 10;
+        if (fx === 'snow') { const c = P.night ? HX('#cfe0ff') : HX('#ffffff'); PX(X, Y, c); if (f.par > 0.85) { PX(X + 1, Y, c); PX(X, Y + 1, c); PX(X + 1, Y + 1, c); } }
+        else if (fx === 'heat') { const c = HX(P.night ? '#a8785a' : '#fff0c0'); PX(X, Y, c); PX(X + 1, Y, c); }
+        else { const c = fx === 'leaf' ? LEAF[f.k] : PETAL[f.k], c2 = P.night ? DK(c, 0.6) : c; if (Math.sin(f.ph * 1.7) > 0) { PX(X, Y, c2); PX(X + 1, Y, c2); } else { PX(X, Y, c2); PX(X, Y + 1, c2); } } } }
+
+    /* ---------- scenery ---------- */
+    const CLOUDS = []; { const r = mulberry(11); for (let i = 0; i < 7; i++) { const w = 26 + Math.floor(r() * 24), h = 11 + Math.floor(r() * 5), m = new Uint8Array(w * h), bl = []; for (let k = 0; k < 4; k++) bl.push([w * (0.18 + 0.64 * r()), h * (0.5 + 0.2 * r()), h * (0.32 + 0.22 * r())]); bl.push([w * 0.5, h * 0.62, h * 0.4]);
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (y > h * 0.86) continue; let ins = false; for (const b of bl) if ((x + 0.5 - b[0]) ** 2 / 1.7 + (y + 0.5 - b[1]) ** 2 < b[2] * b[2]) { ins = true; break; } if (ins) m[y * w + x] = y > h * 0.64 ? 2 : 1; } CLOUDS.push({ w, h, m, x: r() * 520, y: r() }); } }
+    const STARS = []; { const r = mulberry(5); for (let i = 0; i < 80; i++) STARS.push([r(), r() * 0.6, r()]); }
+    const tri = x => { const f = x - Math.floor(x); return 1 - 2 * Math.abs(f - 0.5); };
+    const farH = (P, u) => P.id === 'summer' ? (() => { const cw = 96, ci = Math.floor(u / cw), lo = u - ci * cw, hh = hs(ci, 13); if (hh % 3 === 0) return 12 + 3 * Math.sin(u * 0.05); const H = 26 + (hh >> 4) % 22, a0 = 8 + (hh >> 9) % 14, a1 = cw - 6 - (hh >> 12) % 14, k = Math.max(0, Math.min(1, Math.min(lo - a0, a1 - lo) / 4)); return 12 + (H - 12) * k - ((lo - a0 > 4 && a1 - lo > 4 && (hs(u >> 1, 3) % 9 === 0)) ? 1 : 0); })() : 18 + 22 * tri(u / 96) + 11 * tri(u / 41 + 0.3) + 4 * tri(u / 15 + 0.6);
+    const midH = (P, u) => P.id === 'summer' ? 12 + 8 * Math.sin(u * 0.016) + 5 * Math.sin(u * 0.041 + 0.7) : 14 + 8 * Math.sin(u * 0.019) + 5 * Math.sin(u * 0.047 + 0.7);
+    const nearH = (P, u) => { let h = 7 + 5 * Math.sin(u * 0.023 + 2); if (P.id === 'summer') return h + 4 * Math.sin(u * 0.05); const pine = P.id === 'winter', cw = pine ? 9 : 15, c = Math.floor(u / cw), lo = u - c * cw, hh = hs(c, 9);
+      if (hh % 4 !== 0) h += pine ? (cw / 2 - Math.abs(lo - cw / 2 + 0.5)) * (2 + (hh % 3) * 0.5) : Math.sqrt(Math.max(0, (cw / 2) ** 2 - (lo - cw / 2 + 0.5) ** 2)) * 1.4 + 3 + (hh % 5); return h; };
+    let CXs = 0, CYs = 0, GX = 0, GY = 0, GW = 0, GH = 0;
+    function drawSky(P) { if (!P.skyRows || P.skyRows.length !== LH) { const N = 18, lv = []; for (let i = 0; i <= N; i++) { const t = i / N; lv.push(t < 0.55 ? MX(P.sky[0], P.sky[1], t / 0.55) : MX(P.sky[1], P.sky[2], (t - 0.55) / 0.45)); } P.skyLv = lv; P.skyRows = []; for (let y = 0; y < LH; y++) { const f = y / Math.max(1, LH - 1) * N, b = Math.min(N - 1, Math.floor(f)); P.skyRows.push([b, f - b]); } }
+      const lv = P.skyLv; for (let y = 0; y < LH; y++) { const r = P.skyRows[y], c0 = lv[r[0]], c1 = lv[r[0] + 1], fr = r[1], row = y * LW, by = (y & 3) * 4; for (let x = 0; x < LW; x++) B32[row + x] = fr > BAY[by + (x & 3)] ? c1 : c0; } }
+    function drawBackdrop(P, CX, CY, t) {
+      drawSky(P);
+      if (P.stars) { for (let i = 0; i < STARS.length; i++) { const s = STARS[i], x = Math.floor(((s[0] * LW * 1.5 - CX * 0.02) % LW + LW) % LW), y = Math.floor(s[1] * LH); if ((hs(i, Math.floor(t * 2 + s[2] * 9)) & 7) === 0) continue; const c = s[2] > 0.8 ? HX('#ffffff') : HX('#b8c8ff'); PX(x, y, c); if (s[2] > 0.93) { PX(x + 1, y, DK(c, 0.6)); PX(x - 1, y, DK(c, 0.6)); PX(x, y + 1, DK(c, 0.6)); PX(x, y - 1, DK(c, 0.6)); } } }
+      if (P.aurora) { for (let x = 0; x < LW; x++) { const u = x + CX * 0.03, yc = LH * 0.16 + Math.sin(u * 0.045 + t * 0.6) * 7 + Math.sin(u * 0.014 - t * 0.25) * 11; for (let d = 0; d < 18; d++) { const y = Math.floor(yc + d); if (y < 0 || y >= LH) continue; const dens = (1 - d / 18) * (0.55 + 0.45 * Math.sin(u * 0.08 + t)); if (dens > BAY[(y & 3) * 4 + (x & 3)]) B32[y * LW + x] = d < 3 ? HX('#b8ffe0') : d < 9 ? HX('#4fe0a0') : HX('#2a9a8a'); } } }
+      { const sx = Math.round(LW * 0.74), sy = Math.round(GY + Math.max(16, GH * 0.13)), R = P.id === 'summer' && !P.night ? 11 : P.moon ? 7 : 9;
+        for (let y = -R - 5; y <= R + 5; y++) for (let x = -R - 5; x <= R + 5; x++) { const X = sx + x, Y = sy + y; if (X < 0 || Y < 0 || X >= LW || Y >= LH) continue; const d = Math.hypot(x + 0.5, y + 0.5), o = Y * LW + X;
+          if (d <= R) { let c = P.sun; if (P.moon && ((Math.hypot(x + 2.5, y + 1.5) < 2.2) || (Math.hypot(x - 2, y - 3) < 1.6) || (Math.hypot(x - 3, y + 2) < 1.2))) c = DK(c, 0.86); if (!P.moon && d > R - 1.2) c = DK(c, 0.96); B32[o] = c; }
+          else if (d <= R + 4 && (d - R) / 4 < BAY[((Y & 3) * 4) + (X & 3)] * 0.9 && ((X + Y) & 1) === 0) B32[o] = BL(B32[o], P.sun, 0.45); } }
+      for (const cl of CLOUDS) { const span = LW + 140, X = Math.floor((((cl.x - CX * 0.05 - t * 3) % span) + span) % span) - 70, Y = Math.floor(GY + 4 + cl.y * GH * 0.3); for (let y = 0; y < cl.h; y++) { const yy = Y + y; if (yy < 0 || yy >= LH) continue; for (let x = 0; x < cl.w; x++) { const m = cl.m[y * cl.w + x], xx = X + x; if (!m || xx < 0 || xx >= LW) continue; B32[yy * LW + xx] = m === 1 ? P.cloud : P.cloudSh; } } }
+      const A = GY + GH * 0.56, Y0 = -CY, bf = Math.round(A - 2 + (Y0 - A) * 0.08), bm = Math.round(A + 14 + (Y0 - A) * 0.2), bn = Math.round(A + 26 + (Y0 - A) * 0.38);
+      const layer = (base, par, hf, col, hi, caps) => { const off = Math.floor(CX * par); for (let x = 0; x < LW; x++) { const u = x + off, h = hf(P, u), top = Math.round(base - h); if (top >= LH) continue; let y = Math.max(0, top); const capD = caps && h > 30 ? (h - 30) * 0.55 : 0;
+          for (; y < LH; y++) { const d = y - top; let c = d === 0 ? hi : col; if (capD && d < capD + 1) { if (d < capD - 1 || BAY[(y & 3) * 4 + (x & 3)] < 0.5) c = d === 0 ? HX('#ffffff') : HX(P.night ? '#a8b8e0' : '#eaf2ff'); } B32[y * LW + x] = c; } } };
+      layer(bf, 0.12, farH, P.far, P.farHi, P.id === 'winter');
+      layer(bm, 0.3, midH, P.mid, P.midHi, false);
+      { const off = Math.floor(CX * 0.3), c0 = Math.floor(off / 22) - 1, c1 = Math.floor((off + LW) / 22) + 1; for (let c = c0; c <= c1; c++) { const hh = hs(c, 31); if (hh % 3 === 0) continue; const tu = c * 22 + (hh >> 3) % 14; blit(P.trees[hh % P.trees.length], tu - off, bm - midH(P, tu) + 2); } }
+      layer(bn, 0.52, nearH, P.near, DK(P.near, 1.3), false);
+    }
+    const ICE0 = HX('#ffffff'), ICE1 = HX('#c4f0ff'), ICE2 = HX('#8fd6f4'), ICE3 = HX('#6ab8e0');
+    const FLOW = ['#ff4d6d', '#ffe14d', '#ffffff', '#c38bff'].map(HX);
+    function colG(sx, wx, topY, P, ice, edge) { const ty = Math.round(topY) - CYs; if (ty >= LH) return; const G = P.grass, Dd = P.dirt, hc = hs(wx, 77), gd = 3 + (hc & 1);
+      if (ty - 1 >= 0 && !ice) { const id = P.id; if (id === 'spring' && hc % 7 === 0) { const fc = FLOW[(hc >> 4) & 3]; PX(sx, ty - 1, (hc >> 7) & 1 ? G[2] : fc); if ((hc >> 7) & 1) PX(sx, ty - 2, fc); } else if (id === 'spring' && hc % 5 === 1) PX(sx, ty - 1, G[1]);
+        else if (id === 'fall' && hc % 4 === 0) PX(sx, ty - 1, P.night ? DK(LEAF[(hc >> 5) % 3], 0.6) : LEAF[(hc >> 5) % 3]); else if (id === 'fall' && hc % 6 === 1) PX(sx, ty - 1, G[1]);
+        else if (id === 'summer' && hc % 17 === 0) PX(sx, ty - 1, P.speck2); else if (id === 'winter' && hc % 11 === 0) PX(sx, ty - 1, G[1]); }
+      for (let sy = Math.max(0, ty); sy < LH; sy++) { const d = sy - ty, wy = sy + CYs; let c;
+        if (ice && d < 5) c = d === 0 ? ICE0 : (hs(wx, wy) % 13) === 0 ? ICE0 : d < 2 ? ICE1 : d < 4 ? ICE2 : ICE3;
+        else if (d < 1) c = G[0]; else if (d < 3) c = G[1]; else if (d < gd) c = G[2];
+        else { let band; const bb = BAY[(wy & 3) * 4 + (wx & 3)]; if (d < 14) band = 0; else if (d < 18) band = bb < (d - 14) / 4 ? 1 : 0; else if (d < 40) band = 1; else if (d < 45) band = bb < (d - 40) / 5 ? 2 : 1; else band = 2;
+          if (P.strata) { const sb = ((wy + (hs(wx >> 4, 3) & 3)) >> 3) & 3; if (sb === 2 && band < 2) band++; }
+          c = Dd[band]; const h = hs(wx >> 1, wy >> 1); if ((h & 31) === 0) c = P.speck; else if ((h & 63) === 7) c = P.speck2; }
+        if (edge) c = DK(c, 0.75); B32[sy * LW + sx] = c; } }
+    const PLC = {}; const platCols = P => { const k = P.id + (P.night ? 'n' : ''); if (PLC[k]) return PLC[k]; const f = P.night ? 0.62 : 1, m = a => a.map(h => DK(HX(h), f));
+      return PLC[k] = { wood: m(['#d8a066', '#a46e40', '#6e4528', '#5a3820', '#ecc890', '#8a5a34']), stone: m(['#f6cc8e', '#e0a868', '#b07840', '#93602f', '#fff0c0', '#c89050']), ice: m(['#ffffff', '#c4f0ff', '#9fdcf6', '#6ab8e0', '#e8fbff', '#86c8ea']) }; };
+    function colP(sx, wx, topY, th, P, crumb, jit, edge) { const ty = Math.round(topY) - CYs, C = platCols(P)[P.plat]; for (let d = 0; d < th; d++) { const sy = ty + d; if (sy < 0 || sy >= LH) continue; let c;
+        if (P.plat === 'wood') { c = d === 0 ? C[0] : d === th - 1 ? C[3] : ((wx + 3) % 14 === 0) ? C[2] : (d === 2 && ((wx + 1) % 14 === 0 || (wx + 5) % 14 === 0)) ? C[4] : (hs(wx >> 2, d) % 9 === 0 ? C[5] : C[1]); }
+        else if (P.plat === 'stone') { const half = Math.floor(th / 2); c = d === 0 ? C[0] : d === th - 1 ? C[3] : d === half ? C[2] : ((wx + (d < half ? 0 : 6)) % 12 === 0) ? C[2] : (hs(wx, d) % 11 === 0 ? C[5] : C[1]); }
+        else { c = d === 0 ? C[0] : d === th - 1 ? C[3] : (hs(wx, d) % 15 === 0) ? C[4] : (d < th / 2 ? C[1] : C[2]); }
+        if (crumb && (hs(wx + jit * 7, d) % 6 === 0)) c = DK(c, 0.55); if (edge) c = DK(c, 0.7); B32[sy * LW + sx] = c; }
+      if (P.plat === 'ice') { const h = hs(wx, 5); if (h % 4 === 0) { const n = 1 + (h >> 3) % 4; for (let k = 0; k < n; k++) PX(sx, ty + th + k, k === n - 1 ? C[4] : C[1]); } } }
+    function drawLoop(lp, P) { const R0 = lp.R, R1 = lp.R + 5, cx = lp.cx - CXs, cy = lp.cy - CYs, f = P.night ? 0.65 : 1, hi = DK(HX('#eef0f6'), f), m1 = DK(HX('#b4bacb'), f), m2 = DK(HX('#ff5a4e'), f), dk = DK(HX('#4a4f66'), f);
+      for (let y = Math.floor(cy - R1 - 1); y <= cy + R1 + 1; y++) { if (y < 0 || y >= LH) continue; for (let x = Math.floor(cx - R1 - 1); x <= cx + R1 + 1; x++) { if (x < 0 || x >= LW) continue; const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = Math.hypot(dx, dy); if (d < R0 || d >= R1) continue; let c;
+          if (d < R0 + 1) c = hi; else if (d >= R1 - 1) c = dk; else { const a = Math.atan2(dy, dx), seg = Math.floor((a + Math.PI) / (TAU / 24)); c = seg & 1 ? m1 : m2; } B32[y * LW + x] = c; } } }
+    function drawSaw(cx, cy, r, rot, night) { const R = Math.ceil(r) + 2, f = night ? 0.7 : 1, cE = DK(HX('#f2f5fa'), f), cL = DK(HX('#cfd4de'), f), cD = DK(HX('#959cae'), f), cR = DK(HX('#4a4f60'), f), cH = DK(HX('#2a2a34'), f);
+      for (let y = -R; y <= R; y++) { const Y = Math.floor(cy) + y; if (Y < 0 || Y >= LH) continue; for (let x = -R; x <= R; x++) { const X = Math.floor(cx) + x; if (X < 0 || X >= LW) continue; const dx = X + 0.5 - cx, dy = Y + 0.5 - cy, d = Math.hypot(dx, dy); if (d > r + 1) continue;
+          const a = Math.atan2(dy, dx) + rot, fr = ((a * 10 / TAU) % 1 + 1) % 1, edge = r - 2.2 + 2.6 * fr; if (d > edge) continue; let c;
+          if (d > edge - 1) c = cE; else if (d < 1.6) c = cH; else if (d < r * 0.38) c = cD; else if (d < r * 0.38 + 1) c = cR; else c = (dx + dy) < 0 ? cL : cD; B32[Y * LW + X] = c; } } }
+    function drawWheel(x, y, rot, night) { const f = night ? 0.75 : 1, tA = DK(HX('#1e1b24'), 1), tB = DK(HX('#4a4656'), f), rim = DK(HX('#d0d5df'), f), rimD = DK(HX('#8b92a3'), f), sp = DK(HX('#a4aaba'), f), hub = DK(HX('#5a5f70'), f);
+      for (let j = -6; j <= 6; j++) { const Y = Math.floor(y) + j; if (Y < 0 || Y >= LH) continue; for (let i = -6; i <= 6; i++) { const X = Math.floor(x) + i; if (X < 0 || X >= LW) continue; const dx = X + 0.5 - x, dy = Y + 0.5 - y, d = Math.hypot(dx, dy); if (d > 5.3) continue; let c = 0;
+          const a = Math.atan2(dy, dx) - rot; if (d > 3.9) c = (d > 4.55 && (Math.floor(((a % TAU) + TAU) % TAU / (TAU / 14)) & 1)) ? tB : tA; else if (d > 2.9) c = d > 3.45 ? rimD : rim; else if (d < 1.2) c = hub; else if (Math.abs(Math.sin(a * 2.5)) < 0.3) c = sp; if (c) B32[Y * LW + X] = c; } } }
+    function drawFlag(x, y, on, t, night) { const pole = HX(night ? '#9aa0b0' : '#e8ecf4'), fc = on ? HX('#3ddc84') : HX('#ff4d4d'), fd = on ? HX('#1f9a58') : HX('#b02a35'); RF(x, y - 20, 1, 20, pole); RF(x - 1, y - 1, 3, 1, HX('#4a4f66')); PX(x, y - 21, HX('#ffd23f'));
+      for (let i = 0; i < 8; i++) { const off = Math.round(Math.sin(t * 6 + i * 0.7) * 1); for (let j = 0; j < 5; j++) PX(x + 1 + i, y - 20 + j + off, j === 4 || i === 7 ? fd : fc); } }
+    function drawFinish(f, t, night) { const x = f.x - CXs, y = Math.round(f.y) - CYs, post = HX(night ? '#8a90a2' : '#d8dce6'), pd = HX('#4a4f66');
+      RF(x - 20, y - 36, 2, 36, post); RF(x + 20, y - 36, 2, 36, post); RF(x - 20, y - 36, 1, 36, pd);
+      for (let i = 0; i < 42; i++) for (let j = 0; j < 8; j++) { const sag = Math.round(Math.sin((i / 41) * Math.PI) * 2); PX(x - 20 + i, y - 40 + j + sag, (((i >> 1) + (j >> 1)) & 1) ? HX('#1a1a22') : HX('#ffffff')); }
+      PT('FINISH', x + 1, y - 51, 1, HX('#ffe14d'), HX('#1a1222'), 'c');
+      for (let i = -20; i < 22; i++) for (let j = 0; j < 2; j++) PX(x + i, y + j, (((i >> 1) + j) & 1) ? HX('#1a1a22') : HX('#ffffff')); }
+    function drawStart(c0, night) { const x = c0.x - 6 - CXs, y = Math.round(c0.y) - CYs; if (x < -40 || x > LW + 40) return; const post = HX(night ? '#8a90a2' : '#d8dce6'), g1 = HX(night ? '#1f7a48' : '#2fbf71'), g2 = HX('#ffffff');
+      RF(x - 16, y - 32, 2, 32, post); RF(x + 16, y - 32, 2, 32, post); for (let i = 0; i < 34; i++) for (let j = 0; j < 7; j++) PX(x - 16 + i, y - 36 + j, j === 0 || j === 6 ? HX('#1a1222') : (((i >> 1) + (j >> 1)) & 1) ? g1 : g2); PT('START', x + 1, y - 46, 1, HX('#7dffa0'), HX('#1a1222'), 'c'); }
+    function drawSign(d, night) { const x = d.x - CXs, y = Math.round(d.y) - CYs, pole = HX('#6e4528'); RF(x, y - 12, 1, 12, pole); BOX(x - 5, y - 20, 11, 9, HX(night ? '#b89a2a' : '#ffd23f'), HX('#1a1222')); const ac = HX('#1a1222'); if (d.k === 1) { RF(x - 3, y - 16, 5, 1, ac); PX(x + 1, y - 17, ac); PX(x + 1, y - 15, ac); PX(x + 2, y - 16, ac); } else { RF(x, y - 18, 1, 3, ac); PX(x, y - 14, ac); } }
+    function drawObj(o, P, t) { const night = P.night;
+      if (o.t === 'barrel') { if (o.dead) return; for (let k = 0; k < o.n; k++) blit(BARREL, o.x - CXs, Math.round(o.y) - CYs - k * 12); }
+      else if (o.t === 'saw' || o.t === 'orbit') { const [sx, sy] = sawPos(o); if (o.t === 'orbit') { const px0 = o.x - CXs, py0 = o.cy - CYs; for (let k = 1; k < 9; k++) { const q = k / 9; PX(px0 + (sx - o.x) * q, py0 + (sy - o.cy) * q, HX(k & 1 ? '#8b92a3' : '#4a4f60')); } RF(px0 - 1, py0 - 1, 3, 3, HX('#4a4f60')); PX(px0, py0, HX('#cfd4de')); }
+        else if (o.ax || o.ay) { const c = HX(night ? '#3a3a48' : '#5a5f70'); LINE(o.x - o.ax - CXs, o.cy - o.ay - CYs, o.x + o.ax - CXs, o.cy + o.ay - CYs, c); }
+        else { const c = HX(night ? '#3a3a48' : '#5a5f70'); RF(o.x - CXs, sy - CYs, 1, o.y - o.cy, c); }
+        drawSaw(sx - CXs, sy - CYs, o.r, -M.clk * 14, night); }
+      else if (o.t === 'spikes') { const sc = HX(night ? '#a0a6b6' : '#e6eaf2'), sd = HX(night ? '#555a6a' : '#8b92a3'); for (let x = o.x; x < o.x1; x += 6) { const y = Math.round(o.y + (o.y1 - o.y) * (x - o.x) / Math.max(1, o.x1 - o.x)); for (let i = 0; i < 6; i++) { const h = Math.round(6 - Math.abs(i - 2.5) * 2); for (let j = 0; j < h; j++) PX(x + i - CXs, y - 1 - j - CYs, i < 3 ? sc : sd); } } }
+      else if (o.t === 'boost') { for (let x = o.x; x < o.x1; x++) { const y = Math.round(o.y + (o.y1 - o.y) * (x - o.x) / Math.max(1, o.x1 - o.x)) - CYs, X = x - CXs, v = (((x - o.x) - Math.floor(t * 90)) % 8 + 8) % 8; PX(X, y - 2, HX('#5a2a12')); PX(X, y - 1, v < 3 ? HX('#fff3a0') : v < 5 ? HX('#ffb13d') : HX('#ff6a2a')); PX(X, y, v < 3 ? HX('#ffd23f') : HX('#e8432e')); } }
+      else if (o.t === 'spring') { const X = o.x - CXs, y = Math.round(o.y) - CYs, h = o.sq > 0 ? 7 + Math.round(o.sq * 4) : 4; RF(X, y - 1, 16, 1, HX('#5a2a2a')); for (let k = 0; k < h; k++) { const yy = y - 2 - k; PX(X + 3 + ((k & 1) ? 0 : 8), yy, HX('#cfd4de')); for (let i = 4; i < 12; i++) if (((i + k) & 3) === 0) PX(X + i, yy, HX('#8b92a3')); }
+        RF(X, y - 3 - h, 16, 2, HX('#e8312f')); for (let i = 1; i < 16; i += 4) RF(X + i, y - 3 - h, 2, 1, HX('#ffffff')); } }
+
+    function drawWorld(P, t, dt) { const L = M.L, CX = CXs, CY = CYs;
+      drawBackdrop(P, CX, CY, t);
+      for (const lp of L.LP) if (lp.cx + lp.R + 6 > CX && lp.cx - lp.R - 6 < CX + LW) drawLoop(lp, P);
+      for (const d of L.DEC) if (d.x > CX - 10 && d.x < CX + LW + 10) drawSign(d, P.night);
+      L.CPS.forEach((c, k) => { if (k > 0 && c.x > CX - 12 && c.x < CX + LW + 12) drawFlag(c.x - CX, Math.round(c.y) - CY, c.hit, t, P.night); });
+      for (const gg of L.G) { const g = gg.pts, gx0 = g[0][0], gx1 = g[g.length - 1][0]; if (gx1 < CX || gx0 > CX + LW) continue; let i = 1; while (i < g.length - 1 && g[i][0] < CX) i++;
+        for (let sx = Math.max(0, Math.ceil(gx0 - CX)); sx < LW; sx++) { const wx = sx + CX; if (wx >= gx1) break; while (i < g.length - 1 && g[i][0] <= wx) i++; const a = g[i - 1], b = g[i], yy = a[1] + (b[1] - a[1]) * (wx - a[0]) / Math.max(1e-6, b[0] - a[0]);
+          if (gg.th) colP(sx, wx, yy, gg.th, P, false, 0, wx - gx0 < 1 || gx1 - wx < 1); else colG(sx, wx, yy, P, L.iceAt(wx), wx - gx0 < 2 || gx1 - wx < 2); } }
+      for (const c of M.crum) { if (c.x1 < CX || c.x0 > CX + LW || c.dy > 400) continue; const jit = c.st === 1 ? (Math.floor(M.clk * 40) & 1 ? 1 : -1) : 0; for (let wx = Math.max(Math.ceil(c.x0), CX); wx < Math.min(c.x1, CX + LW); wx++) colP(wx - CX + jit, wx, c.y0 + c.dy + (c.y1 - c.y0) * (wx - c.x0) / Math.max(1, c.x1 - c.x0), c.th, P, true, c.st); }
+      for (const o of M.obs) if (o.x > CX - 60 && o.x < CX + LW + 60) drawObj(o, P, t);
+      drawFinish(L.fin, t, P.night); drawStart(L.CPS[0], P.night);
+      // bike
+      const [dx, dy] = frameDir(), m0 = [(bk.p[0][0] + bk.p[1][0]) / 2, (bk.p[0][1] + bk.p[1][1]) / 2];
+      drawWheel(bk.p[0][0] - CX, bk.p[0][1] - CY, bk.rot[0], P.night); drawWheel(bk.p[1][0] - CX, bk.p[1][1] - CY, bk.rot[1], P.night);
+      blitR(BIKE, m0[0] - CX, m0[1] - CY, bk.ang);
+      if (!M.crash) blitR(RIDER[M.pose], bk.p[2][0] - CX, bk.p[2][1] - CY, bk.ang); else if (M.rag) blitR(RIDER[3], M.rag.x - CX, M.rag.y - CY, M.rag.a);
+      for (const pp of M.parts) { if (pp.smoke && pp.l > pp.ml * 0.5 && ((Math.floor(pp.x) + Math.floor(pp.y)) & 1)) continue; const X = Math.floor(pp.x - CX), Y = Math.floor(pp.y - CY); if (pp.s > 1) RF(X, Y, pp.s, pp.s, pp.c); else PX(X, Y, pp.c); }
+      for (const r of M.rings) { const n = Math.ceil(r.r * 6); for (let k = 0; k < n; k++) { const a = k / n * TAU; PX(r.x - CX + Math.cos(a) * r.r, r.y - CY + Math.sin(a) * r.r, (k & 1) ? HX('#fff3a0') : HX('#ff8a2a')); } }
+      drawWeather(P, dt, CX, CY, t);
+    }
+
+    /* ---------- UI (all drawn in the pixel buffer) ---------- */
+    const UI = { wht: HX('#ffffff'), ink: HX('#1a1222'), dim: HX('#b8b0c8'), gold: HX('#ffe14d'), grn: HX('#7dffa0'), red: HX('#ff6b6b'), panel: HX('#2a2140'), panelH: HX('#3d3260'), btn: HX('#3a2f5c') };
+    const arcArrow = (cx, cy, dir, c) => { for (let k = 0; k <= 12; k++) { const a = (-200 + k * 18) * Math.PI / 180, x = cx + Math.cos(a) * 4.2 * dir, y = cy + Math.sin(a) * 4.2; PX(x, y, c); PX(x + 0.6, y, c); } const ex = cx + Math.cos(16 * Math.PI / 180) * 4.2 * dir, ey = cy + Math.sin(16 * Math.PI / 180) * 4.2; for (let i = -2; i <= 2; i++) { PX(ex + i * dir * 0 + (i < 0 ? -dir : 0) * 0, ey - 3 + i + 2, c); } PX(ex - dir, ey, c); PX(ex - 2 * dir, ey, c); PX(ex, ey - 1, c); PX(ex, ey - 2, c); };
+    function btnRects() { const touch = M.touch || (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches); const bs = Math.max(22, Math.min(30, Math.floor(GW * 0.16))), y = Math.floor(GY + GH - bs - 6);
+      return { touch, bs, back: [Math.floor(GX + 6), y], fwd: [Math.floor(GX + 6 + bs + 6), y], brake: [Math.floor(GX + GW - 2 * bs - 12), y], gas: [Math.floor(GX + GW - bs - 6), y], pause: [Math.floor(GX + GW - 17), Math.floor(GY + 5)] }; }
+    function drawButtons() { const R = btnRects(); if (!R.touch) return; const T = Object.values(M.ptrs), bs = R.bs;
+      [['back', 0], ['fwd', 1], ['brake', 2], ['gas', 3]].forEach(([k, i]) => { const [x, y] = R[k], on = T.indexOf(k) >= 0 || M.keys[k]; DV(x, y, bs, bs, on ? HX('#ffffff') : HX('#1a1222'), 0); BOX(x + 2, y + 2, bs - 4, bs - 4, on ? HX('#ffe14d') : (i < 2 ? HX('#3d5aa8') : i === 2 ? HX('#a83a3a') : HX('#2f9a58')), UI.ink, on ? HX('#fff6b0') : HX('#ffffff'));
+        const cx = x + bs / 2, cy = y + bs / 2, ic = on ? UI.ink : UI.wht; if (i === 0) arcArrow(cx, cy, -1, ic); else if (i === 1) arcArrow(cx, cy, 1, ic); else PT(i === 2 ? 'BRK' : 'GAS', cx, cy - 2, 1, ic, null, 'c'); }); }
+    function drawHUD(t) { const L = M.L, lv = LEVELS[M.li], P = M.P; const x0 = Math.floor(GX + 6), y0 = Math.floor(GY + 6);
+      PT(fmtT(M.time - M.bonus), x0, y0, 2, UI.wht, UI.ink); PT(P.name + ' ' + (M.li % 3 + 1) + '  ' + lv.name, x0, y0 + 14, 1, UI.dim, UI.ink);
+      let yy = y0 + 22; if (M.faults) { PT('CRASHES ' + M.faults, x0, yy, 1, UI.red, UI.ink); yy += 8; } if (M.flips) { PT('FLIPS ' + M.flips + '  -' + M.bonus.toFixed(1) + 'S', x0, yy, 1, UI.gold, UI.ink); }
+      { const bw = Math.min(80, Math.floor(GW * 0.4)), bx = Math.floor(GX + GW - 22 - bw), by = y0 + 4, pr = clamp(com()[0] / L.fin.x, 0, 1); RF(bx - 1, by - 1, bw + 2, 4, UI.ink); RF(bx, by, bw, 2, HX('#4a4060')); RF(bx, by, Math.round(bw * pr), 2, P.ui); L.CPS.forEach((c, k) => { if (k) PX(bx + Math.round(bw * c.x / L.fin.x), by - 1, c.hit ? UI.grn : UI.wht); }); PX(bx + bw, by - 1, UI.gold); PX(bx + bw, by + 2, UI.gold); }
+      const R = btnRects(); BOX(R.pause[0], R.pause[1], 12, 12, UI.btn, UI.ink, UI.panelH); RF(R.pause[0] + 4, R.pause[1] + 3, 1, 6, UI.wht); RF(R.pause[0] + 7, R.pause[1] + 3, 1, 6, UI.wht);
+      M.toasts.forEach((ts, i) => { const k = ts.k, y = Math.floor(GY + GH * 0.27) + i * (k * 5 + 6), fade = ts.age > ts.life * 0.75; if (fade && (Math.floor(ts.age * 30) & 1)) return; PT(ts.t, GX + GW / 2, y - Math.min(6, ts.age * 10), k, ts.c, UI.ink, 'c'); });
+      if (M.introT < 2.2 && !M.done) { const a = M.introT, y = Math.floor(GY + GH * 0.4); if (a < 2 || (Math.floor(a * 20) & 1)) { DV(GX, y - 6, GW, 30, UI.ink, 0); PT(P.name + ' - LEVEL ' + (M.li % 3 + 1), GX + GW / 2, y, 1, P.ui, UI.ink, 'c'); PT(lv.name, GX + GW / 2, y + 9, 2, UI.wht, UI.ink, 'c'); } }
+      if (!M.started && M.introT > 0.6) { const R2 = btnRects(), y = R2.touch ? R2.gas[1] - 12 : Math.floor(GY + GH - 26); if (Math.floor(t * 2.5) & 1) PT(R2.touch ? 'HOLD GAS TO GO' : 'UP / W TO GO', GX + GW / 2, y, 1, UI.wht, UI.ink, 'c'); if (!R2.touch) PT('DOWN BRAKE   LEFT/RIGHT FLIP   R RETRY', GX + GW / 2, y + 9, 1, UI.dim, UI.ink, 'c'); }
+      drawButtons(); }
+    const panelBtns = [];
+    function uiButton(id, x, y, w, h, label, col) { BOX(x, y, w, h, col || UI.btn, UI.ink, DK(col || UI.btn, 1.4)); PT(label, x + w / 2, y + Math.floor(h / 2) - 2, 1, UI.wht, null, 'c'); panelBtns.push({ id, x, y, w, h }); }
+    function drawDone(t) { const d = M.done, lv = LEVELS[M.li]; if (d.t < 0.6) return; const pw = Math.min(GW - 16, 140), ph = 112, px = Math.floor(GX + (GW - pw) / 2), py = Math.floor(GY + Math.max(24, (GH - ph) / 2 - 10));
+      DV(0, 0, LW, LH, UI.ink, 0); BOX(px, py, pw, ph, UI.panel, UI.ink, UI.panelH); RF(px + 1, py + 1, pw - 2, 13, M.P.ui); PT('LEVEL CLEAR!', px + pw / 2, py + 5, 1, UI.ink, null, 'c');
+      const st = d.st, tt = d.t - 0.6; for (let i = 0; i < 3; i++) { const sx = px + pw / 2 - 22 + i * 16, sy = py + 20, show = tt > 0.25 + i * 0.25; const big = show && tt < 0.4 + i * 0.25; const on = show && i < st; drawStarK(sx - (big ? 2 : 0), sy - (big ? 2 : 0), big ? 3 : 2, on ? UI.gold : HX('#4a4060'), UI.ink); if (show && i === st - 1 && !d.sfx) { d.sfx = 1; } }
+      if (tt > 0.25 && !d.s1) { d.s1 = 1; sfx(880, 0.1, 0.06, 'triangle'); } if (tt > 0.5 && !d.s2 && st > 1) { d.s2 = 1; sfx(1047, 0.1, 0.06, 'triangle'); } if (tt > 0.75 && !d.s3 && st > 2) { d.s3 = 1; sfx(1319, 0.16, 0.06, 'triangle'); }
+      PT(fmtT(d.fin), px + pw / 2, py + 36, 3, UI.wht, UI.ink, 'c');
+      PT('RIDE ' + fmtT(d.raw) + '   FLIPS -' + M.bonus.toFixed(1), px + pw / 2, py + 56, 1, UI.dim, null, 'c'); PT('CRASHES ' + M.faults + (d.nb ? '   NEW BEST!' : '   BEST ' + fmtT(SAVE.best[lv.id])), px + pw / 2, py + 65, 1, d.nb ? UI.gold : UI.dim, null, 'c');
+      PT('3 STARS UNDER ' + fmtT(lv.stars[0]), px + pw / 2, py + 75, 1, HX('#8a80a8'), null, 'c');
+      const bw = Math.floor((pw - 16) / 3); panelBtns.length = 0; uiButton('retry', px + 4, py + ph - 22, bw, 17, 'RETRY'); uiButton('menu', px + 8 + bw, py + ph - 22, bw, 17, 'MENU'); if (M.li < LEVELS.length - 1) uiButton('next', px + 12 + 2 * bw, py + ph - 22, bw, 17, 'NEXT', HX('#2f9a58')); }
+    function drawPause() { const pw = Math.min(GW - 16, 124), ph = 106, px = Math.floor(GX + (GW - pw) / 2), py = Math.floor(GY + (GH - ph) / 2 - 10); DV(0, 0, LW, LH, UI.ink, 0); BOX(px, py, pw, ph, UI.panel, UI.ink, UI.panelH); PT('PAUSED', px + pw / 2, py + 7, 2, UI.wht, UI.ink, 'c'); panelBtns.length = 0;
+      uiButton('resume', px + 10, py + 24, pw - 20, 16, 'RESUME', HX('#2f9a58')); uiButton('cp', px + 10, py + 44, pw - 20, 16, 'LAST CHECKPOINT'); uiButton('retry', px + 10, py + 64, pw - 20, 16, 'RESTART LEVEL'); uiButton('menu', px + 10, py + 84, pw - 20, 16, 'LEVELS'); }
+    const ICONS = { spring: (x, y, c) => { [[2, 0], [1, 1], [3, 1], [0, 2], [4, 2], [1, 3], [3, 3], [2, 4]].forEach(([a, b]) => PX(x + a, y + b, c)); PX(x + 2, y + 2, HX('#ffe14d')); }, summer: (x, y, c) => { RF(x + 1, y + 1, 3, 3, c); PX(x + 2, y - 1, c); PX(x + 2, y + 5, c); PX(x - 1, y + 2, c); PX(x + 5, y + 2, c); PX(x, y, c); PX(x + 4, y, c); PX(x, y + 4, c); PX(x + 4, y + 4, c); },
+      fall: (x, y, c) => { [[3, 0], [4, 0], [2, 1], [3, 1], [4, 1], [1, 2], [2, 2], [3, 2], [1, 3], [2, 3], [0, 4]].forEach(([a, b]) => PX(x + a, y + b, c)); }, winter: (x, y, c) => { RF(x + 2, y - 1, 1, 7, c); RF(x - 1, y + 2, 7, 1, c); PX(x, y, c); PX(x + 4, y, c); PX(x, y + 4, c); PX(x + 4, y + 4, c); PX(x + 1, y + 1, c); PX(x + 3, y + 1, c); PX(x + 1, y + 3, c); PX(x + 3, y + 3, c); } };
+    function drawMenu(t, dt) { const sid = SEASON_ORDER[M.season], P = pal(sid, false); CXs = Math.floor(t * 24); CYs = -Math.floor(GY + GH * 0.56); drawBackdrop(P, CXs, CYs, t);
+      const gy = Math.floor(GY + GH - 16); for (let sx = 0; sx < LW; sx++) colG(sx, sx + CXs, gy + CYs + Math.sin((sx + CXs) * 0.03) * 2, P, false, false);
+      { const bx = Math.floor(GX + GW * 0.5), by = gy - RWH - 1, bob = Math.sin(t * 9) * 0.6, a = -0.05 + Math.sin(t * 1.3) * 0.04; drawWheel(bx - 10, by + 0.3, -t * 30, false); drawWheel(bx + 10, by - 0.3 + Math.sin(t * 1.3) * 0.8, -t * 30, false); blitR(BIKE, bx, by, a); blitR(RIDER[0], bx - 2, by - 11 + bob, a); if (Math.floor(t * 12) % 2 === 0) PX(bx - 18, by - 9, HX('#c8c8d2')); }
+      if (!M.wx.length || M.wxS !== sid) { M.P = P; initWeather(); M.wxS = sid; } drawWeather(P, dt, CXs, CYs, t);
+      const k = GH > 230 ? 5 : 4, ty = Math.floor(GY + 8), cx = Math.floor(GX + GW / 2);
+      { const s = 'MOTO', w0 = tw(s, k), x = cx - Math.floor(w0 / 2); for (const [dx, dy] of OUTL) for (let i = 0; i < 4; i++) glyph(FONT[s[i]], x + i * 4 * k + dx * 2, ty + dy * 2, k, UI.ink); for (let i = 0; i < 4; i++) glyph(FONT[s[i]], x + i * 4 * k, ty + 2, k, HX('#a51d2a'));
+        for (let i = 0; i < 4; i++) { const g = FONT[s[i]]; for (let r = 0; r < 5; r++) for (let b = 0; b < 3; b++) if (g[r] & (4 >> b)) RF(x + i * 4 * k + b * k, ty + r * k, k, k, r < 2 ? HX('#ffe14d') : r < 4 ? HX('#ffb13d') : HX('#ff7a2a')); } }
+      PT('SEASONS', cx, ty + 5 * k + 5, 2, P.ui, UI.ink, 'c');
+      let total = 0; LEVELS.forEach(l => total += SAVE.stars[l.id] || 0); drawStar(GX + GW - 30, GY + 5, UI.gold, UI.ink); PT(total + '/36', GX + GW - 23, GY + 5, 1, UI.wht, UI.ink);
+      panelBtns.length = 0; const tabY = ty + 5 * k + 20, tw0 = Math.floor((GW - 10 - 9) / 4);
+      SEASON_ORDER.forEach((s, i) => { const x = Math.floor(GX + 5 + i * (tw0 + 3)), on = i === M.season, Pp = pal(s, false); BOX(x, tabY + (on ? 0 : 2), tw0, on ? 22 : 20, on ? Pp.tab : UI.panel, UI.ink, on ? DK(Pp.tab, 1.25) : UI.panelH); ICONS[s](x + Math.floor(tw0 / 2) - 2, tabY + 4 + (on ? 0 : 2), on ? UI.ink : Pp.ui); PT(Pp.name, x + tw0 / 2, tabY + 13 + (on ? 0 : 2), 1, on ? UI.ink : UI.wht, null, 'c'); panelBtns.push({ id: 'tab' + i, x, y: tabY, w: tw0, h: 22 }); });
+      const cy0 = tabY + 28, ch = 26, cw = Math.floor(GW - 10);
+      for (let j = 0; j < 3; j++) { const li = M.season * 3 + j, lv = LEVELS[li], x = Math.floor(GX + 5), y = cy0 + j * (ch + 4), open = unlocked(li), sel = M.sel === j, st = SAVE.stars[lv.id] || 0;
+        BOX(x, y, cw, ch, sel ? UI.panelH : UI.panel, sel ? UI.wht : UI.ink, sel ? DK(UI.panelH, 1.3) : UI.panelH); BOX(x + 3, y + 3, 20, 20, open ? P.tab : HX('#4a4060'), UI.ink, open ? DK(P.tab, 1.25) : null); PT(String(j + 1), x + 13, y + 9, 2, open ? UI.ink : HX('#8a80a8'), null, 'c');
+        if (lv.night) PX(x + 19, y + 5, UI.wht);
+        PT(lv.name, x + 28, y + 5, 1, open ? UI.wht : HX('#8a80a8')); if (open) { for (let s = 0; s < 3; s++) drawStar(x + 28 + s * 8, y + 14, s < st ? UI.gold : HX('#4a4060'), UI.ink); const b = SAVE.best[lv.id]; PT(b != null ? fmtT(b) : '--:--', x + cw - 6, y + 5, 1, b != null ? UI.wht : HX('#8a80a8'), null, 'r'); PT(lv.night ? 'NIGHT' : 'DAY', x + cw - 6, y + 15, 1, HX('#8a80a8'), null, 'r'); }
+        else { drawLock(x + cw - 12, y + 9, HX('#8a80a8')); PT('FINISH LEVEL ' + j + ' FIRST', x + 28, y + 15, 1, HX('#8a80a8')); }
+        panelBtns.push({ id: 'lvl' + j, x, y, w: cw, h: ch }); }
+      const hy = cy0 + 3 * (ch + 4) + 2; if (hy < gy - 26) PT(M.touch ? 'TAP A LEVEL TO RIDE' : 'CLICK A LEVEL  OR  ARROWS + ENTER', cx, hy, 1, (Math.floor(t * 2) & 1) ? UI.wht : UI.dim, UI.ink, 'c'); }
+
+    let PSZ = 2;
+    return Object.assign({
+      sk, hold: true, title: 'Moto Seasons', how: 'Gas, brake and lean your bike through 12 pixel tracks. Flip in the air to knock seconds off.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      geom() { const dp = Math.min(window.devicePixelRatio || 1, 2), st = dp >= 2 ? 0.5 : 1; PSZ = Math.max(2, Math.round(Math.min(this.w || 300, (this.h || 500) * 0.6) / 205 / st) * st); GX = (this.ox || 0) / PSZ; GY = (this.oy || 0) / PSZ; GW = (this.w || 300) / PSZ; GH = (this.h || 500) / PSZ; M.ax = GX + GW * 0.3; M.ay = GY + GH * 0.56; },
+      layout() { this.geom(); },
+      reset() { this.geom(); M.mode = 'menu'; this.state = 'ready'; },
+      enter() { this.geom(); },
+      ui(id) {
+        if (id.startsWith('tab')) { M.season = +id.slice(3); M.sel = 0; sfx(520, 0.05, 0.04, 'square'); return; }
+        if (id.startsWith('lvl')) { const j = +id.slice(3), li = M.season * 3 + j; M.sel = j; if (unlocked(li)) { startLevel(li); this.state = 'run'; } else sfx(150, 0.12, 0.05, 'square'); return; }
+        if (id === 'retry') { startLevel(M.li); this.state = 'run'; }
+        else if (id === 'menu') { M.mode = 'menu'; M.season = Math.floor(M.li / 3); M.sel = M.li % 3; M.paused = false; M.keys = {}; M.ptrs = {}; this.state = 'ready'; engine(0, 50); }
+        else if (id === 'next') { const n = M.li + 1; M.season = Math.floor(n / 3); M.sel = n % 3; startLevel(n); }
+        else if (id === 'resume') M.paused = false; else if (id === 'cp') { M.paused = false; if (!M.crash && !M.done) respawn(); }
+      },
+      bind(cv) { this.cv = cv; cv.addEventListener('contextmenu', e => e.preventDefault());
+        const low = e => { const p = ptrPos(cv, e); return [(p[0] + this.ox) / PSZ, (p[1] + this.oy) / PSZ]; };
+        const inR = (q, x, y, w, h) => q[0] >= x && q[1] >= y && q[0] < x + w && q[1] < y + h;
+        const which = q => { const R = btnRects(); if (!R.touch) return null; for (const k of ['back', 'fwd', 'brake', 'gas']) { const [x, y] = R[k]; if (inR(q, x - 3, y - 3, R.bs + 6, R.bs + 6)) return k; }
+          if (q[1] > GY + GH * 0.45) { const fx = (q[0] - GX) / GW; return fx < 0.25 ? 'back' : fx < 0.5 ? 'fwd' : fx < 0.75 ? 'brake' : 'gas'; } return null; };
+        cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') M.touch = true; this.geom(); const q = low(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+          if (M.mode === 'menu' || M.paused || M.done) { if (M.done && M.done.t < 0.9) return; for (const b of panelBtns) if (inR(q, b.x, b.y, b.w, b.h)) { this.ui(b.id); return; } return; }
+          const R = btnRects(); if (inR(q, R.pause[0] - 5, R.pause[1] - 5, 22, 22)) { M.paused = true; M.ptrs = {}; return; }
+          const k = which(q); if (k) M.ptrs[e.pointerId] = k; });
+        cv.addEventListener('pointermove', e => { if (!(e.pointerId in M.ptrs)) return; const k = which(low(e)); if (k) M.ptrs[e.pointerId] = k; });
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => cv.addEventListener(t, e => { delete M.ptrs[e.pointerId]; }));
+        this.__m = M; this.__levels = LEVELS; this.__getL = getL; this.__start = i => startLevel(i); this.__bike = () => bk; this.__T = T_; this.__built = BUILT;
+      },
+      key(e) { const d = e.type === 'keydown', c = e.code, map = { ArrowUp: 'gas', KeyW: 'gas', ArrowDown: 'brake', KeyS: 'brake', ArrowLeft: 'back', KeyA: 'back', ArrowRight: 'fwd', KeyD: 'fwd' };
+        if (M.mode === 'menu') { if (!d) return !!map[c] || c === 'Enter' || c === 'Space'; if (e.repeat) return true;
+          if (c === 'ArrowLeft' || c === 'KeyA') { M.season = (M.season + 3) % 4; M.sel = 0; } else if (c === 'ArrowRight' || c === 'KeyD') { M.season = (M.season + 1) % 4; M.sel = 0; }
+          else if (c === 'ArrowUp' || c === 'KeyW') M.sel = (M.sel + 2) % 3; else if (c === 'ArrowDown' || c === 'KeyS') M.sel = (M.sel + 1) % 3;
+          else if (c === 'Enter' || c === 'Space') { this.ui('lvl' + M.sel); return true; } else return false; sfx(520, 0.04, 0.03, 'square'); return true; }
+        if (M.done) { if (!d || e.repeat) return !!map[c] || c === 'Enter' || c === 'Space' || c === 'KeyR'; if (M.done.t < 0.9) return true; if (c === 'Enter' || c === 'Space') this.ui(M.li < LEVELS.length - 1 ? 'next' : 'menu'); else if (c === 'KeyR') this.ui('retry'); else if (c === 'KeyM') this.ui('menu'); else return !!map[c]; return true; }
+        if (M.paused) { if (d && (c === 'KeyP' || c === 'Enter' || c === 'Space')) M.paused = false; else if (d && c === 'KeyR') this.ui('retry'); else if (d && c === 'KeyM') this.ui('menu'); return !!map[c] || c === 'Space' || c === 'KeyP'; }
+        if (map[c]) { M.keys[map[c]] = d; return true; }
+        if (c === 'Space') { M.keys.gas = d; return true; }
+        if (d && c === 'KeyP') { M.paused = true; M.keys = {}; return true; }
+        if (d && c === 'KeyR' && !e.repeat) { if (e.shiftKey) startLevel(M.li); else if (!M.crash) respawn(); return true; }
+        if (d && c === 'KeyM') { this.ui('menu'); return true; }
+        return false; },
+      tick(dt) { this.decay(dt); M.t += dt; if (M.mode === 'play') { play(dt); this.state = 'run'; } else { engine(0, 50); this.state = 'ready'; } let s = 0; LEVELS.forEach(l => s += SAVE.stars[l.id] || 0); this.score = s; },
+      draw() { const c = this.ctx; this.geom(); if (!this.W || !this.H) return; ensureBuf(this.W, this.H, PSZ); const now = performance.now(), dt = Math.min(0.05, (now - (this._lt || now)) / 1000); this._lt = now;
+        if (M.mode === 'menu') drawMenu(M.t, dt);
+        else { const sh = M.shake > 0 ? [Math.round((Math.random() - 0.5) * 5 * M.shake), Math.round((Math.random() - 0.5) * 5 * M.shake)] : [0, 0]; CXs = Math.round(M.cam.x) + sh[0]; CYs = Math.round(M.cam.y) + sh[1]; drawWorld(M.P, M.t, M.paused ? 0 : dt); drawHUD(M.t); if (M.done) drawDone(M.t); else if (M.paused) drawPause(); }
+        lx.putImageData(img, 0, 0); c.save(); c.imageSmoothingEnabled = false; c.drawImage(lc, -this.ox, -this.oy, LW * PSZ, LH * PSZ); c.restore(); }
+    }, MIX);
+  }
+  skin('moto', { bg: ['#5fb8ff', '#2a2140'], pat: 'none', fg: '#ffffff', dim: '#e8f2ff', panel: '#2a2140', pfg: '#ffffff', dark: true, line: '#1a1222', lw: 0, r: 0, pal: ['#e8312f', '#ffd23f', '#2f7bff', '#3ddc84'], good: '#ffe14d', bad: '#ff6b6b', font: '"Press Start 2P","Courier New",monospace', fw: 400, fs: 0.6, mono: '"Press Start 2P","Courier New",monospace', mw: 400, ms: 0.5, veil: 'rgba(26,18,34,.6)', vfg: '#ffffff', slide: '#2a2140', sbgc: '#2a2140', sfg: '#ffffff', sdim: '#e6defa', stag: '#ffe14d', tsize: 17, tfw: 400, tls: '.02em', frame: '' });
+  NEW_SLIDES.push(mk(makeMoto(SKINS.moto), 'Moto Seasons', SKINS.moto, 'Pixel stunt bike through spring, summer, fall and winter. 12 tracks, loops, flips and way too many exploding barrels.', '#motox #stunts #pixelart', 18.2e9, 5.1e9, 3.3e9, 'moto'));
 
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
