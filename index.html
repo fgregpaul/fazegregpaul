@@ -1455,7 +1455,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     wordsearch: ['found PIXEL instantly', 'diagonal words get me every time', 'ran out of time with one left', 'dragging in a line is smooth', 'the backwards ones are evil'],
     tycoon: ['greg moon base is the move', 'ended with 40K', 'tapping is faster early on', 'the factory pays off', 'bought the bank way too late'],
     boss: ['phase 3 is insane', 'the circle bullets are nasty', 'auto shoot makes it playable', 'beat boss 2 once', 'i keep hiding in the corner'],
-    factory: ['belts everywhere and nothing arrives', 'drills pay for themselves fast', 'i just made a spaghetti line', 'the factory tile is hungry', 'one more drill and i am done'],
+    factory: ['my main bus is pure spaghetti and i love it', 'the factory must grow', 'forgot coal for the power plant and everything stopped', 'finally automated red science', 'it looks so good at night with the furnaces glowing', 'launched the rocket in 41 minutes', 'one more assembler and i will go to sleep', 'copper cable ratio is 3 to 2 btw', 'the belt curves are so satisfying', 'research express belts first trust'],
     cards: ['pair pal carried me', 'x1.5 mult joker is broken', 'flush fan plus a flush is so good', 'lost by 20 points', 'round 6 is where it gets hard'],
     dash: ['78% and then the double spike', 'this one is actually fair', 'i hate the block into spike part', 'attempt 63', 'the pit part got me every time'],
     gate: ['the first portal always goes on the wrong wall', 'light walls only is a good rule', 'cleared 4 rooms', 'brain hurts in a good way', 'metal walls are evil'],
@@ -5262,11 +5262,12 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
   }
 
   skin('rustbelt', { bg: ['#3b2f2a', '#2a211d'], pat: 'diamonds', patc: 'rgba(255,160,60,.07)', fg: '#f2e4d0', dim: '#a89580', panel: '#4a3a32', pfg: '#f2e4d0', dark: true, line: '#d98a2b', lw: 2, hard: 2, sh: '#000000', r: 4, pal: ['#e07a1f', '#ffd447', '#a0713f', '#5a5a64'], good: '#9bd16b', bad: '#e0533a', font: '"Rubik Mono One","Impact",sans-serif', fw: 400, fs: 0.78, mono: '"Roboto Mono","Courier New",monospace', mw: 700, ms: 0.9, dcase: 'upper', veil: 'rgba(42,33,29,.86)', vfg: '#f2e4d0', slide: '#2a211d', sbgc: '#2a211d', sfg: '#f2e4d0', sdim: '#b8a48e', stag: '#ffd447', tsize: 22, tfw: 400, tls: '.02em', tcase: 'uppercase', frame: 'box-shadow:0 0 0 3px #d98a2b,0 0 0 6px #2a211d' });
+  skin('foundry', { bg: ['#0a0e11', '#0a0e11'], pat: 'none', fg: '#e8eef8', dim: '#a8b2c2', panel: '#121820', pfg: '#e8eef8', dark: true, line: '#ffb020', lw: 0, r: 10, pal: ['#ffb020', '#3ad6ff', '#62ff96', '#ff6a3d'], good: '#62ff96', bad: '#ff5a5a', font: '"Space Grotesk",system-ui,sans-serif', fw: 700, fs: 1, mono: '"Space Grotesk",system-ui,sans-serif', mw: 600, ms: 0.9, veil: 'rgba(6,9,14,.7)', vfg: '#ffffff', slide: '#0a0e11', sbgc: '#0a0e11', sfg: '#ffb020', sdim: '#a8b2c2', stag: '#ffb020', tsize: 22, tfw: 700, tls: '.02em', frame: '' });
   skin('casino', { bg: ['#3a0a1a', '#5a1226'], pat: 'diamonds', patc: 'rgba(255,215,100,.08)', fg: '#fff0c8', dim: '#d6a8a0', panel: '#7a1c34', pfg: '#fff0c8', dark: true, line: '#f2c14e', lw: 2, hard: 2, sh: '#1a0008', r: 10, pal: ['#e63946', '#f2c14e', '#3ac0a0', '#4a7bd6'], good: '#3ac0a0', bad: '#ff5a5a', font: '"Abril Fatface","Georgia",serif', fw: 400, fs: 1, mono: '"Courier Prime","Courier New",monospace', mw: 700, ms: 0.92, veil: 'rgba(58,10,26,.88)', vfg: '#fff0c8', slide: '#3a0a1a', sbgc: '#3a0a1a', sfg: '#fff0c8', sdim: '#e0b8b0', stag: '#f2c14e', tsize: 28, tfw: 400, tls: '0', frame: 'border-radius:20px;box-shadow:0 0 0 3px #f2c14e,0 10px 28px rgba(0,0,0,.5)' });
   skin('geometric', { bg: ['#1a6bff', '#0b2f8a'], pat: 'grid', patc: 'rgba(255,255,255,.1)', fg: '#ffffff', dim: '#bcd4ff', panel: '#0a1f5c', pfg: '#ffffff', dark: true, line: '#ffffff', lw: 2, r: 2, pal: ['#ff3b5c', '#ffe24a', '#3bd9a0', '#7a4dff'], good: '#3bd9a0', bad: '#ff3b5c', font: '"Pusab","Fredoka One","Impact",sans-serif', fw: 400, fs: 1, mono: '"Fredoka","Courier New",monospace', mw: 700, ms: 0.95, veil: 'rgba(11,47,138,.85)', vfg: '#ffffff', slide: '#0b2f8a', sbgc: '#0b2f8a', sfg: '#ffffff', sdim: '#c6dbff', stag: '#ffe24a', tsize: 28, tfw: 400, tls: '.01em', frame: 'box-shadow:0 0 0 3px #fff,0 0 30px rgba(120,160,255,.6)' });
 
   NEW_SLIDES.push(
-    mk(makeFactory(SKINS.rustbelt), 'Belt Works', SKINS.rustbelt, 'Mine ore, lay belts, feed the factory. Build a tiny production line in 90 seconds.', '#automation #factory #builder', 5.2e9, 1.2e9, 300e6, 'factory'),
+    mk(makeFactory2(SKINS.foundry), 'Belt Works', SKINS.foundry, 'Mine ore, belt it to furnaces, assemble gears and circuits, research upgrades, keep the power on and launch a rocket. Pan and zoom a whole factory.', '#automation #factory #builder', 5.2e9, 1.2e9, 300e6, 'factory'),
     mk(makeHighCard(SKINS.casino), 'High Card', SKINS.casino, 'Play poker hands for chips x mult. Beat each round target and collect jokers that break the math.', '#cards #roguelike #poker', 9.9e9, 3.3e9, 1.1e9, 'cards'),
     mk(makeDash(SKINS.geometric), 'Beat Dash', SKINS.geometric, 'Tap to jump over spikes and walls. One mistake and you restart. Reach 100%.', '#rhythm #dash #impossible', 12.4e9, 4.6e9, 1.9e9, 'dash')
   );
@@ -9899,6 +9900,426 @@ const SUMMIT_LEVELS = [
   }
   skin('drop', { bg: ['#0a0a14', '#1a1410'], pat: 'none', fg: '#ffffff', dim: '#e8e0c8', panel: '#1e1c26', pfg: '#ffffff', dark: true, line: '#0c0a10', lw: 0, r: 0, pal: ['#ffd23f', '#e83a3a', '#3a8aff', '#7dffa0'], good: '#ffd23f', bad: '#e83a3a', font: '"Press Start 2P","Courier New",monospace', fw: 400, fs: 0.6, mono: '"Press Start 2P","Courier New",monospace', mw: 400, ms: 0.5, veil: 'rgba(10,10,20,.6)', vfg: '#ffffff', slide: '#0a0a14', sbgc: '#0a0a14', sfg: '#ffd23f', sdim: '#e8e0c8', stag: '#ffd23f', tsize: 17, tfw: 400, tls: '.02em', frame: '' });
   NEW_SLIDES.push(mk(makeDrop(SKINS.drop), 'Freedom Drop', SKINS.drop, 'Drop onto bug and bot worlds. Punch in stratagem codes for airstrikes, orbital lasers, sentries and resupplies. Complete the objectives and extract. Your airstrikes hit you too.', '#topdown #shooter #fordemocracy', 21.7e9, 6.6e9, 4.8e9, 'drop'));
+
+  /* ===== Belt Works 2: a real little Factorio. Vector art, pan + zoom, power, research, rocket ===== */
+  function makeFactory2(sk) {
+    const TS = 32, MW = 64, MH = 64, SAVE_K = 'gregsnap_factory_v2';
+    const DV = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    /* ---------- items ---------- */
+    const IT = {
+      io: { n: 'Iron ore', c: '#8aa0b8', sh: 'rock' }, co: { n: 'Copper ore', c: '#e07b3c', sh: 'rock' }, cl: { n: 'Coal', c: '#3a3a44', sh: 'rock', rim: '#8a8a9a' }, st: { n: 'Stone', c: '#c8b48e', sh: 'rock' },
+      fe: { n: 'Iron plate', c: '#c8d4e2', sh: 'plate' }, cu: { n: 'Copper plate', c: '#ff9a5a', sh: 'plate' }, sl: { n: 'Steel', c: '#7f97b0', sh: 'bar' }, br: { n: 'Brick', c: '#d0603f', sh: 'bar' },
+      gr: { n: 'Gear', c: '#e4e8ee', sh: 'gear' }, cb: { n: 'Copper cable', c: '#ffb878', sh: 'coil' }, ci: { n: 'Circuit', c: '#3fe08a', sh: 'chip' },
+      rs: { n: 'Red science', c: '#ff4d62', sh: 'flask' }, gs: { n: 'Green science', c: '#62ff96', sh: 'flask' }, rp: { n: 'Rocket part', c: '#f2f2fa', sh: 'part' }
+    };
+    const ORES = { io: 1, co: 1, cl: 1, st: 1 };
+    /* ---------- recipes ---------- */
+    const FURN = [{ id: 'fe', in: { io: 1 }, out: 'fe', n: 1, t: 2.2 }, { id: 'cu', in: { co: 1 }, out: 'cu', n: 1, t: 2.2 }, { id: 'br', in: { st: 2 }, out: 'br', n: 1, t: 3 }, { id: 'sl', in: { fe: 5 }, out: 'sl', n: 1, t: 7, tech: 'steel' }];
+    const ASM = [{ id: 'gr', in: { fe: 2 }, out: 'gr', n: 1, t: 1 }, { id: 'cb', in: { cu: 1 }, out: 'cb', n: 2, t: 0.6 }, { id: 'ci', in: { fe: 1, cb: 3 }, out: 'ci', n: 1, t: 1.4 },
+      { id: 'rs', in: { cu: 1, gr: 1 }, out: 'rs', n: 1, t: 4 }, { id: 'gs', in: { gr: 1, ci: 1 }, out: 'gs', n: 1, t: 5, tech: 'green' }];
+    const SILO_R = { id: 'rp', in: { ci: 4, sl: 3, br: 3 }, out: 'rp', n: 1, t: 5 };
+    const PARTS = 20, HUBKW = 500;
+    /* ---------- buildings ---------- */
+    const B = {
+      belt: { n: 'Belt', w: 1, h: 1, cost: { fe: 1 }, kw: 0, tip: 'Drag to lay a line. Items ride toward the arrow.' },
+      drill: { n: 'Drill', w: 2, h: 2, cost: { fe: 8, gr: 4 }, kw: 90, tip: 'Put it on ore. Ore comes out of the arrow side.' },
+      furnace: { n: 'Furnace', w: 2, h: 2, cost: { st: 8, fe: 4 }, kw: 90, tip: 'Smelts ore into plates. Feed it with a belt or a drill.' },
+      asm: { n: 'Assembler', w: 3, h: 3, cost: { fe: 9, gr: 5, ci: 3 }, kw: 150, tip: 'Tap it to pick what it makes.' },
+      lab: { n: 'Lab', w: 2, h: 2, cost: { fe: 10, gr: 10, ci: 10 }, kw: 60, tip: 'Eats science packs to research upgrades.' },
+      power: { n: 'Power plant', w: 3, h: 3, cost: { fe: 20, gr: 10, st: 10 }, kw: 0, tip: 'Burns coal from a belt for 1.2 MW.' },
+      silo: { n: 'Rocket silo', w: 4, h: 4, cost: { sl: 60, br: 60, ci: 60 }, kw: 300, tech: 'silo', tip: 'Builds 20 rocket parts, then launches.' },
+      hub: { n: 'Hub', w: 3, h: 3, kw: 0 }
+    };
+    const TOOLS = ['hand', 'belt', 'drill', 'furnace', 'asm', 'lab', 'power', 'silo', 'del'];
+    /* ---------- research ---------- */
+    const TECH = [
+      { id: 'belts2', n: 'Fast belts', d: 'Belts move 60% faster', c: { rs: 15 }, req: [] },
+      { id: 'drill2', n: 'Better drills', d: 'Drills mine 60% faster', c: { rs: 20 }, req: [] },
+      { id: 'steel', n: 'Steel', d: 'Furnaces can turn 5 iron into steel', c: { rs: 25 }, req: [] },
+      { id: 'green', n: 'Logistic science', d: 'Assemblers can make green science', c: { rs: 30 }, req: [] },
+      { id: 'asm2', n: 'Assembler II', d: 'Assemblers work 75% faster', c: { rs: 30, gs: 20 }, req: ['green'] },
+      { id: 'furn2', n: 'Electric furnaces', d: 'Furnaces smelt twice as fast', c: { rs: 30, gs: 30 }, req: ['green'] },
+      { id: 'power2', n: 'Turbines', d: 'Power plants make 60% more', c: { rs: 30, gs: 30 }, req: ['green'] },
+      { id: 'belts3', n: 'Express belts', d: 'Belts move even faster', c: { rs: 40, gs: 40 }, req: ['belts2', 'green'] },
+      { id: 'silo', n: 'Rocket silo', d: 'Unlocks the silo. Launch a rocket to win', c: { rs: 80, gs: 80 }, req: ['steel', 'green', 'asm2'] }
+    ];
+    const techById = id => TECH.find(t => t.id === id);
+
+    /* ---------- world ---------- */
+    const W = { ore: new Uint8Array(MW * MH), oreK: [null, 'io', 'co', 'cl', 'st'], grid: new Int32Array(MW * MH).fill(-1), bld: [], belts: new Map(), nextId: 1 };
+    const OREIDX = { io: 1, co: 2, cl: 3, st: 4 };
+    const hash = (x, y, s) => { let h = (x * 374761393 + y * 668265263 + (s || 0) * 982451653) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+    function genOre() { W.ore.fill(0); const blob = (cx, cy, r, k, s) => { for (let y = Math.floor(cy - r - 3); y <= cy + r + 3; y++) for (let x = Math.floor(cx - r - 3); x <= cx + r + 3; x++) { if (x < 0 || y < 0 || x >= MW || y >= MH) continue; const a = Math.atan2(y - cy, x - cx), rr = r * (0.9 + 0.2 * Math.sin(a * 3 + s) + 0.1 * Math.sin(a * 5 + s * 2)); if (Math.hypot(x - cx, y - cy) <= rr + hash(x, y, s) * 0.8) W.ore[y * MW + x] = OREIDX[k]; } };
+      blob(22, 26, 4, 'io', 1); blob(40, 24, 3.6, 'co', 2); blob(26, 41, 3, 'cl', 3); blob(39, 40, 2.8, 'st', 4);
+      blob(12, 14, 4.5, 'io', 5); blob(52, 12, 4.5, 'co', 6); blob(10, 50, 3.5, 'cl', 7); blob(54, 52, 4, 'st', 8); blob(50, 32, 3.5, 'io', 9); blob(32, 54, 3.5, 'co', 10); }
+    const oreAt = (x, y) => (x < 0 || y < 0 || x >= MW || y >= MH) ? null : W.oreK[W.ore[y * MW + x]];
+    const bAt = (x, y) => { if (x < 0 || y < 0 || x >= MW || y >= MH) return null; const i = W.grid[y * MW + x]; return i >= 0 ? W.bld[i] : null; };
+    const beltAt = (x, y) => W.belts.get(y * MW + x) || null;
+    const free = (x, y, w, h) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const X = x + i, Y = y + j; if (X < 0 || Y < 0 || X >= MW || Y >= MH) return false; if (W.grid[Y * MW + X] >= 0 || W.belts.has(Y * MW + X)) return false; } return true; };
+    // the tile in front of a building's output side
+    const outTile = b => { const S = B[b.t], d = DV[b.d]; const mx = b.x + Math.floor((S.w - 1) / 2), my = b.y + Math.floor((S.h - 1) / 2); return d[0] > 0 ? [b.x + S.w, my] : d[0] < 0 ? [b.x - 1, my] : d[1] > 0 ? [mx, b.y + S.h] : [mx, b.y - 1]; };
+
+    /* ---------- state ---------- */
+    const G = { mode: 'menu', t: 0, stock: {}, tech: {}, res: null, resP: 0, parts: 0, launched: 0, launchT: -1, cam: { x: MW * TS / 2, y: MH * TS / 2, z: 1 }, tool: 'hand', dir: 0, sel: null, panel: null, toasts: [], fx: [], power: { sup: 0, dem: 0, s: 1 }, day: 0.15, playT: 0, goal: 0, rcp: 'gr', saveT: 0, stats: { made: {} } };
+    const toast = (t, c) => { G.toasts.push({ t, c: c || '#ffffff', age: 0 }); if (G.toasts.length > 3) G.toasts.shift(); };
+    const canPay = cost => Object.keys(cost).every(k => (G.stock[k] || 0) >= cost[k]);
+    const pay = (cost, sgn) => Object.keys(cost).forEach(k => G.stock[k] = (G.stock[k] || 0) - cost[k] * (sgn || 1));
+    const unlocked = t => !B[t].tech || G.tech[B[t].tech];
+    const beltSpeed = () => G.tech.belts3 ? 3.4 : G.tech.belts2 ? 2.5 : 1.6;
+    const GAP = 0.26;
+
+    function addB(t, x, y, d, extra) { const S = B[t]; const b = Object.assign({ id: W.nextId++, t, x, y, d, inb: {}, out: 0, outK: null, p: 0, rcp: null, st: 'idle', fuel: 0, anim: Math.random() * 10, made: 0 }, extra || {}); const idx = W.bld.length; W.bld.push(b);
+      for (let j = 0; j < S.h; j++) for (let i = 0; i < S.w; i++) W.grid[(y + j) * MW + x + i] = idx; if (t === 'drill') b.ore = drillOre(b); if (t === 'asm' && !b.rcp) b.rcp = G.rcp; return b; }
+    function reindex() { W.grid.fill(-1); W.bld.forEach((b, idx) => { const S = B[b.t]; for (let j = 0; j < S.h; j++) for (let i = 0; i < S.w; i++) W.grid[(b.y + j) * MW + b.x + i] = idx; }); }
+    function removeB(b) { const k = W.bld.indexOf(b); if (k < 0 || b.t === 'hub') return false; W.bld.splice(k, 1); reindex(); const S = B[b.t]; if (S.cost) pay(S.cost, -1); Object.keys(b.inb).forEach(i => G.stock[i] = (G.stock[i] || 0) + b.inb[i]); if (b.out && b.outK) G.stock[b.outK] = (G.stock[b.outK] || 0) + b.out; if (G.sel === b) { G.sel = null; G.panel = null; } return true; }
+    function drillOre(b) { const cnt = {}; for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) { const o = oreAt(b.x + i, b.y + j); if (o) cnt[o] = (cnt[o] || 0) + 1; } let best = null, bv = 0; for (const k in cnt) if (cnt[k] > bv) { bv = cnt[k]; best = k; } return best; }
+    function addBelt(x, y, d) { const k = y * MW + x; const bl = { x, y, d, it: [] }; W.belts.set(k, bl); return bl; }
+
+    /* ---------- what each building wants ---------- */
+    const recipeOf = b => b.t === 'furnace' ? (b.rcp ? FURN.find(r => r.id === b.rcp) : null) : b.t === 'asm' ? ASM.find(r => r.id === b.rcp) : b.t === 'silo' ? SILO_R : null;
+    function accepts(b, k) {
+      if (b.t === 'hub') return true;
+      if (b.t === 'power') return k === 'cl' && (b.inb.cl || 0) < 6;
+      if (b.t === 'lab') { const r = G.res && techById(G.res); return !!(r && r.c[k] && (b.inb[k] || 0) < 4); }
+      if (b.t === 'furnace') { if (!b.rcp || (!b.p && !(Object.keys(b.inb).some(i => b.inb[i] > 0)) && !b.out)) { const r = FURN.find(r => r.in[k] && (!r.tech || G.tech[r.tech]) && !(r.id === 'sl' && !G.tech.steel)); if (!r) return false; if (b.rcp !== r.id) { b.rcp = r.id; b.inb = {}; } return true; } const r = recipeOf(b); return !!(r && r.in[k] && (b.inb[k] || 0) < r.in[k] * 2); }
+      const r = recipeOf(b); return !!(r && r.in[k] && (b.inb[k] || 0) < r.in[k] * 2 + 1);
+    }
+    function give(b, k) { if (b.t === 'hub') { G.stock[k] = (G.stock[k] || 0) + 1; return; } b.inb[k] = (b.inb[k] || 0) + 1; }
+    // push one item out of a building, onto a belt or straight into the next machine
+    function pushOut(b, k) { const [tx, ty] = outTile(b), bl = beltAt(tx, ty);
+      if (bl) { const d = DV[bl.d]; if (tx + d[0] >= b.x && tx + d[0] < b.x + B[b.t].w && ty + d[1] >= b.y && ty + d[1] < b.y + B[b.t].h) return false; if (bl.it.length && bl.it[bl.it.length - 1].p < GAP) return false; bl.it.push({ k, p: 0 }); return true; }
+      const nb = bAt(tx, ty); if (nb && nb !== b && accepts(nb, k)) { give(nb, k); return true; } return false; }
+
+    /* ---------- simulation ---------- */
+    function step(dt) { G.playT += dt; G.day = (G.day + dt / 300) % 1;
+      // power: the hub has a small built-in generator, power plants burn coal
+      let dem = 0; for (const b of W.bld) if (B[b.t].kw && b.st === 'work') dem += B[b.t].kw; let sup = HUBKW; const pmul = G.tech.power2 ? 1.6 : 1;
+      const plants = W.bld.filter(b => b.t === 'power'); const need = Math.max(0, dem - HUBKW);
+      plants.forEach(b => { const cap = 1200 * pmul; if (b.fuel <= 0 && (b.inb.cl || 0) > 0 && need > 0) { b.inb.cl--; b.fuel = 1; } if (b.fuel > 0) { sup += cap; b.st = 'work'; } else b.st = (b.inb.cl || 0) > 0 ? 'idle' : 'nofuel'; });
+      const s = dem > 0 ? Math.min(1, sup / dem) : 1; G.power = { sup, dem, s };
+      const used = Math.max(0, Math.min(dem, sup) - HUBKW); const fuelAct = plants.filter(b => b.fuel > 0); if (fuelAct.length) { const per = used / (fuelAct.length * 1200 * pmul); fuelAct.forEach(b => { b.fuel -= dt * per / 8; b.load = per; }); }
+      const ps = s; const dmul = G.tech.drill2 ? 1.6 : 1, amul = G.tech.asm2 ? 1.75 : 1, fmul = G.tech.furn2 ? 2 : 1;
+      for (const b of W.bld) { b.anim += dt * (b.st === 'work' ? ps : 0);
+        if (b.t === 'drill') { if (!b.ore) { b.st = 'noore'; continue; } if (b.out > 0) { if (pushOut(b, b.outK)) b.out--; else { b.st = 'blocked'; continue; } } b.st = 'work'; b.p += dt * 0.55 * dmul * ps; if (b.p >= 1) { b.p -= 1; b.out++; b.outK = b.ore; if (pushOut(b, b.ore)) b.out--; } continue; }
+        if (b.t === 'lab') { const r = G.res && techById(G.res); if (!r) { b.st = 'idle'; continue; } const has = Object.keys(r.c).every(k => (b.inb[k] || 0) >= 1); if (!b.p && !has) { b.st = 'noinput'; continue; } if (!b.p) { Object.keys(r.c).forEach(k => b.inb[k]--); b.p = 0.0001; } b.st = 'work'; b.p += dt * ps / 3; if (b.p >= 1) { b.p = 0; G.resP++; G.stats.made.sci = (G.stats.made.sci || 0) + 1; const tot = Object.values(r.c)[0]; if (G.resP >= tot) finishTech(r); } continue; }
+        if (b.t === 'furnace' || b.t === 'asm' || b.t === 'silo') { const r = recipeOf(b); if (!r) { b.st = 'norecipe'; continue; }
+          if (b.out > 0) { if (pushOut(b, b.outK)) b.out--; if (b.out >= r.n * 2) { b.st = 'blocked'; continue; } }
+          if (!b.p) { const ok = Object.keys(r.in).every(k => (b.inb[k] || 0) >= r.in[k]); if (!ok) { b.st = 'noinput'; continue; } Object.keys(r.in).forEach(k => b.inb[k] -= r.in[k]); b.p = 0.0001; }
+          b.st = 'work'; const mul = b.t === 'furnace' ? fmul : b.t === 'asm' ? amul : 1; b.p += dt * ps * mul / r.t;
+          if (b.p >= 1) { b.p = 0; b.made++; G.stats.made[r.out] = (G.stats.made[r.out] || 0) + r.n;
+            if (b.t === 'silo') { G.parts++; if (G.parts >= PARTS && G.launchT < 0) { G.launchT = 0; toast('ROCKET READY. LAUNCHING!', '#ffd23f'); } else if (G.parts % 5 === 0 && G.parts < PARTS) toast('ROCKET ' + Math.round(G.parts / PARTS * 100) + '% BUILT', '#ffd23f'); }
+            else { b.outK = r.out; b.out += r.n; } }
+          continue; } }
+      // belts: move items, hand them to the next belt or building
+      const sp = beltSpeed() * dt;
+      for (const bl of W.belts.values()) { const it = bl.it; if (!it.length) continue; const d = DV[bl.d], nx = bl.x + d[0], ny = bl.y + d[1];
+        for (let i = 0; i < it.length; i++) { const lim = i === 0 ? 1 : it[i - 1].p - GAP; it[i].p = Math.min(it[i].p + sp, Math.max(it[i].p, lim)); }
+        if (it[0].p >= 1) { const k = it[0].k, nb = beltAt(nx, ny);
+          if (nb) { if (nb.d === (bl.d + 2) % 4) continue; const side = nb.d !== bl.d; const curve = side && beltShape(nb) !== 0;
+            const at = side && !curve ? 0.5 : 0; if (nb.it.some(q => Math.abs(q.p - at) < GAP)) continue; it.shift(); let j = 0; while (j < nb.it.length && nb.it[j].p > at) j++; nb.it.splice(j, 0, { k, p: at }); }
+          else { const tb = bAt(nx, ny); if (tb && accepts(tb, k)) { it.shift(); give(tb, k); } } } }
+      // rocket launch
+      if (G.launchT >= 0) { G.launchT += dt; if (G.launchT > 9 && !G.launchDone) { G.launchDone = true; G.launched++; G.mode = 'won'; G.wonT = 0; } }
+      G.toasts.forEach(x => x.age += dt); G.toasts = G.toasts.filter(x => x.age < 3.2);
+      checkGoals(); G.saveT += dt; if (G.saveT > 8) { G.saveT = 0; save(); } }
+    function finishTech(r) { G.tech[r.id] = true; G.resP = 0; toast('RESEARCHED: ' + r.n.toUpperCase(), '#62ff96'); try { JING('win'); } catch (_) {} const nx = TECH.find(t => !G.tech[t.id] && t.req.every(q => G.tech[q])); G.res = nx ? nx.id : null; }
+
+    /* ---------- goals: a gentle tutorial ---------- */
+    const GOALS = [
+      { t: 'Put a drill on iron ore', ok: () => W.bld.some(b => b.t === 'drill' && b.ore === 'io') },
+      { t: 'Belt the drill\'s ore into a furnace', ok: () => (G.stats.made.fe || 0) >= 1 },
+      { t: 'Belt the iron plates into the hub', ok: () => (G.stock.fe || 0) >= 70 || (G.stats.made.fe || 0) >= 20 },
+      { t: 'Mine and smelt copper too', ok: () => (G.stats.made.cu || 0) >= 5 },
+      { t: 'Power plant: belt coal into it', ok: () => W.bld.some(b => b.t === 'power' && b.fuel > 0) },
+      { t: 'Build an assembler making gears', ok: () => (G.stats.made.gr || 0) >= 5 },
+      { t: 'Make red science (copper + gear)', ok: () => (G.stats.made.rs || 0) >= 3 },
+      { t: 'Build a lab and feed it red science', ok: () => Object.keys(G.tech).length >= 1 },
+      { t: 'Research logistic science', ok: () => !!G.tech.green },
+      { t: 'Research the rocket silo', ok: () => !!G.tech.silo },
+      { t: 'Build the silo and feed it', ok: () => G.parts >= 1 },
+      { t: 'Launch the rocket', ok: () => G.launched > 0 }
+    ];
+    function checkGoals() { while (G.goal < GOALS.length && GOALS[G.goal].ok()) { toast('✓ ' + GOALS[G.goal].t.toUpperCase(), '#62ff96'); G.goal++; try { sfx(880, 0.08, 0.04, 'triangle'); } catch (_) {} } }
+
+    /* ---------- new game, save, load ---------- */
+    function newWorld() { genOre(); W.bld = []; W.belts = new Map(); W.nextId = 1; reindex(); addB('hub', 31, 31, 0);
+      G.stock = { fe: 70, gr: 28, ci: 14, st: 40 }; G.tech = {}; G.res = 'belts2'; G.resP = 0; G.parts = 0; G.launched = 0; G.launchT = -1; G.launchDone = false; G.playT = 0; G.goal = 0; G.day = 0.15; G.stats = { made: {} };
+      G.cam = { x: 32.5 * TS, y: 30 * TS, z: 1 }; G.tool = 'hand'; G.sel = null; G.panel = null; G.toasts = []; G.fx = []; G.mode = 'play'; save(); }
+    function save() { try { const o = { v: 2, stock: G.stock, tech: G.tech, res: G.res, resP: G.resP, parts: G.parts, launched: G.launched, playT: G.playT, goal: G.goal, day: G.day, stats: G.stats, cam: G.cam,
+        b: W.bld.map(b => [b.t, b.x, b.y, b.d, b.rcp, b.inb, b.out, b.outK, b.p, b.fuel]), l: [...W.belts.values()].map(bl => [bl.x, bl.y, bl.d, bl.it.map(q => q.k + ':' + q.p.toFixed(2)).join(',')]) }; localStorage.setItem(SAVE_K, JSON.stringify(o)); } catch (_) {} }
+    function hasSave() { try { return !!localStorage.getItem(SAVE_K); } catch (_) { return false; } }
+    function load() { try { const o = JSON.parse(localStorage.getItem(SAVE_K) || 'null'); if (!o || o.v !== 2) return false; genOre(); W.bld = []; W.belts = new Map(); W.nextId = 1; reindex();
+        Object.assign(G, { stock: o.stock || {}, tech: o.tech || {}, res: o.res, resP: o.resP || 0, parts: o.parts || 0, launched: o.launched || 0, playT: o.playT || 0, goal: o.goal || 0, day: o.day || 0, stats: o.stats || { made: {} }, launchT: -1, launchDone: false });
+        if (o.cam) G.cam = o.cam; o.b.forEach(a => addB(a[0], a[1], a[2], a[3], { rcp: a[4], inb: a[5] || {}, out: a[6] || 0, outK: a[7], p: a[8] || 0, fuel: a[9] || 0 })); reindex();
+        o.l.forEach(a => { const bl = addBelt(a[0], a[1], a[2]); if (a[3]) bl.it = a[3].split(',').map(s => { const [k, p] = s.split(':'); return { k, p: +p }; }).filter(q => IT[q.k]); bl.it.sort((x, y) => y.p - x.p); });
+        G.tool = 'hand'; G.sel = null; G.panel = null; G.toasts = []; G.fx = []; G.mode = 'play'; toast('WELCOME BACK', '#3ad6ff'); return true; } catch (_) { return false; } }
+
+    /* ---------- building and removing ---------- */
+    function tryPlace(t, x, y, d, quiet) { const S = B[t]; if (!unlocked(t)) { if (!quiet) toast('RESEARCH IT FIRST', '#ff8a8a'); return false; }
+      if (t === 'belt') { const ex = beltAt(x, y); if (ex) { if (ex.d !== d) { ex.d = d; return true; } return false; } if (bAt(x, y)) return false; if (!canPay(S.cost)) { if (!quiet) toast('NOT ENOUGH IRON PLATES IN THE HUB', '#ff8a8a'); return false; } pay(S.cost); addBelt(x, y, d); return true; }
+      if (!free(x, y, S.w, S.h)) { if (!quiet) toast('NO ROOM THERE', '#ff8a8a'); return false; }
+      if (t === 'drill') { let any = false; for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) if (oreAt(x + i, y + j)) any = true; if (!any) { if (!quiet) toast('DRILLS GO ON ORE', '#ff8a8a'); return false; } }
+      if (!canPay(S.cost)) { if (!quiet) toast('NEED ' + costStr(S.cost), '#ff8a8a'); return false; }
+      pay(S.cost); const b = addB(t, x, y, d); sfxBuild(); burstAt((x + S.w / 2) * TS, (y + S.h / 2) * TS, 14, '#ffd23f'); return b; }
+    function removeAt(x, y) { const bl = beltAt(x, y); if (bl) { W.belts.delete(y * MW + x); pay(B.belt.cost, -1); bl.it.forEach(q => G.stock[q.k] = (G.stock[q.k] || 0) + 1); return true; } const b = bAt(x, y); if (b && removeB(b)) { burstAt((b.x + B[b.t].w / 2) * TS, (b.y + B[b.t].h / 2) * TS, 12, '#ff8a5a'); return true; } return false; }
+    const costStr = c => Object.keys(c).map(k => c[k] + ' ' + IT[k].n.toUpperCase()).join(', ');
+    const burstAt = (x, y, n, col) => { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, s = 30 + Math.random() * 80; G.fx.push({ k: 'spark', x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, t: 0, T: 0.4 + Math.random() * 0.3, c: col }); } };
+    const sfxBuild = () => { try { sfx(220, 0.08, 0.05, 'triangle'); setTimeout(() => sfx(330, 0.1, 0.04, 'triangle'), 60); } catch (_) {} };
+
+    /* ---------- art: everything is drawn with vectors once into sprite canvases, then stamped ---------- */
+    const UIF = '"Space Grotesk", "Segoe UI", system-ui, sans-serif', TF = 'Orbitron, "Space Grotesk", system-ui, sans-serif';
+    const RES = 2; // sprite pixels per world unit
+    const mkC = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
+    const rr = (c, x, y, w, h, r) => { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); };
+    const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255; if (k >= 0) { r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k; } else { r *= 1 + k; g *= 1 + k; b *= 1 + k; } return 'rgb(' + (r | 0) + ',' + (g | 0) + ',' + (b | 0) + ')'; };
+    const ACC = { drill: '#ffb020', furnace: '#ff6a3d', asm: '#3ad6ff', lab: '#b07bff', power: '#ffd23f', silo: '#e8eef8', hub: '#3ad6ff' };
+    /* items */
+    const ISPR = {};
+    function itemSprite(k) { if (ISPR[k]) return ISPR[k]; const S = 28, c = mkC(S, S), x = c.getContext('2d'), I = IT[k], m = S / 2; x.translate(m, m); x.lineJoin = 'round';
+      const out = () => { x.lineWidth = 2; x.strokeStyle = 'rgba(8,10,14,.85)'; x.stroke(); };
+      if (I.sh === 'rock') { x.beginPath(); for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2, r = 8 + (i * 37 % 5) * 0.6; x.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.85); } x.closePath(); const g = x.createLinearGradient(-8, -8, 8, 8); g.addColorStop(0, shade(I.c, 0.35)); g.addColorStop(1, shade(I.c, -0.35)); x.fillStyle = g; x.fill(); out(); x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(-4, -5, 3, 2); if (I.rim) { x.strokeStyle = I.rim; x.lineWidth = 1; x.beginPath(); x.moveTo(-5, 2); x.lineTo(1, -3); x.stroke(); } }
+      else if (I.sh === 'plate') { rr(x, -9, -6, 18, 12, 2); const g = x.createLinearGradient(0, -6, 0, 6); g.addColorStop(0, shade(I.c, 0.4)); g.addColorStop(1, shade(I.c, -0.3)); x.fillStyle = g; x.fill(); out(); x.fillStyle = 'rgba(255,255,255,.5)'; x.fillRect(-7, -4, 10, 1.5); }
+      else if (I.sh === 'bar') { x.beginPath(); x.moveTo(-10, 4); x.lineTo(-6, -5); x.lineTo(10, -5); x.lineTo(6, 4); x.closePath(); x.fillStyle = shade(I.c, 0.1); x.fill(); out(); x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(-5, -4, 13, 2); }
+      else if (I.sh === 'gear') { x.beginPath(); for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i & 1 ? 6.5 : 9.5; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); x.fillStyle = I.c; x.fill(); out(); x.beginPath(); x.arc(0, 0, 3, 0, Math.PI * 2); x.fillStyle = '#5a6270'; x.fill(); }
+      else if (I.sh === 'coil') { for (let i = -1; i <= 1; i++) { x.beginPath(); x.ellipse(i * 4, 0, 3.5, 8, 0, 0, Math.PI * 2); x.strokeStyle = 'rgba(8,10,14,.85)'; x.lineWidth = 4; x.stroke(); x.strokeStyle = I.c; x.lineWidth = 2; x.stroke(); } }
+      else if (I.sh === 'chip') { rr(x, -8, -8, 16, 16, 2); x.fillStyle = '#16402a'; x.fill(); out(); x.strokeStyle = I.c; x.lineWidth = 1.5; x.beginPath(); x.moveTo(-5, -3); x.lineTo(0, -3); x.lineTo(3, 2); x.moveTo(-4, 4); x.lineTo(5, 4); x.stroke(); x.fillStyle = '#ffd23f'; x.fillRect(-2, -6, 4, 3); }
+      else if (I.sh === 'flask') { x.beginPath(); x.moveTo(-3, -9); x.lineTo(3, -9); x.lineTo(3, -3); x.lineTo(8, 7); x.quadraticCurveTo(8, 9, 6, 9); x.lineTo(-6, 9); x.quadraticCurveTo(-8, 9, -8, 7); x.lineTo(-3, -3); x.closePath(); x.fillStyle = 'rgba(220,235,255,.55)'; x.fill(); out(); x.beginPath(); x.moveTo(-5.5, 2); x.lineTo(5.5, 2); x.lineTo(7, 7); x.lineTo(-7, 7); x.closePath(); x.fillStyle = I.c; x.fill(); x.fillStyle = 'rgba(255,255,255,.6)'; x.fillRect(-1, -7, 2, 6); }
+      else if (I.sh === 'part') { rr(x, -6, -10, 12, 20, 5); x.fillStyle = '#eef0f6'; x.fill(); out(); x.fillStyle = '#e83a3a'; x.fillRect(-6, 3, 12, 3); x.fillStyle = '#3a4250'; x.beginPath(); x.arc(0, -3, 2.5, 0, Math.PI * 2); x.fill(); }
+      return (ISPR[k] = c); }
+    /* ore patches */
+    const OSPR = {};
+    function oreSprite(k, v) { const key = k + v; if (OSPR[key]) return OSPR[key]; const S = TS * RES, c = mkC(S, S), x = c.getContext('2d'), col = IT[k].c; x.scale(RES, RES);
+      const n = 4 + Math.floor(hash(v, 3, 9) * 3); for (let i = 0; i < n; i++) { const cx = 5 + hash(v, i, 1) * 22, cy = 6 + hash(v, i, 2) * 20, r = 3 + hash(v, i, 4) * 4.5; x.beginPath(); for (let a = 0; a < 6; a++) { const t = a / 6 * Math.PI * 2 + hash(i, a, v) * 0.6, q = r * (0.75 + hash(a, i, 7) * 0.4); x.lineTo(cx + Math.cos(t) * q, cy + Math.sin(t) * q * 0.8); } x.closePath();
+        const g = x.createLinearGradient(cx - r, cy - r, cx + r, cy + r); g.addColorStop(0, shade(col, k === 'cl' ? 0.25 : 0.3)); g.addColorStop(0.55, col); g.addColorStop(1, shade(col, -0.55)); x.fillStyle = g; x.fill(); x.lineWidth = 1; x.strokeStyle = 'rgba(0,0,0,.55)'; x.stroke(); x.fillStyle = 'rgba(255,255,255,' + (k === 'cl' ? 0.25 : 0.35) + ')'; x.fillRect(cx - r * 0.4, cy - r * 0.45, r * 0.45, 1); }
+      return (OSPR[key] = c); }
+    /* ground: one big cached texture */
+    let GROUND = null;
+    function makeGround() { const s = 0.5, c = mkC(MW * TS * s, MH * TS * s), x = c.getContext('2d'); x.scale(s, s); x.fillStyle = '#161d21'; x.fillRect(0, 0, MW * TS, MH * TS);
+      for (let i = 0; i < 2600; i++) { const px = hash(i, 1, 21) * MW * TS, py = hash(i, 2, 21) * MH * TS, r = 10 + hash(i, 3, 21) * 60; const g = x.createRadialGradient(px, py, 0, px, py, r); const tint = hash(i, 4, 21); g.addColorStop(0, tint < 0.33 ? 'rgba(40,62,58,.35)' : tint < 0.66 ? 'rgba(52,48,42,.3)' : 'rgba(26,34,44,.4)'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2); }
+      x.strokeStyle = 'rgba(0,0,0,.35)'; x.lineWidth = 2; for (let i = 0; i < 160; i++) { let px = hash(i, 5, 22) * MW * TS, py = hash(i, 6, 22) * MH * TS; x.beginPath(); x.moveTo(px, py); for (let k = 0; k < 5; k++) { px += (hash(i, k, 23) - 0.5) * 60; py += (hash(i, k, 24) - 0.5) * 60; x.lineTo(px, py); } x.stroke(); }
+      for (let i = 0; i < 4000; i++) { const px = hash(i, 7, 25) * MW * TS, py = hash(i, 8, 25) * MH * TS; x.fillStyle = hash(i, 9, 25) < 0.5 ? 'rgba(120,140,140,.18)' : 'rgba(0,0,0,.25)'; x.fillRect(px, py, 2 + hash(i, 1, 26) * 3, 2); }
+      // ore patches get a darker stain so they read from far away
+      for (let y = 0; y < MH; y++) for (let X = 0; X < MW; X++) { const o = oreAt(X, y); if (!o) continue; x.fillStyle = o === 'io' ? 'rgba(80,110,150,.22)' : o === 'co' ? 'rgba(170,90,40,.22)' : o === 'cl' ? 'rgba(0,0,0,.35)' : 'rgba(160,140,100,.2)'; x.fillRect(X * TS - 4, y * TS - 4, TS + 8, TS + 8); }
+      const vg = x.createRadialGradient(MW * TS / 2, MH * TS / 2, MW * TS * 0.3, MW * TS / 2, MH * TS / 2, MW * TS * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); x.fillStyle = vg; x.fillRect(0, 0, MW * TS, MH * TS);
+      GROUND = c; }
+    /* machines: a chunky metal body, accent trim, rivets and an output chevron */
+    const BSPR = {};
+    function body(x, w, h, acc, inset) { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#5a6472'); g.addColorStop(0.5, '#3a424e'); g.addColorStop(1, '#262c35');
+      x.fillStyle = 'rgba(0,0,0,.45)'; rr(x, 3, 5, w - 4, h - 4, 6); x.fill(); rr(x, inset, inset, w - inset * 2, h - inset * 2, 6); x.fillStyle = g; x.fill(); x.lineWidth = 1.5; x.strokeStyle = '#0c0f14'; x.stroke();
+      x.strokeStyle = 'rgba(255,255,255,.18)'; x.lineWidth = 1; rr(x, inset + 1.5, inset + 1.5, w - inset * 2 - 3, h - inset * 2 - 3, 5); x.stroke();
+      x.fillStyle = acc; x.fillRect(inset + 4, h - inset - 6, w - inset * 2 - 8, 2.5); x.fillStyle = 'rgba(0,0,0,.35)'; for (let i = inset + 8; i < w - inset - 8; i += 7) x.fillRect(i, h - inset - 6, 3, 2.5);
+      x.fillStyle = '#8a94a4'; [[inset + 4, inset + 4], [w - inset - 6, inset + 4], [inset + 4, h - inset - 11], [w - inset - 6, h - inset - 11]].forEach(([a, b]) => { x.beginPath(); x.arc(a + 1, b + 1, 1.3, 0, Math.PI * 2); x.fill(); }); }
+    function chevron(x, w, h, d, acc) { x.save(); x.translate(w / 2, h / 2); x.rotate(d * Math.PI / 2); const ex = w / 2 - 3; x.fillStyle = acc; x.strokeStyle = '#0c0f14'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(ex, 0); x.lineTo(ex - 6, -6); x.lineTo(ex - 6, -2.5); x.lineTo(ex - 10, -2.5); x.lineTo(ex - 10, 2.5); x.lineTo(ex - 6, 2.5); x.lineTo(ex - 6, 6); x.closePath(); x.fill(); x.stroke(); x.restore(); }
+    function bSprite(t, d) { const key = t + d; if (BSPR[key]) return BSPR[key]; const S = B[t], w = S.w * TS, h = S.h * TS, c = mkC(w * RES, h * RES), x = c.getContext('2d'), acc = ACC[t]; x.scale(RES, RES); x.lineJoin = 'round';
+      if (t === 'drill') { body(x, w, h, acc, 3); x.fillStyle = '#1a1e25'; x.beginPath(); x.arc(w / 2, h / 2, 17, 0, Math.PI * 2); x.fill(); x.strokeStyle = acc; x.lineWidth = 2; x.stroke(); x.strokeStyle = 'rgba(255,176,32,.35)'; x.setLineDash([3, 3]); x.beginPath(); x.arc(w / 2, h / 2, 21, 0, Math.PI * 2); x.stroke(); x.setLineDash([]); }
+      else if (t === 'furnace') { body(x, w, h, acc, 3); const g = x.createLinearGradient(0, 10, 0, 40); g.addColorStop(0, '#5a4038'); g.addColorStop(1, '#2a1c18'); rr(x, 12, 12, 40, 32, 5); x.fillStyle = g; x.fill(); x.strokeStyle = '#0c0f14'; x.stroke(); for (let i = 0; i < 4; i++) { x.fillStyle = 'rgba(0,0,0,.3)'; x.fillRect(14, 16 + i * 7, 36, 1); } rr(x, 20, 26, 24, 14, 3); x.fillStyle = '#120806'; x.fill(); x.fillStyle = '#4a4f5a'; x.fillRect(44, 6, 9, 9); x.strokeStyle = '#0c0f14'; x.strokeRect(44, 6, 9, 9); }
+      else if (t === 'asm') { body(x, w, h, acc, 3); x.fillStyle = '#1c222b'; rr(x, 16, 16, w - 32, h - 32, 8); x.fill(); x.strokeStyle = 'rgba(58,214,255,.5)'; x.lineWidth = 1.5; x.stroke(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; x.fillStyle = '#4a5462'; x.beginPath(); x.arc(w / 2 + Math.cos(a) * 34, h / 2 + Math.sin(a) * 34, 4, 0, Math.PI * 2); x.fill(); } }
+      else if (t === 'lab') { body(x, w, h, acc, 3); x.fillStyle = '#1c1a28'; x.beginPath(); x.arc(w / 2, h / 2, 19, 0, Math.PI * 2); x.fill(); x.strokeStyle = 'rgba(176,123,255,.6)'; x.lineWidth = 1.5; x.stroke(); for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2 - Math.PI / 2; x.fillStyle = '#5a5470'; x.fillRect(w / 2 + Math.cos(a) * 24 - 3, h / 2 + Math.sin(a) * 24 - 3, 6, 6); } }
+      else if (t === 'power') { body(x, w, h, acc, 3); x.fillStyle = '#1a1e25'; x.beginPath(); x.arc(w * 0.38, h * 0.55, 22, 0, Math.PI * 2); x.fill(); x.strokeStyle = acc; x.lineWidth = 2; x.stroke(); const cg = x.createLinearGradient(66, 0, 84, 0); cg.addColorStop(0, '#6a7280'); cg.addColorStop(1, '#3a404a'); x.fillStyle = cg; rr(x, 66, 10, 18, 26, 3); x.fill(); x.strokeStyle = '#0c0f14'; x.lineWidth = 1.2; x.stroke(); x.fillStyle = '#e83a3a'; x.fillRect(66, 14, 18, 2); x.fillStyle = '#ffd23f'; x.font = 'bold 14px ' + UIF; x.textAlign = 'center'; x.fillText('⚡', 75, 66); }
+      else if (t === 'silo') { body(x, w, h, acc, 3); x.fillStyle = '#12151b'; x.beginPath(); x.arc(w / 2, h / 2, 46, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#ffd23f'; x.lineWidth = 3; x.setLineDash([8, 6]); x.stroke(); x.setLineDash([]); x.strokeStyle = '#3a404a'; x.lineWidth = 2; x.beginPath(); x.moveTo(w / 2 - 46, h / 2); x.lineTo(w / 2 + 46, h / 2); x.stroke(); }
+      else if (t === 'hub') { body(x, w, h, acc, 2); x.fillStyle = '#141a22'; rr(x, 14, 14, w - 28, h - 28, 10); x.fill(); x.strokeStyle = 'rgba(58,214,255,.7)'; x.lineWidth = 2; x.stroke(); x.strokeStyle = 'rgba(58,214,255,.25)'; x.lineWidth = 1; for (let i = 1; i < 4; i++) { x.beginPath(); x.arc(w / 2, h / 2, i * 8, 0, Math.PI * 2); x.stroke(); } x.fillStyle = '#3ad6ff'; x.font = 'bold 9px ' + TF; x.textAlign = 'center'; x.fillText('HUB', w / 2, h - 18); }
+      if (t !== 'hub') chevron(x, w, h, d, acc);
+      return (BSPR[key] = c); }
+    const LIGHT = (() => { const c = mkC(128, 128), x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,.65)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return c; })();
+    const GLOW = {}; const glowSpr = col => { if (GLOW[col]) return GLOW[col]; const c = mkC(64, 64), x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return (GLOW[col] = c); };
+
+    /* ---------- belts ---------- */
+    function beltShape(bl) { const d = DV[bl.d], back = beltAt(bl.x - d[0], bl.y - d[1]); if (back && back.d === bl.d) return 0; const L = (bl.d + 3) % 4, R = (bl.d + 1) % 4; const fl = beltAt(bl.x + DV[L][0], bl.y + DV[L][1]), fr = beltAt(bl.x + DV[R][0], bl.y + DV[R][1]);
+      const inL = fl && fl.d === (L + 2) % 4, inR = fr && fr.d === (R + 2) % 4; if (inL && !inR) return -1; if (inR && !inL) return 1; return 0; }
+    function drawBelt(c, bl, z, t) { const s = beltShape(bl); bl.sh = s; c.save(); c.translate(bl.x * TS + 16, bl.y * TS + 16); c.rotate(bl.d * Math.PI / 2); if (s > 0) c.scale(1, -1);
+      const off = ((t * beltSpeed()) % 1 + 1) % 1;
+      if (!s) { c.fillStyle = '#23262c'; c.fillRect(-16, -13, 32, 26); c.fillStyle = '#3c414b'; c.fillRect(-16, -13, 32, 3); c.fillRect(-16, 10, 32, 3); if (z > 0.45) { c.strokeStyle = '#ffb020'; c.lineWidth = 2.2; c.globalAlpha = 0.85; for (let k = 0; k < 3; k++) { const x = -16 + ((k + off) / 3) * 32; c.beginPath(); c.moveTo(x - 5, -6); c.lineTo(x, 0); c.lineTo(x - 5, 6); c.stroke(); } c.globalAlpha = 1; } }
+      else { // curve: enters from the left side edge, leaves through the front edge (mirrored for the right side)
+        c.fillStyle = '#23262c'; c.beginPath(); c.arc(16, -16, 29, Math.PI / 2, Math.PI); c.arc(16, -16, 3, Math.PI, Math.PI / 2, true); c.closePath(); c.fill();
+        c.strokeStyle = '#3c414b'; c.lineWidth = 3; c.beginPath(); c.arc(16, -16, 27.5, Math.PI / 2, Math.PI); c.stroke(); c.beginPath(); c.arc(16, -16, 4.5, Math.PI / 2, Math.PI); c.stroke();
+        if (z > 0.45) { c.strokeStyle = '#ffb020'; c.lineWidth = 2.2; c.globalAlpha = 0.85; for (let k = 0; k < 3; k++) { const a = Math.PI - Math.PI / 2 * ((k + off) / 3), nx = Math.cos(a), ny = Math.sin(a), px = 16 + nx * 16, py = -16 + ny * 16, tx = Math.sin(a), ty = -Math.cos(a); c.beginPath(); c.moveTo(px - tx * 5 + nx * 6, py - ty * 5 + ny * 6); c.lineTo(px, py); c.lineTo(px - tx * 5 - nx * 6, py - ty * 5 - ny * 6); c.stroke(); } c.globalAlpha = 1; } }
+      c.restore(); }
+    function itemPos(bl, p) { const s = bl.sh || 0; let lx, ly; if (!s) { lx = -16 + p * 32; ly = 0; } else { const a = Math.PI - Math.PI / 2 * p; lx = 16 + Math.cos(a) * 16; ly = -16 + Math.sin(a) * 16; if (s > 0) ly = -ly; }
+      const r = bl.d * Math.PI / 2, cs = Math.cos(r), sn = Math.sin(r); return [bl.x * TS + 16 + lx * cs - ly * sn, bl.y * TS + 16 + lx * sn + ly * cs]; }
+
+    /* ---------- machine overlays (moving parts, lights) ---------- */
+    const STC = { work: '#3dff8a', noinput: '#ffd23f', blocked: '#ff5a5a', nofuel: '#ff5a5a', noore: '#ff5a5a', norecipe: '#ffd23f', idle: '#6a7280' };
+    function drawMachine(c, b, z, t) { const S = B[b.t], X = b.x * TS, Y = b.y * TS, w = S.w * TS, h = S.h * TS, cx = X + w / 2, cy = Y + h / 2, a = b.anim, acc = ACC[b.t];
+      c.drawImage(bSprite(b.t, b.d), X, Y, w, h);
+      if (b.t === 'drill') { c.save(); c.translate(cx, cy); c.rotate(a * 5); c.fillStyle = '#c8ced8'; for (let i = 0; i < 3; i++) { c.rotate(Math.PI * 2 / 3); c.beginPath(); c.moveTo(0, -3); c.lineTo(14, -6); c.lineTo(15, 0); c.lineTo(0, 3); c.closePath(); c.fill(); } c.fillStyle = acc; c.beginPath(); c.arc(0, 0, 4.5, 0, Math.PI * 2); c.fill(); c.restore();
+        if (b.st === 'work' && Math.random() < 0.2 && b.ore) G.fx.push({ k: 'dust', x: cx + (Math.random() - 0.5) * 30, y: cy + (Math.random() - 0.5) * 30, vx: (Math.random() - 0.5) * 20, vy: -10 - Math.random() * 10, t: 0, T: 0.6, c: IT[b.ore].c }); }
+      else if (b.t === 'furnace') { const on = b.st === 'work', fl = on ? 0.75 + Math.sin(t * 23 + b.id) * 0.15 + Math.sin(t * 37) * 0.1 : 0.12; const g = c.createLinearGradient(0, Y + 26, 0, Y + 40); g.addColorStop(0, 'rgba(255,120,40,' + (fl * 0.6) + ')'); g.addColorStop(1, 'rgba(255,220,120,' + fl + ')'); c.fillStyle = g; rr(c, X + 21, Y + 27, 22, 12, 2); c.fill();
+        if (on && Math.random() < 0.12) G.fx.push({ k: 'smoke', x: X + 48.5, y: Y + 6, vx: 4 + Math.random() * 6, vy: -16 - Math.random() * 8, t: 0, T: 2.4, r: 3 }); if (b.rcp) c.drawImage(itemSprite(b.rcp), X + 2, Y + 2, 12, 12); }
+      else if (b.t === 'asm') { const r = recipeOf(b); c.save(); c.translate(cx, cy); c.rotate(Math.sin(a * 2.2) * 1.3); c.strokeStyle = '#8a96a8'; c.lineWidth = 4; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, 0); c.lineTo(24, 0); c.stroke(); c.strokeStyle = acc; c.lineWidth = 2; c.beginPath(); c.moveTo(24, -4); c.lineTo(28, 0); c.lineTo(24, 4); c.stroke(); c.restore();
+        c.fillStyle = '#0e1218'; c.beginPath(); c.arc(cx, cy, 11, 0, Math.PI * 2); c.fill(); if (r) c.drawImage(itemSprite(r.out), cx - 9, cy - 9, 18, 18); if (b.p > 0) { c.strokeStyle = acc; c.lineWidth = 2.5; c.beginPath(); c.arc(cx, cy, 13, -Math.PI / 2, -Math.PI / 2 + b.p * Math.PI * 2); c.stroke(); }
+        if (b.st === 'work' && Math.random() < 0.06) burstAt(cx + Math.cos(a * 2) * 22, cy + Math.sin(a * 2) * 22, 3, '#bff3ff'); }
+      else if (b.t === 'lab') { const on = b.st === 'work'; c.save(); c.translate(cx, cy); c.strokeStyle = 'rgba(176,123,255,' + (on ? 0.9 : 0.35) + ')'; c.lineWidth = 1.5; c.rotate(a * 1.5); c.beginPath(); c.ellipse(0, 0, 15, 6, 0, 0, Math.PI * 2); c.stroke(); c.rotate(Math.PI / 2.5); c.beginPath(); c.ellipse(0, 0, 15, 6, 0, 0, Math.PI * 2); c.stroke(); c.restore(); c.fillStyle = on ? '#e8d8ff' : '#6a5a8a'; c.beginPath(); c.arc(cx, cy, 5 + (on ? Math.sin(t * 6) : 0), 0, Math.PI * 2); c.fill(); }
+      else if (b.t === 'power') { const on = b.fuel > 0; c.save(); c.translate(X + w * 0.38, Y + h * 0.55); c.rotate(a * 9); c.fillStyle = on ? '#ffe680' : '#7a7460'; for (let i = 0; i < 6; i++) { c.rotate(Math.PI / 3); c.beginPath(); c.ellipse(10, 0, 9, 3.5, 0.3, 0, Math.PI * 2); c.fill(); } c.restore(); if (on && Math.random() < 0.2) G.fx.push({ k: 'smoke', x: X + 75, y: Y + 9, vx: 5 + Math.random() * 6, vy: -18 - Math.random() * 10, t: 0, T: 3, r: 4 }); }
+      else if (b.t === 'silo') { const k = G.parts / PARTS; c.strokeStyle = 'rgba(255,210,63,.9)'; c.lineWidth = 4; c.beginPath(); c.arc(cx, cy, 52, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2); c.stroke(); if (G.launchT < 0 && G.parts > 0) { c.fillStyle = '#e8eef8'; c.globalAlpha = 0.3 + k * 0.7; rr(c, cx - 7, cy - 22 * k, 14, 44 * k, 6); c.fill(); c.globalAlpha = 1; }
+        const lid = G.launchT >= 0 ? Math.min(1, G.launchT / 1.5) : 0; c.fillStyle = '#2a303a'; c.fillRect(cx - 46, cy - 46, 46 - lid * 40, 92); c.fillRect(cx + lid * 40, cy - 46, 46 - lid * 40, 92); c.strokeStyle = '#0c0f14'; c.lineWidth = 1.5; c.strokeRect(cx - 46, cy - 46, 46 - lid * 40, 92); c.strokeRect(cx + lid * 40, cy - 46, 46 - lid * 40, 92); }
+      else if (b.t === 'hub') { c.save(); c.translate(cx, cy); c.rotate(t * 0.8); c.strokeStyle = 'rgba(58,214,255,.8)'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 0); c.lineTo(24, 0); c.stroke(); c.fillStyle = 'rgba(58,214,255,.15)'; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, 26, -0.5, 0); c.closePath(); c.fill(); c.restore(); }
+      if (b.t !== 'hub') { const sc = STC[b.st] || STC.idle, blink = b.st !== 'work' && b.st !== 'idle' ? (Math.floor(t * 3) & 1) : 1; c.fillStyle = '#0c0f14'; c.beginPath(); c.arc(X + w - 8, Y + 8, 3.6, 0, Math.PI * 2); c.fill(); if (blink) { c.fillStyle = sc; c.beginPath(); c.arc(X + w - 8, Y + 8, 2.4, 0, Math.PI * 2); c.fill(); } }
+      if (z > 0.55 && (b.st === 'noinput' || b.st === 'blocked' || b.st === 'nofuel' || b.st === 'noore') && b.t !== 'lab' && (Math.floor(t * 1.5) & 1)) { c.fillStyle = 'rgba(12,15,20,.85)'; rr(c, cx - 9, Y - 14, 18, 14, 4); c.fill(); c.fillStyle = b.st === 'noinput' ? '#ffd23f' : '#ff5a5a'; c.font = 'bold 10px ' + UIF; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(b.st === 'blocked' ? '■' : '!', cx, Y - 7); } }
+    function drawRocket(c, b, t) { const S = B.silo, cx = (b.x + S.w / 2) * TS, cy = (b.y + S.h / 2) * TS, k = G.launchT, rise = k < 2 ? 0 : Math.pow(k - 2, 2.2) * 26, y = cy - rise;
+      if (k > 1.2) { for (let i = 0; i < 3; i++) G.fx.push({ k: 'fire', x: cx + (Math.random() - 0.5) * 10, y: y + 34, vx: (Math.random() - 0.5) * 40, vy: 60 + Math.random() * 80, t: 0, T: 0.5 + Math.random() * 0.4 }); if (Math.random() < 0.6) G.fx.push({ k: 'smoke', x: cx + (Math.random() - 0.5) * 60, y: cy + (Math.random() - 0.5) * 50, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 30, t: 0, T: 3.5, r: 10 }); }
+      c.save(); c.translate(cx, y); c.fillStyle = '#eef2f8'; c.beginPath(); c.moveTo(0, -46); c.quadraticCurveTo(12, -30, 12, 10); c.lineTo(12, 30); c.lineTo(-12, 30); c.lineTo(-12, 10); c.quadraticCurveTo(-12, -30, 0, -46); c.fill(); c.strokeStyle = '#0c0f14'; c.lineWidth = 1.5; c.stroke(); c.fillStyle = '#e83a3a'; c.fillRect(-12, 14, 24, 5); c.beginPath(); c.moveTo(-12, 18); c.lineTo(-22, 34); c.lineTo(-12, 30); c.fill(); c.beginPath(); c.moveTo(12, 18); c.lineTo(22, 34); c.lineTo(12, 30); c.fill(); c.fillStyle = '#3ad6ff'; c.beginPath(); c.arc(0, -16, 5, 0, Math.PI * 2); c.fill(); c.stroke(); c.restore(); }
+
+    /* ---------- world rendering ---------- */
+    const dayLight = () => 0.5 + 0.5 * Math.cos(G.day * Math.PI * 2);
+    const nightK = () => { const d = dayLight(); return Math.max(0, Math.min(1, (0.55 - d) / 0.4)); };
+    let LC = null;
+    function drawWorld(g, c, t) { const z = G.cam.z, cam = G.cam; if (!GROUND) makeGround();
+      c.fillStyle = '#0a0e11'; c.fillRect(-g.ox, -g.oy, g.W, g.H);
+      c.save(); c.translate(g.w / 2, g.h / 2); c.scale(z, z); c.translate(-cam.x, -cam.y);
+      const L = cam.x + (-g.ox - g.w / 2) / z, R = cam.x + (g.W - g.ox - g.w / 2) / z, T = cam.y + (-g.oy - g.h / 2) / z, Bm = cam.y + (g.H - g.oy - g.h / 2) / z;
+      const x0 = Math.max(0, Math.floor(L / TS) - 1), x1 = Math.min(MW - 1, Math.ceil(R / TS) + 1), y0 = Math.max(0, Math.floor(T / TS) - 1), y1 = Math.min(MH - 1, Math.ceil(Bm / TS) + 1);
+      c.imageSmoothingEnabled = true; c.drawImage(GROUND, 0, 0, MW * TS, MH * TS);
+      c.strokeStyle = 'rgba(255,176,32,.25)'; c.lineWidth = 3 / z; c.setLineDash([12 / z, 8 / z]); c.strokeRect(0, 0, MW * TS, MH * TS); c.setLineDash([]);
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const o = oreAt(x, y); if (o) c.drawImage(oreSprite(o, (x * 7 + y * 13) & 3), x * TS, y * TS, TS, TS); }
+      if (z > 0.7) { c.strokeStyle = 'rgba(255,255,255,' + Math.min(0.05, (z - 0.7) * 0.08) + ')'; c.lineWidth = 1 / z; c.beginPath(); for (let x = x0; x <= x1 + 1; x++) { c.moveTo(x * TS, y0 * TS); c.lineTo(x * TS, (y1 + 1) * TS); } for (let y = y0; y <= y1 + 1; y++) { c.moveTo(x0 * TS, y * TS); c.lineTo((x1 + 1) * TS, y * TS); } c.stroke(); }
+      const vb = []; for (const bl of W.belts.values()) if (bl.x >= x0 && bl.x <= x1 && bl.y >= y0 && bl.y <= y1) vb.push(bl);
+      if (z < 0.55) { c.fillStyle = '#2a2e35'; for (const bl of vb) { bl.sh = 0; c.fillRect(bl.x * TS + (DV[bl.d][1] ? 4 : 0), bl.y * TS + (DV[bl.d][0] ? 4 : 0), DV[bl.d][1] ? TS - 8 : TS, DV[bl.d][0] ? TS - 8 : TS); } for (const bl of vb) for (const q of bl.it) { const [px, py] = itemPos(bl, q.p); c.fillStyle = IT[q.k].c; c.fillRect(px - 5, py - 5, 10, 10); } }
+      else { for (const bl of vb) drawBelt(c, bl, z, t); const isz = 12; for (const bl of vb) for (const q of bl.it) { const [px, py] = itemPos(bl, q.p); c.drawImage(itemSprite(q.k), px - isz / 2, py - isz / 2, isz, isz); } }
+      for (const b of W.bld) { const S = B[b.t]; if (b.x + S.w < x0 || b.x > x1 || b.y + S.h < y0 || b.y > y1) continue; drawMachine(c, b, z, t); }
+      if (G.sel && W.bld.indexOf(G.sel) >= 0) { const b = G.sel, S = B[b.t]; c.strokeStyle = '#3ad6ff'; c.lineWidth = 2 / z; c.setLineDash([6 / z, 4 / z]); c.lineDashOffset = -t * 20 / z; rr(c, b.x * TS - 3, b.y * TS - 3, S.w * TS + 6, S.h * TS + 6, 8); c.stroke(); c.setLineDash([]); const [ox, oy] = outTile(b); c.strokeStyle = 'rgba(255,210,63,.8)'; c.strokeRect(ox * TS + 3, oy * TS + 3, TS - 6, TS - 6); }
+      drawGhost(c, z, t);
+      for (const f of G.fx) { const k = f.t / f.T; if (f.k === 'smoke') { c.fillStyle = 'rgba(150,155,165,' + (0.32 * (1 - k)) + ')'; c.beginPath(); c.arc(f.x, f.y, f.r * (1 + k * 2.5), 0, Math.PI * 2); c.fill(); } else if (f.k === 'dust') { c.fillStyle = f.c; c.globalAlpha = 1 - k; c.fillRect(f.x - 1.5, f.y - 1.5, 3, 3); c.globalAlpha = 1; } else if (f.k === 'spark') { c.strokeStyle = f.c; c.globalAlpha = 1 - k; c.lineWidth = 1.5; c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(f.x - f.vx * 0.05, f.y - f.vy * 0.05); c.stroke(); c.globalAlpha = 1; } }
+      c.globalCompositeOperation = 'lighter'; for (const f of G.fx) if (f.k === 'fire') { const k = f.t / f.T, r = 10 * (1 - k) + 4; c.drawImage(glowSpr(k < 0.3 ? 'rgba(255,240,180,.9)' : 'rgba(255,120,40,.7)'), f.x - r, f.y - r, r * 2, r * 2); } c.globalCompositeOperation = 'source-over';
+      if (G.launchT >= 0) { const s = W.bld.find(b => b.t === 'silo'); if (s) drawRocket(c, s, t); }
+      c.restore();
+      // night lighting
+      const nk = nightK(); if (nk > 0.02) { const s = 0.5, lw = Math.ceil(g.W * s), lh = Math.ceil(g.H * s); if (!LC || LC.width !== lw || LC.height !== lh) LC = mkC(lw, lh); const x = LC.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, lw, lh); x.fillStyle = 'rgba(2,5,18,' + (0.78 * nk) + ')'; x.fillRect(0, 0, lw, lh);
+        x.globalCompositeOperation = 'destination-out'; const toS = (wx, wy) => [((wx - cam.x) * z + g.w / 2 + g.ox) * s, ((wy - cam.y) * z + g.h / 2 + g.oy) * s];
+        for (const b of W.bld) { const S = B[b.t], [sx, sy] = toS((b.x + S.w / 2) * TS, (b.y + S.h / 2) * TS); const r = (S.w * TS * 0.8 + 14) * z * s * (b.st === 'work' || b.t === 'hub' ? 1 : 0.55); if (sx < -r || sy < -r || sx > lw + r || sy > lh + r) continue; x.drawImage(LIGHT, sx - r, sy - r, r * 2, r * 2); }
+        c.drawImage(LC, -g.ox, -g.oy, g.W, g.H);
+        c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = nk; c.translate(g.w / 2, g.h / 2); c.scale(z, z); c.translate(-cam.x, -cam.y);
+        for (const b of W.bld) { if (b.st !== 'work' && !(b.t === 'power' && b.fuel > 0)) continue; const S = B[b.t], cx = (b.x + S.w / 2) * TS, cy = (b.y + S.h / 2) * TS, r = S.w * TS * 0.9; if (cx < L - r || cx > R + r || cy < T - r || cy > Bm + r) continue; const col = b.t === 'furnace' ? 'rgba(255,120,40,.55)' : b.t === 'power' ? 'rgba(255,210,80,.45)' : b.t === 'lab' ? 'rgba(176,123,255,.45)' : b.t === 'asm' ? 'rgba(58,214,255,.3)' : 'rgba(255,176,32,.3)'; c.drawImage(glowSpr(col), cx - r, cy - r, r * 2, r * 2); }
+        c.restore(); } }
+    function drawGhost(c, z, t) { const gh = G.ghost; if (!gh) return; if (gh.t === 'belt' || gh.t === 'del') { c.strokeStyle = gh.t === 'del' ? 'rgba(255,90,90,.9)' : 'rgba(255,176,32,.9)'; c.lineWidth = 2 / z; c.strokeRect(gh.x * TS + 1, gh.y * TS + 1, TS - 2, TS - 2); if (gh.t === 'belt') { c.save(); c.translate(gh.x * TS + 16, gh.y * TS + 16); c.rotate(G.dir * Math.PI / 2); c.fillStyle = 'rgba(255,176,32,.8)'; c.beginPath(); c.moveTo(10, 0); c.lineTo(-4, -8); c.lineTo(-4, 8); c.closePath(); c.fill(); c.restore(); } return; }
+      const S = B[gh.t]; c.globalAlpha = 0.62; c.drawImage(bSprite(gh.t, G.dir), gh.x * TS, gh.y * TS, S.w * TS, S.h * TS); c.globalAlpha = 1; c.fillStyle = gh.ok ? 'rgba(61,255,138,.16)' : 'rgba(255,70,70,.28)'; c.fillRect(gh.x * TS, gh.y * TS, S.w * TS, S.h * TS); c.strokeStyle = gh.ok ? '#3dff8a' : '#ff5a5a'; c.lineWidth = 2 / z; c.strokeRect(gh.x * TS, gh.y * TS, S.w * TS, S.h * TS);
+      const b = { t: gh.t, x: gh.x, y: gh.y, d: G.dir }, [ox, oy] = outTile(b); c.fillStyle = 'rgba(255,210,63,.35)'; c.fillRect(ox * TS + 4, oy * TS + 4, TS - 8, TS - 8); }
+    function ghostOk(t, x, y) { const S = B[t]; if (!free(x, y, S.w, S.h) || !unlocked(t) || !canPay(S.cost)) return false; if (t === 'drill') { let any = false; for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) if (oreAt(x + i, y + j)) any = true; return any; } return true; }
+
+    /* ---------- UI ---------- */
+    const fmtN = n => n >= 10000 ? Math.floor(n / 1000) + 'k' : n >= 1000 ? (Math.floor(n / 100) / 10) + 'k' : String(Math.floor(n));
+    const SHOW = ['fe', 'cu', 'gr', 'ci', 'st', 'cl', 'sl', 'br', 'rs', 'gs', 'cb', 'io', 'co'];
+    let HIT = []; const TLAB = { hand: 'SELECT', belt: 'BELT', drill: 'DRILL', furnace: 'FURNACE', asm: 'ASSEMBLER', lab: 'LAB', power: 'POWER', silo: 'SILO', del: 'REMOVE' };
+    const panelBox = (c, x, y, w, h, r, fill, edge) => { rr(c, x, y, w, h, r || 10); c.fillStyle = fill || 'rgba(12,16,22,.86)'; c.fill(); c.lineWidth = 1; c.strokeStyle = edge || 'rgba(255,255,255,.09)'; c.stroke(); };
+    const text = (c, s, x, y, sz, col, al, f, wt) => { c.font = (wt || 600) + ' ' + sz + 'px ' + (f || UIF); c.fillStyle = col; c.textAlign = al || 'left'; c.textBaseline = 'middle'; c.fillText(s, x, y); };
+    const btn = (c, id, x, y, w, h, label, opt) => { opt = opt || {}; panelBox(c, x, y, w, h, opt.r || 8, opt.on ? (opt.acc || '#ffb020') : opt.dis ? 'rgba(40,44,52,.8)' : (opt.fill || 'rgba(30,36,46,.92)'), opt.on ? 'rgba(255,255,255,.4)' : 'rgba(255,255,255,.12)'); if (label) text(c, label, x + w / 2, y + h / 2 + 0.5, opt.sz || 12, opt.on ? '#10141a' : opt.dis ? '#6a7280' : (opt.col || '#e8eef8'), 'center', opt.f, 700); HIT.push({ id, x, y, w, h, dis: opt.dis }); };
+    function toolIcon(c, t, x, y, s) { if (B[t] && t !== 'belt') { const S = B[t], sp = bSprite(t, 0), k = s / Math.max(S.w, S.h) / TS; c.drawImage(sp, x - S.w * TS * k / 2, y - S.h * TS * k / 2, S.w * TS * k, S.h * TS * k); return; }
+      c.save(); c.translate(x, y); if (t === 'belt') { c.fillStyle = '#23262c'; c.fillRect(-s / 2, -s * 0.36, s, s * 0.72); c.fillStyle = '#3c414b'; c.fillRect(-s / 2, -s * 0.36, s, 2); c.fillRect(-s / 2, s * 0.36 - 2, s, 2); c.strokeStyle = '#ffb020'; c.lineWidth = 2; for (let k = -1; k <= 1; k++) { c.beginPath(); c.moveTo(k * s * 0.3 - 3, -4); c.lineTo(k * s * 0.3 + 1, 0); c.lineTo(k * s * 0.3 - 3, 4); c.stroke(); } }
+      else if (t === 'hand') { c.fillStyle = '#e8eef8'; c.strokeStyle = '#0c0f14'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(-5, -9); c.lineTo(-5, 7); c.lineTo(-1, 3); c.lineTo(2, 10); c.lineTo(5, 8.5); c.lineTo(2, 2); c.lineTo(7, 2); c.closePath(); c.fill(); c.stroke(); }
+      else if (t === 'del') { c.strokeStyle = '#ff5a5a'; c.lineWidth = 3; c.lineCap = 'round'; c.beginPath(); c.moveTo(-7, -7); c.lineTo(7, 7); c.moveTo(7, -7); c.lineTo(-7, 7); c.stroke(); }
+      c.restore(); }
+    function drawItemCount(c, k, n, x, y, need) { c.drawImage(itemSprite(k), x, y - 8, 16, 16); text(c, need != null ? fmtN(n) + '/' + need : fmtN(n), x + 18, y, 11, need != null && n < need ? '#ff8a8a' : '#e8eef8', 'left', UIF, 700); }
+    function drawUI(g, c, t) { HIT = []; const w = g.w, h = g.h;
+      // stock bar
+      panelBox(c, 6, 6, w - 12, 28, 9); const list = SHOW.filter((k, i) => i < 5 || (G.stock[k] || 0) > 0); const slot = Math.max(46, Math.min(60, (w - 20) / Math.min(list.length, 7))); list.slice(0, Math.floor((w - 20) / slot)).forEach((k, i) => drawItemCount(c, k, G.stock[k] || 0, 12 + i * slot, 20));
+      // research + power
+      const r = G.res && techById(G.res), rw = Math.floor((w - 18) * 0.6); panelBox(c, 6, 38, rw, 24, 8, 'rgba(12,16,22,.86)', 'rgba(98,255,150,.25)'); HIT.push({ id: 'tech', x: 6, y: 38, w: rw, h: 24 });
+      if (r) { const tot = Object.values(r.c)[0]; c.fillStyle = 'rgba(98,255,150,.18)'; rr(c, 7, 39, (rw - 2) * G.resP / tot, 22, 7); c.fill(); text(c, '⚗ ' + r.n.toUpperCase(), 14, 50, 10, '#bfffd6', 'left', UIF, 700); text(c, G.resP + '/' + tot, rw, 50, 10, '#bfffd6', 'right', UIF, 700); } else text(c, '⚗ ' + (TECH.every(q => G.tech[q.id]) ? 'ALL RESEARCH DONE' : 'PICK RESEARCH'), 14, 50, 10, '#bfffd6', 'left', UIF, 700);
+      const pw = w - 18 - rw, px = 12 + rw, P = G.power; panelBox(c, px, 38, pw, 24, 8, 'rgba(12,16,22,.86)', P.s < 1 ? 'rgba(255,90,90,.5)' : 'rgba(255,210,63,.25)'); const pk = P.dem > 0 ? Math.min(1, P.dem / P.sup) : 0; c.fillStyle = P.s < 1 ? 'rgba(255,90,90,.35)' : 'rgba(255,210,63,.22)'; rr(c, px + 1, 39, (pw - 2) * pk, 22, 7); c.fill();
+      text(c, '⚡ ' + (P.dem / 1000).toFixed(1) + ' / ' + (P.sup / 1000).toFixed(1) + ' MW', px + pw / 2, 50, 10, P.s < 1 ? '#ffb0b0' : '#ffe9a0', 'center', UIF, 700);
+      // goal
+      if (G.goal < GOALS.length) { const s = 'NEXT: ' + GOALS[G.goal].t; c.font = '700 10px ' + UIF; c.lineWidth = 3; c.strokeStyle = 'rgba(8,10,14,.9)'; c.textAlign = 'left'; c.strokeText(s, 9, 72); text(c, s, 9, 72, 10, '#7fe6ff', 'left', UIF, 700); }
+      // toasts
+      G.toasts.forEach((ts, i) => { const a = Math.min(1, (3.2 - ts.age) * 2); c.globalAlpha = a; c.font = '700 11px ' + UIF; const tw = c.measureText(ts.t).width + 18; panelBox(c, w / 2 - tw / 2, h * 0.22 + i * 26, tw, 21, 10, 'rgba(10,14,20,.9)', 'rgba(255,255,255,.15)'); text(c, ts.t, w / 2, h * 0.22 + i * 26 + 11, 11, ts.c, 'center', UIF, 700); c.globalAlpha = 1; });
+      // toolbar
+      const ty = h - 56, bw = (w - 12) / TOOLS.length; panelBox(c, 4, ty - 2, w - 8, 54, 12);
+      TOOLS.forEach((tl, i) => { const x = 6 + i * bw, on = G.tool === tl, lock = B[tl] && !unlocked(tl); if (on) { rr(c, x + 1, ty + 1, bw - 2, 48, 9); c.fillStyle = 'rgba(255,176,32,.2)'; c.fill(); c.strokeStyle = '#ffb020'; c.lineWidth = 1.5; c.stroke(); }
+        c.globalAlpha = lock ? 0.35 : 1; toolIcon(c, tl, x + bw / 2, ty + 19, Math.min(26, bw - 8)); c.globalAlpha = 1; { const lab = lock ? 'LOCKED' : TLAB[tl]; c.font = '700 8px ' + UIF; const fs = Math.min(8, 8 * (bw - 3) / Math.max(1, c.measureText(lab).width)); text(c, lab, x + bw / 2, ty + 41, fs, on ? '#ffcf70' : '#a8b2c2', 'center', UIF, 700); } HIT.push({ id: 'tool:' + tl, x, y: ty, w: bw, h: 50 }); });
+      // selected tool info
+      if (B[G.tool] && !G.panel) { const S = B[G.tool], iy = ty - 36; panelBox(c, 6, iy, w - 12, 30, 9); text(c, S.n.toUpperCase(), 14, iy + 10, 11, '#ffcf70', 'left', UIF, 700); let cx = 14; c.font = '700 10px ' + UIF; Object.keys(S.cost).forEach(k => { const ok = (G.stock[k] || 0) >= S.cost[k]; c.drawImage(itemSprite(k), cx, iy + 15, 12, 12); text(c, String(S.cost[k]), cx + 13, iy + 21, 10, ok ? '#e8eef8' : '#ff8a8a', 'left', UIF, 700); cx += 34; });
+        c.font = '600 9px ' + UIF; text(c, S.tip, cx + 4, iy + 21, 9, '#8a96a8', 'left', UIF, 600);
+        const rx = w - 28, ry = iy - 22; c.fillStyle = 'rgba(12,16,22,.92)'; c.beginPath(); c.arc(rx, ry, 17, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#ffb020'; c.lineWidth = 1.5; c.stroke(); c.save(); c.translate(rx, ry); c.rotate(G.dir * Math.PI / 2); c.fillStyle = '#ffb020'; c.beginPath(); c.moveTo(9, 0); c.lineTo(-3, -7); c.lineTo(-3, 7); c.closePath(); c.fill(); c.restore(); text(c, 'R', rx + 11, ry + 12, 8, '#8a96a8', 'center'); HIT.push({ id: 'rot', x: rx - 18, y: ry - 18, w: 36, h: 36 }); }
+      if (G.panel) drawPanel(g, c, t); }
+    const STATUS = { work: 'WORKING', noinput: 'WAITING FOR INPUT', blocked: 'OUTPUT BLOCKED', nofuel: 'NO COAL', noore: 'NO ORE UNDER IT', norecipe: 'FEED IT SOMETHING TO SMELT', idle: 'IDLE' };
+    function drawPanel(g, c, t) { const w = g.w, h = g.h, P = G.panel;
+      if (P.tech) { const x = 8, y = 70, pw = w - 16, ph = h - 70 - 64; panelBox(c, x, y, pw, ph, 12, 'rgba(10,14,20,.95)', 'rgba(98,255,150,.3)'); text(c, 'RESEARCH', x + 12, y + 16, 13, '#bfffd6', 'left', TF, 700); btn(c, 'close', x + pw - 30, y + 6, 24, 20, '✕');
+        const rh = Math.min(38, (ph - 34) / TECH.length); TECH.forEach((q, i) => { const yy = y + 30 + i * rh, done = G.tech[q.id], avail = !done && q.req.every(k => G.tech[k]), cur = G.res === q.id; const fill = cur ? 'rgba(98,255,150,.16)' : 'rgba(26,32,42,.9)'; panelBox(c, x + 6, yy, pw - 12, rh - 4, 7, fill, cur ? 'rgba(98,255,150,.6)' : 'rgba(255,255,255,.06)'); if (avail || cur) HIT.push({ id: 'res:' + q.id, x: x + 6, y: yy, w: pw - 12, h: rh - 4 });
+          text(c, q.n.toUpperCase(), x + 14, yy + rh * 0.32, 10, done ? '#5aa070' : avail ? '#ffffff' : '#6a7280', 'left', UIF, 700); text(c, done ? 'DONE' : q.d, x + 14, yy + rh * 0.68 - 2, 8.5, done ? '#5aa070' : '#8a96a8', 'left', UIF, 600);
+          let cx = x + pw - 16; Object.keys(q.c).reverse().forEach(k => { text(c, String(q.c[k]), cx, yy + rh / 2 - 2, 10, '#e8eef8', 'right', UIF, 700); cx -= 22; c.drawImage(itemSprite(k), cx - 2, yy + rh / 2 - 9, 14, 14); cx -= 8; }); if (cur) { const tot = Object.values(q.c)[0]; c.fillStyle = '#62ff96'; c.fillRect(x + 8, yy + rh - 7, (pw - 16) * G.resP / tot, 2); } if (!avail && !done && !cur) text(c, '🔒', x + pw - 120, yy + rh / 2 - 2, 10, '#6a7280', 'center'); });
+        return; }
+      const b = P.b; if (!b || W.bld.indexOf(b) < 0) { G.panel = null; return; } const S = B[b.t], ph = b.t === 'asm' ? 150 : 118, x = 6, y = h - 58 - ph - 4, pw = w - 12; panelBox(c, x, y, pw, ph, 12, 'rgba(10,14,20,.95)', ACC[b.t] + '66');
+      toolIcon(c, b.t, x + 24, y + 22, 30); text(c, S.n.toUpperCase(), x + 46, y + 15, 13, ACC[b.t], 'left', UIF, 700); text(c, b.t === 'hub' ? 'EVERYTHING DELIVERED HERE IS YOURS TO BUILD WITH' : (STATUS[b.st] || ''), x + 46, y + 30, 9, b.t === 'hub' ? '#8a96a8' : STC[b.st] || '#8a96a8', 'left', UIF, 700); btn(c, 'close', x + pw - 30, y + 6, 24, 20, '✕');
+      let ly = y + 54; const r = recipeOf(b);
+      if (b.t === 'drill') { text(c, b.ore ? 'MINING ' + IT[b.ore].n.toUpperCase() + '  ·  ' + (0.55 * (G.tech.drill2 ? 1.6 : 1) * 60).toFixed(0) + ' PER MINUTE' : 'MOVE IT ONTO ORE', x + 12, ly, 10, '#e8eef8', 'left'); }
+      else if (b.t === 'hub') { text(c, 'HAS A BUILT-IN 0.5 MW GENERATOR', x + 12, ly, 10, '#e8eef8', 'left'); }
+      else if (b.t === 'power') { text(c, 'COAL ' + (b.inb.cl || 0) + '  ·  LOAD ' + Math.round((b.load || 0) * 100) + '%', x + 12, ly, 10, '#e8eef8', 'left'); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(x + 12, ly + 10, pw - 24, 5); c.fillStyle = '#ffd23f'; c.fillRect(x + 12, ly + 10, (pw - 24) * Math.max(0, b.fuel), 5); }
+      else if (b.t === 'lab') { const q = G.res && techById(G.res); text(c, q ? 'RESEARCHING ' + q.n.toUpperCase() : 'NOTHING TO RESEARCH', x + 12, ly, 10, '#e8eef8', 'left'); if (q) Object.keys(q.c).forEach((k, i) => drawItemCount(c, k, b.inb[k] || 0, x + 12 + i * 60, ly + 18)); }
+      else if (r) { let cx = x + 12; Object.keys(r.in).forEach(k => { drawItemCount(c, k, b.inb[k] || 0, cx, ly, r.in[k]); cx += 58; }); text(c, '→', cx, ly, 14, '#8a96a8', 'left'); drawItemCount(c, r.out, b.out, cx + 18, ly); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(x + 12, ly + 13, pw - 24, 4); c.fillStyle = ACC[b.t]; c.fillRect(x + 12, ly + 13, (pw - 24) * (b.p || 0), 4); }
+      else if (b.t === 'furnace') text(c, 'BELT ORE IN. IT SMELTS WHATEVER ARRIVES FIRST', x + 12, ly, 9.5, '#e8eef8', 'left');
+      if (b.t === 'asm') { const bw2 = (pw - 24) / ASM.length; ASM.forEach((q, i) => { const lock = q.tech && !G.tech[q.tech], on = b.rcp === q.id, bx = x + 12 + i * bw2; panelBox(c, bx + 2, ly + 24, bw2 - 4, 34, 8, on ? 'rgba(58,214,255,.25)' : 'rgba(26,32,42,.95)', on ? '#3ad6ff' : 'rgba(255,255,255,.08)'); c.globalAlpha = lock ? 0.3 : 1; c.drawImage(itemSprite(q.out), bx + bw2 / 2 - 8, ly + 27, 16, 16); text(c, lock ? 'LOCKED' : IT[q.out].n.split(' ')[0].toUpperCase().slice(0, 7), bx + bw2 / 2, ly + 51, 7.5, on ? '#bff3ff' : '#a8b2c2', 'center', UIF, 700); c.globalAlpha = 1; if (!lock) HIT.push({ id: 'rcp:' + q.id, x: bx, y: ly + 24, w: bw2, h: 34 }); }); ly += 36; }
+      if (b.t !== 'hub') { btn(c, 'brot', x + 12, y + ph - 30, 90, 22, 'ROTATE'); btn(c, 'bdel', x + 110, y + ph - 30, 90, 22, 'REMOVE', { col: '#ff9a9a' }); } }
+
+    function drawMenu(g, c, t) { const w = g.w, h = g.h; c.fillStyle = '#0a0e11'; c.fillRect(-g.ox, -g.oy, g.W, g.H); if (!GROUND) { genOre(); makeGround(); }
+      c.save(); const z = 0.8; c.translate(w / 2, h / 2); c.scale(z, z); c.translate(-(MW * TS / 2 + Math.sin(t * 0.07) * 300), -(MH * TS / 2 + Math.cos(t * 0.05) * 200)); c.drawImage(GROUND, 0, 0, MW * TS, MH * TS); for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) { const o = oreAt(x, y); if (o) c.drawImage(oreSprite(o, (x * 7 + y * 13) & 3), x * TS, y * TS, TS, TS); }
+      // a little looping production line behind the title
+      for (let i = 0; i < 24; i++) { const bx = 20 + i, by = 32; c.save(); c.translate(bx * TS + 16, by * TS + 16); c.fillStyle = '#23262c'; c.fillRect(-16, -13, 32, 26); c.fillStyle = '#3c414b'; c.fillRect(-16, -13, 32, 3); c.fillRect(-16, 10, 32, 3); c.restore(); }
+      for (let i = 0; i < 40; i++) { const px = 20 * TS + ((i * 19 + t * 50) % (24 * TS)), k = ['io', 'fe', 'gr', 'co', 'cu', 'ci'][i % 6]; c.drawImage(itemSprite(k), px - 6, 32 * TS + 10, 12, 12); }
+      c.restore(); const vg = c.createLinearGradient(0, 0, 0, h); vg.addColorStop(0, 'rgba(6,9,14,.55)'); vg.addColorStop(0.5, 'rgba(6,9,14,.75)'); vg.addColorStop(1, 'rgba(6,9,14,.95)'); c.fillStyle = vg; c.fillRect(-g.ox, -g.oy, g.W, g.H);
+      HIT = []; const cy = h * 0.2; c.save(); c.shadowColor = 'rgba(255,176,32,.7)'; c.shadowBlur = 18; text(c, 'BELT', w / 2, cy, Math.min(54, w * 0.16), '#ffb020', 'center', TF, 900); text(c, 'WORKS', w / 2, cy + Math.min(50, w * 0.15), Math.min(54, w * 0.16), '#ffb020', 'center', TF, 900); c.restore();
+      text(c, 'MINE · SMELT · ASSEMBLE · RESEARCH · LAUNCH', w / 2, cy + Math.min(50, w * 0.15) + 34, 9.5, '#a8b2c2', 'center', UIF, 700);
+      const bw = Math.min(240, w - 60), bx = w / 2 - bw / 2; let by = h * 0.5; if (hasSave()) { btn(c, 'cont', bx, by, bw, 40, 'CONTINUE', { on: true, sz: 14 }); by += 50; btn(c, 'new', bx, by, bw, 34, 'NEW FACTORY', { sz: 12 }); } else btn(c, 'new', bx, by, bw, 44, 'START A FACTORY', { on: true, sz: 14 });
+      ['Drills on ore, belts to furnaces, plates to the hub.', 'Tap a machine to inspect it. Two fingers to pan and zoom.', 'Research upgrades with science. Launch the rocket to win.'].forEach((s, i) => text(c, s, w / 2, h * 0.74 + i * 17, 10, '#8a96a8', 'center', UIF, 600)); }
+    function drawWon(g, c, t) { const w = g.w, h = g.h; c.fillStyle = 'rgba(6,9,14,.78)'; c.fillRect(-g.ox, -g.oy, g.W, g.H); HIT = []; c.save(); c.shadowColor = 'rgba(255,210,63,.8)'; c.shadowBlur = 20; text(c, 'ROCKET', w / 2, h * 0.26, Math.min(44, w * 0.13), '#ffd23f', 'center', TF, 900); text(c, 'LAUNCHED', w / 2, h * 0.26 + 42, Math.min(44, w * 0.13), '#ffd23f', 'center', TF, 900); c.restore();
+      const m = Math.floor(G.playT / 60); text(c, 'Factory time ' + Math.floor(m / 60) + 'h ' + (m % 60) + 'm', w / 2, h * 0.26 + 84, 12, '#e8eef8', 'center'); text(c, (G.stats.made.ci || 0) + ' circuits · ' + (G.stats.made.sci || 0) + ' research units · ' + W.bld.length + ' buildings', w / 2, h * 0.26 + 104, 10, '#a8b2c2', 'center');
+      const bw = Math.min(240, w - 60), bx = w / 2 - bw / 2; btn(c, 'keep', bx, h * 0.58, bw, 40, 'KEEP BUILDING', { on: true, sz: 13 }); btn(c, 'new', bx, h * 0.58 + 50, bw, 34, 'NEW FACTORY'); }
+
+    /* ---------- input ---------- */
+    const PTR = new Map(); let PINCH = null;
+    const clampCam = () => { G.cam.z = Math.max(0.35, Math.min(2.4, G.cam.z)); G.cam.x = Math.max(0, Math.min(MW * TS, G.cam.x)); G.cam.y = Math.max(0, Math.min(MH * TS, G.cam.y)); };
+    function act(g, id) { try { sfx(520, 0.03, 0.03, 'triangle'); } catch (_) {}
+      if (id === 'new') { newWorld(); g.state = 'run'; try { JING('start'); } catch (_) {} return; } if (id === 'cont') { if (!load()) newWorld(); g.state = 'run'; return; } if (id === 'keep') { G.mode = 'play'; return; }
+      if (id.startsWith('tool:')) { const tl = id.slice(5); if (B[tl] && !unlocked(tl)) { toast('RESEARCH ' + techById(B[tl].tech).n.toUpperCase() + ' FIRST', '#ff8a8a'); return; } G.tool = G.tool === tl && tl !== 'hand' ? 'hand' : tl; G.panel = null; G.sel = null; G.ghost = null; return; }
+      if (id === 'rot') { G.dir = (G.dir + 1) % 4; return; } if (id === 'tech') { G.panel = G.panel && G.panel.tech ? null : { tech: 1 }; return; } if (id === 'close') { G.panel = null; G.sel = null; return; }
+      if (id.startsWith('res:')) { const q = id.slice(4); if (G.res !== q) { G.res = q; G.resP = 0; W.bld.forEach(b => { if (b.t === 'lab') { Object.keys(b.inb).forEach(k => G.stock[k] = (G.stock[k] || 0) + b.inb[k]); b.inb = {}; b.p = 0; } }); } return; }
+      if (id.startsWith('rcp:') && G.panel && G.panel.b) { const b = G.panel.b, q = id.slice(4); if (b.rcp !== q) { Object.keys(b.inb).forEach(k => G.stock[k] = (G.stock[k] || 0) + b.inb[k]); b.inb = {}; b.p = 0; if (b.out && b.outK) G.stock[b.outK] = (G.stock[b.outK] || 0) + b.out; b.out = 0; b.rcp = q; G.rcp = q; } return; }
+      if (id === 'brot' && G.panel && G.panel.b) { G.panel.b.d = (G.panel.b.d + 1) % 4; return; } if (id === 'bdel' && G.panel && G.panel.b) { const b = G.panel.b; removeB(b); G.panel = null; G.sel = null; return; } }
+    const hitUI = p => { for (let i = HIT.length - 1; i >= 0; i--) { const h = HIT[i]; if (p[0] >= h.x && p[1] >= h.y && p[0] < h.x + h.w && p[1] < h.y + h.h) return h; } return null; };
+    const s2w = (g, p) => [G.cam.x + (p[0] - g.w / 2) / G.cam.z, G.cam.y + (p[1] - g.h / 2) / G.cam.z];
+    const tileOf = (g, p) => { const [wx, wy] = s2w(g, p); return [Math.floor(wx / TS), Math.floor(wy / TS)]; };
+    function ghostAt(g, p) { const t = G.tool; if (t === 'belt' || t === 'del') { const [x, y] = tileOf(g, p); G.ghost = { t, x, y }; return; } const S = B[t], [wx, wy] = s2w(g, p), x = Math.round(wx / TS - S.w / 2), y = Math.round(wy / TS - S.h / 2); G.ghost = { t, x, y, ok: ghostOk(t, x, y) }; }
+    function paintTo(x, y) { const P = G.paint; if (!P) return; let lx = P.x, ly = P.y; let n = 0; while ((lx !== x || ly !== y) && n++ < 64) { const dx = x - lx, dy = y - ly; let sx = 0, sy = 0; if (Math.abs(dx) >= Math.abs(dy)) sx = Math.sign(dx); else sy = Math.sign(dy); const d = DV.findIndex(v => v[0] === sx && v[1] === sy); const cur = beltAt(lx, ly); if (cur && P.placed.has(ly * MW + lx)) cur.d = d; lx += sx; ly += sy; G.dir = d; if (!beltAt(lx, ly) && !bAt(lx, ly)) { if (tryPlace('belt', lx, ly, d, P.warned)) P.placed.add(ly * MW + lx); else P.warned = true; } else if (beltAt(lx, ly)) { beltAt(lx, ly).d = d; P.placed.add(ly * MW + lx); } } P.x = lx; P.y = ly; }
+    function bindInput(g, cv) { cv.addEventListener('contextmenu', e => e.preventDefault());
+      cv.addEventListener('pointerdown', e => { const p = ptrPos(cv, e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} const P = { id: e.pointerId, x: p[0], y: p[1], sx: p[0], sy: p[1], t0: performance.now(), mode: null, mouse: e.pointerType === 'mouse', btn: e.button }; PTR.set(e.pointerId, P);
+        if (G.mode !== 'play') { const h = hitUI(p); if (h && !h.dis) act(g, h.id); P.mode = 'ui'; return; }
+        if (PTR.size === 2) { const [a, b] = [...PTR.values()]; if (G.paint && G.paint.placed.size <= 2 && performance.now() - a.t0 < 400) G.paint.placed.forEach(k => removeAt(k % MW, Math.floor(k / MW))); PINCH = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: G.cam.z, c: [(a.x + b.x) / 2, (a.y + b.y) / 2], w: s2w(g, [(a.x + b.x) / 2, (a.y + b.y) / 2]) }; G.paint = null; G.ghost = null; PTR.forEach(q => q.mode = 'pinch'); return; }
+        const h = hitUI(p); if (h) { P.mode = 'ui'; if (!h.dis) act(g, h.id); return; }
+        if (P.mouse && (e.button === 1 || e.button === 2)) { P.mode = 'pan'; P.cx = G.cam.x; P.cy = G.cam.y; return; }
+        if (G.panel && G.panel.tech) { G.panel = null; P.mode = 'ui'; return; }
+        const t = G.tool; if (t === 'hand') { P.mode = 'pan'; P.cx = G.cam.x; P.cy = G.cam.y; return; }
+        if (t === 'belt') { const [x, y] = tileOf(g, p); P.mode = 'paint'; G.paint = { x, y, placed: new Set(), warned: false }; const ex = beltAt(x, y); if (ex) { ex.d = G.dir; G.paint.placed.add(y * MW + x); } else if (!bAt(x, y) && tryPlace('belt', x, y, G.dir)) G.paint.placed.add(y * MW + x); else if (!bAt(x, y)) G.paint.warned = true; ghostAt(g, p); return; }
+        if (t === 'del') { P.mode = 'del'; const [x, y] = tileOf(g, p); if (removeAt(x, y)) try { sfx(150, 0.06, 0.04); } catch (_) {} ghostAt(g, p); return; }
+        P.mode = 'ghost'; ghostAt(g, p); });
+      cv.addEventListener('pointermove', e => { const p = ptrPos(cv, e), P = PTR.get(e.pointerId);
+        if (!P) { if (e.pointerType === 'mouse' && G.mode === 'play' && G.tool !== 'hand' && !hitUI(p)) ghostAt(g, p); return; } P.x = p[0]; P.y = p[1];
+        if (PINCH && PTR.size >= 2) { const [a, b] = [...PTR.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, cxy = [(a.x + b.x) / 2, (a.y + b.y) / 2]; G.cam.z = PINCH.z * d / PINCH.d; clampCam(); G.cam.x = PINCH.w[0] - (cxy[0] - g.w / 2) / G.cam.z; G.cam.y = PINCH.w[1] - (cxy[1] - g.h / 2) / G.cam.z; clampCam(); return; }
+        if (P.mode === 'pan') { G.cam.x = P.cx - (P.x - P.sx) / G.cam.z; G.cam.y = P.cy - (P.y - P.sy) / G.cam.z; clampCam(); }
+        else if (P.mode === 'paint') { const [x, y] = tileOf(g, p); paintTo(x, y); ghostAt(g, p); }
+        else if (P.mode === 'del') { const [x, y] = tileOf(g, p); removeAt(x, y); ghostAt(g, p); }
+        else if (P.mode === 'ghost') ghostAt(g, p); });
+      const up = e => { const P = PTR.get(e.pointerId); PTR.delete(e.pointerId); if (PTR.size < 2) PINCH = null; if (!P || G.mode !== 'play') return; const moved = Math.hypot(P.x - P.sx, P.y - P.sy);
+        if (P.mode === 'ghost' && e.type === 'pointerup') { const gh = G.ghost; if (gh && B[gh.t]) tryPlace(gh.t, gh.x, gh.y, G.dir); if (!P.mouse) G.ghost = null; }
+        else if (P.mode === 'pan' && moved < 8 && performance.now() - P.t0 < 450 && P.btn !== 2) { const [x, y] = tileOf(g, [P.x, P.y]), b = bAt(x, y); if (b) { G.sel = b; G.panel = { b }; } else { G.sel = null; G.panel = null; const o = oreAt(x, y), bl = beltAt(x, y); if (bl) toast('BELT · ' + bl.it.length + ' ITEMS', '#e8eef8'); else if (o) toast(IT[o].n.toUpperCase() + ' · PUT A DRILL ON IT', IT[o].c); } }
+        if (P.mode === 'paint') { G.paint = null; if (!P.mouse) G.ghost = null; } if (P.mode === 'del' && !P.mouse) G.ghost = null; };
+      cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      cv.addEventListener('wheel', e => { if (G.mode !== 'play') return; e.preventDefault(); const p = ptrPos(cv, e), w0 = s2w(g, p); G.cam.z *= Math.pow(1.0015, -e.deltaY); clampCam(); G.cam.x = w0[0] - (p[0] - g.w / 2) / G.cam.z; G.cam.y = w0[1] - (p[1] - g.h / 2) / G.cam.z; clampCam(); }, { passive: false }); }
+
+    return Object.assign({
+      sk, hold: true, noVeil: true, title: 'Belt Works', how: 'Build a factory and launch a rocket.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], keys: {},
+      layout() {}, reset() { G.mode = 'menu'; this.state = 'ready'; }, enter() {},
+      bind(cv) { bindInput(this, cv); this.__G = G; this.__W = W; this.__B = B; this.__place = (t, x, y, d) => tryPlace(t, x, y, d, true); this.__step = dt => step(dt); this.__new = () => { newWorld(); this.state = 'run'; }; this.__load = () => load(); this.__save = () => save(); this.__act = id => act(this, id); this.__belt = (x, y, d) => { if (!beltAt(x, y)) addBelt(x, y, d); }; },
+      key(e) { const d = e.type === 'keydown', c = e.code; if (G.mode !== 'play') { if (d && (c === 'Enter' || c === 'Space')) { act(this, hasSave() && G.mode === 'menu' ? 'cont' : G.mode === 'won' ? 'keep' : 'new'); return true; } return false; }
+        const m = { KeyW: 'u', ArrowUp: 'u', KeyS: 'd', ArrowDown: 'd', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r' }[c]; if (m) { this.keys[m] = d; return true; } if (!d || e.repeat) return false;
+        if (c === 'KeyR') { if (G.panel && G.panel.b) act(this, 'brot'); else G.dir = (G.dir + 1) % 4; return true; } if (c === 'KeyQ') { act(this, 'tool:hand'); return true; } if (c === 'KeyX' || c === 'Delete') { act(this, 'tool:del'); return true; } if (c === 'KeyT') { act(this, 'tech'); return true; }
+        if (/^Digit[1-8]$/.test(c)) { act(this, 'tool:' + TOOLS[+c.slice(5)]); return true; } if (c === 'Equal' || c === 'Minus') { G.cam.z *= c === 'Equal' ? 1.15 : 1 / 1.15; clampCam(); return true; } return false; },
+      tick(dt) { this.decay(dt); G.t += dt; const K = this.keys, sp = 700 / G.cam.z * dt; if (G.mode === 'play') { if (K.l) G.cam.x -= sp; if (K.r) G.cam.x += sp; if (K.u) G.cam.y -= sp; if (K.d) G.cam.y += sp; clampCam(); const n = Math.ceil(dt / (1 / 30)); for (let i = 0; i < n; i++) step(dt / n); if (G.launchT >= 0 && G.launchT < 9) { const s = W.bld.find(b => b.t === 'silo'); if (s) { G.cam.x += ((s.x + 2) * TS - G.cam.x) * Math.min(1, dt * 2); G.cam.y += ((s.y + 2) * TS - 120 - G.cam.y) * Math.min(1, dt * 2); } } }
+        for (const f of G.fx) { f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; if (f.k === 'smoke') { f.vx *= 0.99; f.vy *= 0.985; } } G.fx = G.fx.filter(f => f.t < f.T); if (G.fx.length > 500) G.fx.splice(0, G.fx.length - 500);
+        this.score = G.tech ? Object.keys(G.tech).length * 100 + G.parts * 20 : 0; this.best = Math.max(this.best, this.score); this.state = G.mode === 'menu' ? 'ready' : 'run'; },
+      draw() { const c = this.ctx; if (!this.w || !this.h) return; const t = G.t;
+        if (G.mode === 'menu') { drawMenu(this, c, t); return; }
+        let shx = 0, shy = 0; if (G.launchT >= 0 && G.launchT < 7) { const k = Math.min(1, G.launchT / 3) * (G.launchT > 5 ? (7 - G.launchT) / 2 : 1) * 4; shx = (Math.random() - 0.5) * k; shy = (Math.random() - 0.5) * k; }
+        c.save(); c.translate(shx, shy); drawWorld(this, c, t); c.restore(); drawUI(this, c, t); if (G.mode === 'won') drawWon(this, c, t); }
+    }, MIX);
+  }
 
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
