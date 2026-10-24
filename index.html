@@ -5482,10 +5482,10 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
         this.left -= dt; const me = this.me, op = this.op, B = this.ball, w = this.w, fy = this.fy;
         if (this.demo) this.ai(me, B, op, 1); else { me.inp.l = this.held('l'); me.inp.r = this.held('r'); me.inp.j = this.held('j'); me.inp.b = this.held('b'); } this.ai(op, B, me, -1);
         const steps = 3, h2 = dt / steps; for (let s = 0; s < steps; s++) { this.stepCar(me, h2); this.stepCar(op, h2);
-          B.vy += 520 * h2; B.x += B.vx * h2; B.y += B.vy * h2; B.vx *= 1 - 0.1 * h2; if (B.y > fy - BR) { B.y = fy - BR; B.vy = -Math.abs(B.vy) * 0.72; B.vx *= 0.985; if (Math.abs(B.vy) < 30) B.vy = 0; } if (B.y < this.top + BR) { B.y = this.top + BR; B.vy = Math.abs(B.vy) * 0.8; }
+          const hb = h2 * 0.74; B.vy += 520 * hb; B.x += B.vx * hb; B.y += B.vy * hb; B.vx *= 1 - 0.22 * h2; if (B.y > fy - BR) { B.y = fy - BR; B.vy = -Math.abs(B.vy) * 0.72; B.vx *= 0.985; if (Math.abs(B.vy) < 30) B.vy = 0; } if (B.y < this.top + BR) { B.y = this.top + BR; B.vy = Math.abs(B.vy) * 0.8; }
           const mt = fy - GAP - GOALH, mb = fy - GAP, inGoalY = B.y > mt + 10 && B.y < mb - 6; if (!inGoalY) { if (B.x < BR) { B.x = BR; B.vx = Math.abs(B.vx) * 0.8; } if (B.x > w - BR) { B.x = w - BR; B.vx = -Math.abs(B.vx) * 0.8; } } else { if (B.x < -4) { this.goal(false); return; } if (B.x > w + 4) { this.goal(true); return; } }
-          [me, op].forEach(c => { this.carCircles(c).forEach(q => { const dx = B.x - q[0], dy = B.y - q[1], d = Math.hypot(dx, dy), R = BR + 11; if (d < R && d > 0.01) { const nx = dx / d, ny = dy / d; B.x = q[0] + nx * R; B.y = q[1] + ny * R; const rv = (B.vx - c.vx) * nx + (B.vy - c.vy) * ny; if (rv < 0) { const e = 0.85; B.vx -= (1 + e) * rv * nx; B.vy -= (1 + e) * rv * ny; B.vx += c.vx * 0.25; B.vy += c.vy * 0.25 - 20; if (c.flip > 0) { B.vx += nx * 160; B.vy += ny * 160; } sfx(160 + Math.min(300, -rv), 0.08, 0.05, 'sine'); this.shake = Math.max(this.shake, Math.min(0.3, -rv / 900)); } } }); });
-          const sp = Math.hypot(B.vx, B.vy); if (sp > 900) { B.vx *= 900 / sp; B.vy *= 900 / sp; } }
+          [me, op].forEach(c => { this.carCircles(c).forEach(q => { const dx = B.x - q[0], dy = B.y - q[1], d = Math.hypot(dx, dy), R = BR + 11; if (d < R && d > 0.01) { const nx = dx / d, ny = dy / d; B.x = q[0] + nx * R; B.y = q[1] + ny * R; const rv = (B.vx - c.vx) * nx + (B.vy - c.vy) * ny; if (rv < 0) { const e = 0.85; B.vx -= (1 + e) * rv * nx; B.vy -= (1 + e) * rv * ny; B.vx += c.vx * 0.25; B.vy += c.vy * 0.25 - 20; if (c.flip > 0) { B.vx += nx * 120; B.vy += ny * 120; } sfx(160 + Math.min(300, -rv), 0.08, 0.05, 'sine'); this.shake = Math.max(this.shake, Math.min(0.3, -rv / 900)); } } }); });
+          const sp = Math.hypot(B.vx, B.vy); if (sp > 720) { B.vx *= 720 / sp; B.vy *= 720 / sp; } }
         if (this.left <= 0 && this.cel <= 0) { this.cel = 0.8; this.floats.push({ t: 'Time!', x: w / 2, y: this.h * 0.4, age: 0, c: 'good' }); }
       },
       goal(mine) { if (mine) { this.mg++; this.score += 100; this.best = Math.max(this.best, this.score); JING('win'); } else { this.og++; sfx(180, 0.5, 0.04, 'sine'); } this.floats.push({ t: mine ? 'GOAL!' : 'They scored', x: this.w / 2, y: this.h * 0.4, age: 0, c: mine ? 'good' : 'bad' }); this.flash = 0.3; this.cel = 1.4; buzz(40); },
@@ -10361,7 +10361,7 @@ const SUMMIT_LEVELS = [
     { id: 'g1k', n: 1000, p: 0.0125, c: '#ffcc33' },
     { id: 'g10k', n: 10000, p: 0.0025, c: '#ffcc33' }
   ];
-  const vis = ITEMS.map(it => Math.pow(it.p, 0.55)), vsum = vis.reduce((a, b) => a + b, 0);
+  const vis = ITEMS.map(it => it.n < 0 ? 0 : Math.pow(it.p, 0.55)), vsum = vis.reduce((a, b) => a + b, 0);
   const visRoll = () => { let r = Math.random() * vsum; for (let i = 0; i < ITEMS.length; i++) { r -= vis[i]; if (r <= 0) return ITEMS[i]; } return ITEMS[0]; };
   const roll = () => { let r = Math.random(); for (const it of ITEMS) { r -= it.p; if (r <= 0) return it; } return ITEMS[0]; };
   const itemHTML = it => it.n < 0
