@@ -52,6 +52,7 @@ The file is too big to read whole. **Find things with grep on these markers**, n
 | `buildSlide` | Builds each post's DOM (canvas, like/comment/share/donate rail, caption). |
 | `?debug` → `window.__gs` | Test hook: `{ games, SLIDES, SKINS, ensureAhead, cur }`. Only exists with `?debug` in the URL. |
 | `MUS = {` | Per-slide generated chiptune music. |
+| `desktop fullscreen` | Fullscreen button (desktop only, under the up/down arrows). In fullscreen `html.fs` is set, the top bar/caption/rail hide, and every game's play area becomes the whole monitor (e.g. 1920x1080), so `layout()` must cope with wide screens: size things by `Math.min(w..., h...)` and centre them. |
 | `Galaxy Casino` | The crate sheet's tabs: Crate, Blackjack, Hold'em, Roulette, Slots, Crash, Mines. Games built with `g.casino = true`; chips are bound to the galaxy balance. |
 
 ### The game object contract
@@ -62,6 +63,7 @@ function makeThing(sk) {
     sk, title: 'Thing', how: 'One line of instructions.',
     hold: true,        // optional: canvas gets touch-action:none (game uses drags; feed won't scroll from it)
     noVeil: true,      // optional: game draws its own title/game-over screens instead of the shared veil
+    fsAspect: 0.5,     // optional: in desktop fullscreen, cap the play area to this width/height ratio (a centred column) for portrait-only layouts
     state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
     layout() {},       // called on resize; this.w/this.h are the play area
     reset() {},        // new run
