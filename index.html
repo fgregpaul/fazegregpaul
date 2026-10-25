@@ -7335,6 +7335,97 @@ const SUMMIT_LEVELS = [
     }, chipMix, MIX);
   }
 
+  /* ---------- Cluck Cross: hop a chicken across traffic lanes, every lane raises the multiplier ---------- */
+  function makeCluck(sk) {
+    const DIFF = [['Easy', 1 / 12, 20], ['Medium', 1 / 6, 18], ['Hard', 1 / 4, 16], ['Expert', 2 / 5, 12]];
+    const CARS = ['#ff5a5a', '#38b6ff', '#ffd23f', '#9b5cff', '#3ddc84', '#ff8a3d', '#f2f2f2', '#2b2b38'];
+    const mult = (d, k) => k <= 0 ? 1 : 0.97 * Math.pow(1 / (1 - DIFF[d][1]), k);
+    return Object.assign({
+      sk, hold: true, title: 'Cluck Cross', how: 'Pick a difficulty and your bet, then GO. Every lane the chicken crosses raises the multiplier. CASH OUT whenever you want. Get hit and the bet is gone.',
+      state: 'ready', score: 1000, best: 1000, dead: 0, shake: 0, flash: 0, floats: [], chips: 1000,
+      geom() { const w = this.w, h = this.h; this.top = 60; this.bot = h - 150; this.vh = this.bot - this.top; this.LH = Math.max(40, Math.min(78, Math.floor(this.vh / 5.2))); this.dB = brow(8, h - 138, w - 16, 36, 4, 6); this.bB = brow(8, h - 96, w - 16, 34, 4, 6); this.goB = { x: 8, y: h - 54, w: w - 16, h: 46 }; const half = (w - 22) / 2; this.hopB = { x: 8, y: h - 54, w: half, h: 46 }; this.cashB = { x: 14 + half, y: h - 54, w: half, h: 46 }; },
+      layout() { this.geom(); },
+      lanes() { return DIFF[this.diff][2]; },
+      reset() { this.geom(); this.diff = this.diff == null ? 1 : this.diff; this.bet = this.bet || 50; this.phase = 'idle'; this.pos = 0; this.cam = 0; this.hop = null; this.killer = null; this.feathers = []; this.cars = []; this.bars = {}; this.t = 0; this.spawnT = {}; this.score = this.chips; this.floats = []; this.state = 'ready'; this.prefill(); },
+      enter() { this.reset(); },
+      prefill() { const L = this.lanes(); for (let i = 1; i <= L; i++) for (let k = 0; k < 2; k++) if (Math.random() < 0.6) this.addCar(i, rand(-40, this.w + 40)); },
+      addCar(lane, x) { const dir = lane % 2 ? 1 : -1, s = this.w / 390; const len = rand(46, 70) * Math.min(1.3, this.LH / 60); this.cars.push({ lane, x: x != null ? x : (dir > 0 ? -len - 10 : this.w + len + 10), dir, v: (110 + (lane * 37) % 120) * s * (0.85 + Math.random() * 0.3), len, c: pick(CARS), truck: Math.random() < 0.18 }); },
+      laneY(i) { return this.bot - (i + 0.5) * this.LH + this.cam; },
+      start() { if (this.chips < this.bet) { if (this.chips < 10) this.loan(); else this.floats.push({ t: 'not enough galaxies', x: this.w / 2, y: this.h * 0.4, age: 0, c: 'bad' }); return; } this.chips -= this.bet; this.score = this.chips; this.pos = 0; this.cam = 0; this.bars = {}; this.feathers = []; this.killer = null; this.hop = null; this.cars = []; this.prefill(); this.phase = 'play'; sfx(440, 0.08, 0.03, 'sine'); this.go(); },
+      go() { if (this.phase !== 'play' || this.hop) return; const L = this.lanes(); if (this.pos >= L) return; const hit = Math.random() < DIFF[this.diff][1]; this.hop = { from: this.pos, to: this.pos + 1, t: 0, hit }; sfx(520 + this.pos * 18, 0.06, 0.03, 'square'); },
+      cash(auto) { if (this.phase !== 'play' || this.hop || this.pos < 1) return; const m = mult(this.diff, this.pos), win = Math.floor(this.bet * m); this.chips += win; this.score = this.chips; this.best = Math.max(this.best, this.chips); this.phase = 'done'; this.floats.push({ t: (auto ? 'MADE IT! ' : 'cashed out ') + '+' + win, x: this.w / 2, y: this.top + this.vh * 0.4, age: 0, c: 'good' }); JING(auto ? 'win' : 'coin'); },
+      land() { const hp = this.hop; this.hop = null; this.pos = hp.to; if (hp.hit) { this.killer = null; const dir = this.pos % 2 ? 1 : -1; this.cars = this.cars.filter(c2 => c2.lane !== this.pos); this.addCar(this.pos); const k = this.cars[this.cars.length - 1]; k.v = this.w * 2.4; k.killer = true; k.c = '#ff3b3b'; this.killer = k; this.phase = 'dying'; sfx(900, 0.25, 0.03, 'sawtooth'); return; }
+        this.bars[this.pos] = 0; this.cars = this.cars.filter(c2 => !(c2.lane === this.pos && Math.abs(c2.x - this.w / 2) < c2.len / 2 + 30)); sfx(700 + this.pos * 30, 0.07, 0.03, 'sine');
+        this.floats.push({ t: mult(this.diff, this.pos).toFixed(2) + 'x', x: this.w / 2, y: this.laneY(this.pos) - this.LH * 0.6, age: 0, c: 'good' });
+        if (this.pos >= this.lanes()) this.cash(true); },
+      splat() { this.phase = 'done'; this.shake = 0.6; this.flash = 0.35; sfx(110, 0.5, 0.06, 'sine'); const cy = this.laneY(this.pos); for (let i = 0; i < 26; i++) { const a = Math.random() * TAU, s = rand(60, 260); this.feathers.push({ x: this.w / 2, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 80, r: Math.random() * TAU, vr: rand(-6, 6), life: rand(0.9, 1.6), t: 0 }); } this.floats.push({ t: 'SPLAT  -' + this.bet, x: this.w / 2, y: cy - this.LH, age: 0, c: 'bad' }); },
+      bind(cv) { cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.geom(); const p = ptrPos(cv, e);
+        if (this.phase === 'play') { if (inB(this.cashB, p)) { this.cash(); return; } if (inB(this.hopB, p) || (p[1] > this.top && p[1] < this.bot)) { this.go(); return; } return; }
+        if (this.phase === 'dying') return;
+        for (let i = 0; i < 4; i++) if (inB(this.dB[i], p)) { if (this.diff !== i) { this.diff = i; this.pos = 0; this.cam = 0; this.cars = []; this.bars = {}; this.feathers = []; this.phase = 'idle'; this.prefill(); } sfx(700, 0.03, 0.02, 'sine'); return; }
+        const bv = [10, 50, 100, 250]; for (let i = 0; i < 4; i++) if (inB(this.bB[i], p)) { this.bet = bv[i]; sfx(700, 0.03, 0.02, 'sine'); return; }
+        if (inB(this.goB, p) || (p[1] > this.top && p[1] < this.bot)) this.start(); }); },
+      key(e) { return false; },
+      tick(dt) { this.decay(dt); this.t += dt; const L = this.lanes(), w = this.w;
+        if (this.hop) { this.hop.t += dt / 0.32; if (this.hop.t >= 1) this.land(); }
+        const fp = this.hop ? this.hop.from + (this.hop.to - this.hop.from) * Math.min(1, this.hop.t) : this.pos;
+        const want = Math.max(0, Math.min((L + 2) * this.LH - this.vh, fp * this.LH - this.vh * 0.32)); this.cam += (want - this.cam) * Math.min(1, dt * 6);
+        Object.keys(this.bars).forEach(k => { this.bars[k] = Math.min(1, this.bars[k] + dt * 5); });
+        for (let i = 1; i <= L; i++) { if (this.bars[i] != null && i !== this.pos) continue; this.spawnT[i] = (this.spawnT[i] || rand(0.2, 2)) - dt; if (this.spawnT[i] <= 0) { this.spawnT[i] = rand(1.1, 2.8); if (!(this.phase === 'dying' && i === this.pos)) this.addCar(i); } }
+        const cx = w / 2, cw = this.LH * 0.36;
+        this.cars.forEach(c2 => { const blocked = !c2.killer && this.bars[c2.lane] != null && this.phase !== 'dying'; const stopX = cx - c2.dir * (cw + 26) - c2.dir * c2.len / 2; const nx = c2.x + c2.dir * c2.v * dt;
+          if (blocked && (c2.dir > 0 ? (c2.x <= stopX && nx > stopX) : (c2.x >= stopX && nx < stopX))) c2.x = stopX; else if (!(blocked && Math.abs(c2.x - stopX) < 0.5)) c2.x = nx;
+          if (c2.killer && this.phase === 'dying' && (c2.dir > 0 ? c2.x + c2.len / 2 >= cx - cw * 0.4 : c2.x - c2.len / 2 <= cx + cw * 0.4)) this.splat(); });
+        this.cars = this.cars.filter(c2 => c2.x > -200 && c2.x < w + 200);
+        this.feathers.forEach(f => { f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 260 * dt; f.vx *= 0.97; f.r += f.vr * dt; }); this.feathers = this.feathers.filter(f => f.t < f.life); },
+      drawCar(c, c2, y) { const LH = this.LH, h = LH * (c2.truck ? 0.62 : 0.54), len = c2.truck ? c2.len * 1.5 : c2.len, x = c2.x - len / 2, yy = y - h / 2; c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.roundRect(x + 3, yy + 4, len, h, 8); c.fill();
+        c.fillStyle = c2.c; c.beginPath(); c.roundRect(x, yy, len, h, 8); c.fill();
+        if (c2.truck) { c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(c2.dir > 0 ? x + 4 : x + len * 0.32, yy + 4, len * 0.64, h - 8); c.fillStyle = '#9fd8ff'; const fx = c2.dir > 0 ? x + len - 14 : x + 4; c.fillRect(fx, yy + 5, 10, h - 10); }
+        else { c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.roundRect(x + len * 0.28, yy + 4, len * 0.44, h - 8, 6); c.fill(); c.fillStyle = '#9fd8ff'; const wx = c2.dir > 0 ? x + len * 0.62 : x + len * 0.26; c.fillRect(wx, yy + 6, len * 0.12, h - 12); }
+        c.fillStyle = '#fff6c2'; const hx = c2.dir > 0 ? x + len - 4 : x; c.fillRect(hx, yy + 3, 4, 6); c.fillRect(hx, yy + h - 9, 4, 6); c.fillStyle = '#ff4b4b'; const tx = c2.dir > 0 ? x : x + len - 3; c.fillRect(tx, yy + 3, 3, 5); c.fillRect(tx, yy + h - 8, 3, 5);
+        c.fillStyle = '#111'; [0.2, 0.8].forEach(f => { c.fillRect(x + len * f - 6, yy - 3, 12, 4); c.fillRect(x + len * f - 6, yy + h - 1, 12, 4); }); },
+      drawChicken(c, x, y, s, hopT, flat) { c.save(); c.translate(x, y); if (flat) { c.scale(1.5, 0.35); } c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0, s * 0.42, s * 0.42, s * 0.12, 0, 0, TAU); c.fill(); const lift = hopT != null ? -Math.sin(hopT * Math.PI) * s * 0.7 : Math.sin(this.t * 6) * s * 0.03; c.translate(0, lift);
+        c.strokeStyle = '#ff9f1c'; c.lineWidth = Math.max(2, s * 0.07); c.beginPath(); c.moveTo(-s * 0.12, s * 0.18); c.lineTo(-s * 0.14, s * 0.42); c.moveTo(s * 0.12, s * 0.18); c.lineTo(s * 0.14, s * 0.42); c.stroke();
+        c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(0, 0, s * 0.36, s * 0.32, 0, 0, TAU); c.fill(); c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 1.5; c.stroke();
+        c.fillStyle = '#f1f1f1'; c.beginPath(); c.ellipse(-s * 0.2, s * 0.02, s * 0.15, s * 0.1, -0.4, 0, TAU); c.fill(); c.stroke();
+        c.fillStyle = '#ffffff'; c.beginPath(); c.arc(s * 0.08, -s * 0.3, s * 0.2, 0, TAU); c.fill(); c.stroke();
+        c.fillStyle = '#ff3b3b'; c.beginPath(); c.arc(s * 0.02, -s * 0.5, s * 0.07, 0, TAU); c.arc(s * 0.11, -s * 0.53, s * 0.07, 0, TAU); c.arc(s * 0.19, -s * 0.49, s * 0.06, 0, TAU); c.fill(); c.beginPath(); c.ellipse(s * 0.2, -s * 0.2, s * 0.04, s * 0.07, 0, 0, TAU); c.fill();
+        c.fillStyle = '#ff9f1c'; c.beginPath(); c.moveTo(s * 0.25, -s * 0.33); c.lineTo(s * 0.4, -s * 0.28); c.lineTo(s * 0.25, -s * 0.23); c.closePath(); c.fill();
+        if (flat) { c.strokeStyle = '#111'; c.lineWidth = 2; c.beginPath(); c.moveTo(s * 0.08, -s * 0.38); c.lineTo(s * 0.16, -s * 0.3); c.moveTo(s * 0.16, -s * 0.38); c.lineTo(s * 0.08, -s * 0.3); c.stroke(); } else dot(c, s * 0.14, -s * 0.33, Math.max(1.5, s * 0.04), '#111', { lw: 0 });
+        c.restore(); },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, sk = SK, LH = this.LH, L = this.lanes(); this.geom(); drawBg(c, w, h);
+        c.save(); c.beginPath(); c.roundRect(6, this.top, w - 12, this.vh, 12); c.clip();
+        c.fillStyle = '#2f3a2a'; c.fillRect(0, this.top, w, this.vh);
+        for (let i = -1; i <= L + 3; i++) { const y = this.laneY(i), y0 = y - LH / 2; if (y0 > this.bot || y0 + LH < this.top) continue;
+          if (i <= 0) { c.fillStyle = i === 0 ? '#8b8f99' : '#6e737d'; c.fillRect(0, y0, w, LH); c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 1; for (let x = (i * 23) % 46; x < w; x += 46) { c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y0 + LH); c.stroke(); } if (i === 0) { c.fillStyle = '#c7cad1'; c.fillRect(0, y0, w, 5); } continue; }
+          if (i > L) { c.fillStyle = i === L + 1 ? '#3fae5a' : '#36994e'; c.fillRect(0, y0, w, LH); if (i === L + 1) { const sq = LH / 4; for (let x = 0; x * sq < w; x++) for (let r = 0; r < 2; r++) { c.fillStyle = (x + r) % 2 ? '#ffffff' : '#16161d'; c.fillRect(x * sq, y0 + LH - sq * (2 - r), sq, sq); } dot(c, w / 2, y - LH * 0.1, LH * 0.2, '#ffd23f', { lw: 0 }); c.fillStyle = '#fff8c8'; c.beginPath(); c.ellipse(w / 2 - LH * 0.06, y - LH * 0.18, LH * 0.05, LH * 0.08, -0.4, 0, TAU); c.fill(); } else { c.fillStyle = 'rgba(255,255,255,.07)'; for (let k = 0; k < 8; k++) { const gx = (k * 97 + i * 31) % w; c.fillRect(gx, y0 + (k * 13) % LH, 3, 6); } } continue; }
+          c.fillStyle = i % 2 ? '#363a45' : '#3b3f4b'; c.fillRect(0, y0, w, LH);
+          c.fillStyle = 'rgba(255,255,255,.55)'; if (i < L) for (let x = 0; x < w; x += 40) c.fillRect(x, y0 - 1, 20, 2);
+          c.fillStyle = '#ffd23f'; if (i === 1) c.fillRect(0, y0 + LH - 3, w, 3); if (i === L) c.fillRect(0, y0, w, 3);
+        }
+        this.cars.forEach(c2 => { const y = this.laneY(c2.lane); if (y < this.top - LH || y > this.bot + LH) return; this.drawCar(c, c2, y); });
+        for (let i = 1; i <= L; i++) { const y = this.laneY(i); if (y - LH / 2 > this.bot || y + LH / 2 < this.top) continue;
+          const done = i <= this.pos && this.bars[i] != null, cur = i === this.pos + 1 && this.phase === 'play', m = mult(this.diff, i), mx = w / 2, mr = LH * 0.3;
+          if (!(i === this.pos && this.phase !== 'idle')) { c.globalAlpha = done ? 0.35 : 1; dot(c, mx, y, mr, cur ? sk.pal[1] : '#4a4f5e', { lw: 3, line: cur ? '#fff3b0' : '#262a33' }); txt(c, m >= 100 ? Math.round(m) + 'x' : m.toFixed(2) + 'x', mx, y + 4, Math.min(13, mr * 0.62), cur ? '#2a2000' : '#e8ecf5', 'center', MONO); c.globalAlpha = 1; } }
+        Object.keys(this.bars).forEach(k => { const i = +k, y = this.laneY(i), b = this.bars[k], dir = i % 2 ? 1 : -1, bx = w / 2 - dir * (LH * 0.36 + 18); c.save(); c.translate(bx, y - LH / 2 + 4); const hh = (LH - 8) * b; c.fillStyle = '#16161d'; c.fillRect(-5, 0, 10, hh); for (let s = 0; s < hh; s += 10) { c.fillStyle = (s / 10) % 2 ? '#16161d' : '#ffd23f'; c.fillRect(-5, s, 10, Math.min(10, hh - s)); } c.restore(); dot(c, bx, y - LH / 2 + 4, 4, '#ff3b3b', { lw: 0 }); });
+        const fp = this.hop ? this.hop.from + (this.hop.to - this.hop.from) * Math.min(1, this.hop.t) : this.pos, chY = this.bot - (fp + 0.5) * LH + this.cam + LH * 0.05;
+        if (this.feathers.length || (this.phase === 'done' && this.killer)) { if (this.killer) this.drawChicken(c, w / 2, this.laneY(this.pos) + LH * 0.2, LH * 0.62, null, true); }
+        else this.drawChicken(c, w / 2, chY, LH * 0.62, this.hop ? this.hop.t : null, false);
+        this.feathers.forEach(f => { c.save(); c.globalAlpha = Math.max(0, 1 - f.t / f.life); c.translate(f.x, f.y); c.rotate(f.r); c.fillStyle = '#ffffff'; c.beginPath(); c.ellipse(0, 0, 6, 2.4, 0, 0, TAU); c.fill(); c.restore(); });
+        c.restore();
+        txt(c, 'CLUCK CROSS', 12, 26, 20, sk.fg, 'left'); txt(c, this.chips + ' ' + (this.casino ? 'galaxies' : 'chips'), w - 12, 26, 13, sk.pal[1], 'right', MONO);
+        const busy = this.phase === 'play' || this.phase === 'dying'; txt(c, busy ? 'lane ' + this.pos + '/' + L + '   now ' + mult(this.diff, this.pos).toFixed(2) + 'x   next ' + mult(this.diff, this.pos + 1).toFixed(2) + 'x' : DIFF[this.diff][0] + ': ' + L + ' lanes, ' + Math.round(DIFF[this.diff][1] * 100) + '% hit chance each   max ' + Math.round(mult(this.diff, L)) + 'x', w / 2, 50, 10.5, sk.dim, 'center', MONO);
+        DIFF.forEach((d, i) => cbtn(c, this.dB[i], d[0], this.diff === i, sk, busy)); [10, 50, 100, 250].forEach((v, i) => cbtn(c, this.bB[i], 'bet ' + v, this.bet === v, sk, busy));
+        if (this.phase === 'play') { cbtn(c, this.hopB, this.hop ? '...' : 'GO', true, sk, !!this.hop); cbtn(c, this.cashB, this.pos ? 'CASH OUT ' + Math.floor(this.bet * mult(this.diff, this.pos)) : 'CASH OUT', false, sk, !this.pos || !!this.hop); }
+        else cbtn(c, this.goB, this.phase === 'dying' ? '...' : this.chips < 10 ? (this.casino ? 'GET GALAXIES' : 'BORROW 500') : 'START  (bet ' + this.bet + ')', true, sk, this.phase === 'dying');
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
+      }
+    }, chipMix, MIX);
+  }
+
+  skin('cluckroad', { bg: ['#1a2416', '#22301c'], pat: 'none', fg: '#fff8e6', dim: '#c9c2a0', panel: '#3a3424', pfg: '#fff8e6', dark: true, line: '#ffd23f', lw: 0, r: 10, pal: ['#ffd23f', '#ffd23f', '#ff9f1c', '#ff3b3b'], good: '#ffd23f', bad: '#ff3b3b', font: '"Lilita One","Impact",sans-serif', fw: 400, fs: 1, mono: '"Nunito",system-ui,sans-serif', mw: 800, ms: 0.9, veil: 'rgba(26,36,22,.88)', vfg: '#fff8e6', slide: '#22301c', sbgc: '#22301c', sfg: '#fff8e6', sdim: '#ddd6b4', stag: '#ffd23f', tsize: 27, tfw: 400, tls: '.01em', frame: '' });
+
   skin('klondike', { bg: ['#1f6b3a', '#165530'], pat: 'dots', patc: 'rgba(0,0,0,.08)', fg: '#ffffff', dim: '#bfe0c8', panel: '#0f3f22', pfg: '#ffffff', dark: true, line: '#d9b45a', lw: 0, r: 8, pal: ['#d9b45a', '#1f4fbf', '#ffffff', '#d9b45a'], good: '#ffe08a', bad: '#ff6b6b', font: '"Playfair Display","Georgia",serif', fw: 800, fs: 1, mono: '"Lato","Arial",sans-serif', mw: 700, ms: 0.9, veil: 'rgba(22,85,48,.86)', vfg: '#ffffff', slide: '#165530', sbgc: '#165530', sfg: '#ffffff', sdim: '#cfe8d6', stag: '#ffe08a', tsize: 27, tfw: 800, tls: '0', frame: '' });
   skin('bjred', { bg: ['#7a1420', '#5a0e18'], pat: 'none', fg: '#fff4e6', dim: '#e8b8b8', panel: '#3a070d', pfg: '#fff4e6', dark: true, line: '#e8c46a', lw: 0, r: 10, pal: ['#e8c46a', '#ffe08a', '#ffffff', '#1a2a6c'], good: '#ffe08a', bad: '#ff8a8a', font: '"Cinzel","Georgia",serif', fw: 800, fs: 1, mono: '"Lato","Arial",sans-serif', mw: 700, ms: 0.9, veil: 'rgba(90,14,24,.86)', vfg: '#fff4e6', slide: '#5a0e18', sbgc: '#5a0e18', sfg: '#fff4e6', sdim: '#f0c8c8', stag: '#e8c46a', tsize: 27, tfw: 800, tls: '.04em', frame: '' });
   skin('pokerroom', { bg: ['#0f3b2e', '#0a2a20'], pat: 'none', fg: '#f2f6f1', dim: '#9fc4b4', panel: '#123f33', pfg: '#f2f6f1', dark: true, line: '#2a6b56', lw: 0, r: 10, pal: ['#ffb000', '#ffe14d', '#7a1d2e', '#5a3a1e'], good: '#ffe14d', bad: '#ff7a7a', font: '"Oswald","Arial Narrow",sans-serif', fw: 500, fs: 1.05, mono: '"Roboto Mono","Courier New",monospace', mw: 500, ms: 0.9, veil: 'rgba(10,42,32,.86)', vfg: '#f2f6f1', slide: '#0a2a20', sbgc: '#0a2a20', sfg: '#f2f6f1', sdim: '#b4d4c6', stag: '#ffb000', tsize: 27, tfw: 500, tls: '.03em', tcase: 'uppercase', frame: '' });
@@ -13036,14 +13127,14 @@ const SUMMIT_LEVELS = [
       '.crate.big{height:92%;max-height:92%}.cgame{flex:1 1 auto;min-height:0;position:relative;margin:6px 8px calc(8px + var(--sab,0px));border-radius:14px;overflow:hidden}.cgame canvas{display:block;width:100%;height:100%;touch-action:none;-webkit-user-select:none;user-select:none}' +
       '.cbal{flex:none;display:flex;justify-content:space-between;align-items:center;padding:6px 16px 0;font:500 11px var(--mono);color:var(--muted)}.cbal b{color:var(--paper);font:800 15px var(--display)}';
     document.head.appendChild(st);
-    const GAMES = [['crate', 'Crate'], ['bj', 'Blackjack'], ['holdem', "Hold'em"], ['roul', 'Roulette'], ['slots', 'Slots'], ['crash', 'Crash'], ['mines', 'Mines']];
+    const GAMES = [['crate', 'Crate'], ['bj', 'Blackjack'], ['holdem', "Hold'em"], ['roul', 'Roulette'], ['slots', 'Slots'], ['crash', 'Crash'], ['mines', 'Mines'], ['cluck', 'Cluck Cross']];
     const tabs = document.createElement('div'); tabs.className = 'ctabs'; tabs.setAttribute('role', 'tablist');
     tabs.innerHTML = GAMES.map(([k, n], i) => '<button type="button" role="tab" data-tab="' + k + '"' + (i ? '' : ' class="on" aria-selected="true"') + '>' + n + '</button>').join('');
     crateEl.insertBefore(tabs, body);
     const bal = document.createElement('div'); bal.className = 'cbal'; bal.hidden = true; bal.innerHTML = '<span>YOUR GALAXIES</span><b id="cbalN">0</b>'; crateEl.insertBefore(bal, body);
     const gp = document.createElement('div'); gp.className = 'cgame'; gp.hidden = true; crateEl.appendChild(gp);
-    const MK = { bj: [makeBlackjack, 'bjred'], holdem: [makeHoldem, 'pokerroom'], roul: [makeRoulette, 'roulette'], slots: [makeSlots, 'slotneon'], crash: [makeCrash, 'crashnight'], mines: [makeMines, 'minefield'] };
-    const inst = {}; let active = null, lastT = 0;
+    const MK = { bj: [makeBlackjack, 'bjred'], holdem: [makeHoldem, 'pokerroom'], roul: [makeRoulette, 'roulette'], slots: [makeSlots, 'slotneon'], crash: [makeCrash, 'crashnight'], mines: [makeMines, 'minefield'], cluck: [makeCluck, 'cluckroad'] };
+    const inst = {}; let active = null, lastT = 0; if (window.__gs) window.__gs.casino = { inst, setGal: n => { gal = n; setGal(); } };
     const build = k => { const s = SKINS[MK[k][1]], g = MK[k][0](s); g.noInset = true; g.casino = true; g.sk = s;
       Object.defineProperty(g, 'chips', { get: () => gal, set: v => { gal = Math.max(0, Math.round(v)); setGal(); }, configurable: true });
       if (k === 'holdem') g.how = "Buy in for 200 galaxies and play no-limit Hold'em against Vic (tight), Dee (calls anything) and Moe (bluffs). Cash out between hands.";
