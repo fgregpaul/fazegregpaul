@@ -127,7 +127,7 @@ Plus the 6 Galaxy Casino table games (Blackjack, Hold'em, Roulette, Slots, Crash
 | Content Creator | creator sim | `creator` |
 | Crush | Candy Crush | `crush` |
 | Dark Pattern | GregSnap original (movie joke) | (one of the original 8) |
-| Doodle Chess | chess on hand-drawn notebook paper (doodle creature pieces) | `doodlechess` |
+| Doodle Chess | chess on hand-drawn notebook paper, tilted 3D view with standing doodle pieces | `doodlechess` |
 | Darts | darts | `darts` |
 | Deepland | Terraria | `deep` |
 | Drop Four | Connect Four | `four` |
