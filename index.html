@@ -2666,7 +2666,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
 
   /* --- slither: Worm --- */
   function makeWorm(sk) {
-    const WR = 1250, SP = 8, SPEED = 150, NB = 9, NFOOD = 650;
+    const WR = 2100, SP = 8, SPEED = 150, NB = 18, NFOOD = 1800;
     const mkSnake = (x, y, ang, len, ai, col) => {
       const segs = []; for (let i = 0; i < len; i++) segs.push({ x: x - Math.cos(ang) * SP * i, y: y - Math.sin(ang) * SP * i });
       return { segs, ang, ai, col, grow: 0, tt: 0, want: ang, name: ai ? rname() : 'you', dead: 0 };
@@ -2762,7 +2762,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
         };
         worldFrame(c, this, hd.x, hd.y, z, () => {
           worldGrid(c, this, hd.x, hd.y, z, 60, sk.dark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)');
-          c.beginPath(); c.rect(-3000, -3000, 6000, 6000); c.arc(0, 0, WR, 0, TAU, true); c.fillStyle = 'rgba(0,0,0,.38)'; c.fill('evenodd');
+          c.beginPath(); c.rect(-WR - 3000, -WR - 3000, WR * 2 + 6000, WR * 2 + 6000); c.arc(0, 0, WR, 0, TAU, true); c.fillStyle = 'rgba(0,0,0,.38)'; c.fill('evenodd');
           c.beginPath(); c.arc(0, 0, WR, 0, TAU); c.lineWidth = 6; c.strokeStyle = sk.bad; c.stroke();
           this.food.forEach(f => { const x = f.x - hd.x, y = f.y - hd.y; if (Math.abs(x) > this.W / z / 2 + 20 || Math.abs(y) > this.H / z / 2 + 20) return; dot(c, f.x, f.y, f.v > 1 ? 6 : 4.5, sk.pal[f.c % 4], { lw: 0 }); });
           this.bots.forEach(b => { if (b.dead <= 0) body(b, false); });
@@ -2781,7 +2781,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
 
   /* --- agar: Blobs --- */
   function makeBlobs(sk) {
-    const HALF = 1300, NBOT = 14, NF = 520;
+    const HALF = 2200, NBOT = 26, NF = 1450;
     const rad = m => 4.1 * Math.sqrt(m);
     const spd = r => 235 * Math.pow(22 / (r + 8), 0.52);
     return Object.assign({
