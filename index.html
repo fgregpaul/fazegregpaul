@@ -11847,10 +11847,18 @@ const SUMMIT_LEVELS = [
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], pos: null, sel: null, moves: [], last: null, think: 0, over: false, keep: false, ply: 0, status: '', lvl: 1, hist: [], hint: null,
       t: 0, anim: null, poofs: [], bubble: null, sprites: null, spriteKey: '', boardC: null, boardKey: '', msg: '',
       geom() {
-        const w = this.w, h = this.h;
-        this.cs = Math.max(20, Math.floor(Math.min((w - 46) / 8, (h - 240) / 8)));
-        this.gx = Math.floor((w - this.cs * 8) / 2) + 6; this.gy = 110;
+        // the board is a sheet of paper seen at an angle: far rows are narrower and squashed, pieces stand up on it
+        const w = this.w, h = this.h, L = 0.2;
+        const bw = Math.max(150, Math.min(w - 48, (h - 232) / 1.02)), u = bw / 8, bh = bw * 0.9;
+        const extra = Math.max(0, h - (84 + bw * 0.12 + bh + 142));
+        this.L = L; this.u = u; this.cs = u; this.bw = bw; this.cx = w / 2 + 6;
+        this.yt = Math.round(84 + bw * 0.12 + extra * 0.3); this.yb = this.yt + bh;
+        this.Hc = bh / (1 - 1 / (1 + L)); this.hz = this.yb - this.Hc;
       },
+      proj(U, V) { const z = 1 + this.L * (1 - V / 8); return [this.cx + (U - 4) * this.u / z, this.hz + this.Hc / z, 1 / z]; },
+      unproj(x, y) { if (y <= this.hz + 1) return null; const z = this.Hc / (y - this.hz); return [(x - this.cx) * z / this.u + 4, 8 * (1 - (z - 1) / this.L)]; },
+      squash(r) { const a = this.proj(0, r), b = this.proj(0, r + 1); return (b[1] - a[1]) / (this.u * (a[2] + b[2]) / 2); },
+      pieceSize(s) { return this.u * s * 1.68; },
       layout() { this.geom(); this.boardKey = ''; this.spriteKey = ''; },
       reset() {
         this.geom(); try { this.best = +localStorage.getItem(SAVE_K) || 0; } catch (_) {}
@@ -11868,7 +11876,7 @@ const SUMMIT_LEVELS = [
       },
       giveHint() { if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.anim) return; const m = pickMove(this.pos, 'w', 2); if (m) { this.hint = m; this.sel = null; this.moves = []; this.score = Math.max(0, this.score - 5); this.status = 'psst... try that'; sfx(660, 0.12, 0.04, 'sine'); } },
       btnRects() {
-        const g = this.gy + this.cs * 8 + 52, w = this.w, r = [], bw = (w - 40) / 3;
+        const g = this.yb + 82, w = this.w, r = [], bw = (w - 40) / 3;
         ['easy', 'medium', 'hard'].forEach((n, i) => r.push({ k: 'l' + i, t: n, x: 20 + i * bw + 4, y: g, w: bw - 8, h: 30 }));
         r.push({ k: 'hint', t: 'hint (-5)', x: 24, y: g + 40, w: (w - 40) / 2 - 8, h: 30 });
         r.push({ k: 'undo', t: 'erase (-10)', x: w / 2 + 4, y: g + 40, w: (w - 40) / 2 - 8, h: 30 });
@@ -11900,24 +11908,35 @@ const SUMMIT_LEVELS = [
         this.afterMove(who);
       },
       land() {
-        const a = this.anim; this.anim = null; const m = a.m, cs = this.cs;
-        const X = this.gx + m.tc * cs + cs / 2, Y = this.gy + m.tr * cs + cs / 2;
+        const a = this.anim; this.anim = null; const m = a.m;
+        const [X, Y, s] = this.sqCenter(m.tr, m.tc), S = this.pieceSize(s);
         if (a.cap) {
           sfx(200, 0.1, 0.07, 'square'); buzz(12);
-          this.poofs.push({ x: X, y: Y, age: 0, word: pick(['POW', 'BONK', 'POOF', 'ZAP', 'WHAM']), seed: (Math.random() * 1e9) | 0 });
-          if (a.who === 'w') { const pts = Math.round(VAL[a.cap[1]] / 100) * 5; this.score += pts; this.saveBest(); this.floats.push({ t: '+' + pts, x: X, y: Y - cs * 0.4, age: 0, c: 'good' }); }
+          this.poofs.push({ x: X, y: Y - S * 0.35, s, age: 0, word: pick(['POW', 'BONK', 'POOF', 'ZAP', 'WHAM']), seed: (Math.random() * 1e9) | 0 });
+          if (a.who === 'w') { const pts = Math.round(VAL[a.cap[1]] / 100) * 5; this.score += pts; this.saveBest(); this.floats.push({ t: '+' + pts, x: X, y: Y - S * 0.8, age: 0, c: 'good' }); }
         } else sfx(260, 0.04, 0.03, 'sine');
+      },
+      // which of your pieces is drawn under this point (pieces stand up, so you can tap their heads too)
+      pieceAt(x, y) {
+        for (let r = 7; r >= 0; r--) for (let q = 0; q < 8; q++) {
+          const p = this.pos.b[r][q]; if (!p || p[0] !== 'w') continue;
+          const [X, Y, s] = this.sqCenter(r, q), S = this.pieceSize(s);
+          if (x > X - S * 0.3 && x < X + S * 0.3 && y > Y - S * 0.74 && y < Y + S * 0.06) return [r, q];
+        }
+        return null;
       },
       bind(cv) {
         cv.addEventListener('pointerdown', e => {
           const p = ptrPos(cv, e), bt = this.btnRects().find(b => p[0] >= b.x && p[0] <= b.x + b.w && p[1] >= b.y && p[1] <= b.y + b.h);
           if (bt && this.state !== 'dead') { if (bt.k[0] === 'l') { this.lvl = +bt.k[1]; sfx(500, 0.05, 0.04, 'sine'); } else if (bt.k === 'hint') this.giveHint(); else this.undo(); return; }
           if (this.kick()) return; if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.anim) return;
-          const c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs);
-          if (c < 0 || r < 0 || c > 7 || r > 7) { this.sel = null; this.moves = []; return; }
-          const mv = this.moves.find(m => m.tr === r && m.tc === c); if (mv) { this.doMove(mv, 'w'); return; }
-          const pc = this.pos.b[r][c];
-          if (pc && pc[0] === 'w') { this.sel = [r, c]; this.moves = legal(this.pos, 'w').filter(m => m.fr === r && m.fc === c); sfx(420, 0.03, 0.03); if (!this.moves.length) this.status = 'that ' + NAME[pc[1]] + ' is stuck'; }
+          const uv = this.unproj(p[0], p[1]); let r = -1, c = -1;
+          if (uv) { c = Math.floor(uv[0]); r = Math.floor(uv[1]); }
+          const onBoard = c >= 0 && r >= 0 && c <= 7 && r <= 7;
+          if (onBoard) { const mv = this.moves.find(m => m.tr === r && m.tc === c); if (mv) { this.doMove(mv, 'w'); return; } }
+          let hit = this.pieceAt(p[0], p[1]);
+          if (!hit && onBoard && this.pos.b[r][c] && this.pos.b[r][c][0] === 'w') hit = [r, c];
+          if (hit) { const pc = this.pos.b[hit[0]][hit[1]]; this.sel = hit; this.moves = legal(this.pos, 'w').filter(m => m.fr === hit[0] && m.fc === hit[1]); sfx(420, 0.03, 0.03); if (!this.moves.length) this.status = 'that ' + NAME[pc[1]] + ' is stuck'; }
           else { this.sel = null; this.moves = []; }
         });
       },
@@ -11937,7 +11956,7 @@ const SUMMIT_LEVELS = [
       },
       /* cached art */
       buildSprites() {
-        const d = this.d || 1, S = Math.ceil(this.cs * d * 1.42), key = S + '';
+        const d = this.d || 1, S = Math.ceil(this.pieceSize(1) * d), key = S + '';
         if (this.spriteKey === key && this.sprites) return; this.spriteKey = key; this.sprites = {};
         'PNBRQK'.split('').forEach((t, ti) => ['w', 'b'].forEach(team => [0, 1].forEach(bl => {
           const o = document.createElement('canvas'); o.width = S; o.height = S; const x = o.getContext('2d');
@@ -11945,58 +11964,79 @@ const SUMMIT_LEVELS = [
           this.sprites[team + t + bl] = o;
         })));
       },
+      quad(c, r, q, ins, R) {
+        const j = () => (R ? (R() - 0.5) * 0.06 : 0);
+        const a = this.proj(q + ins + j(), r + ins + j()), b = this.proj(q + 1 - ins + j(), r + ins + j()), d = this.proj(q + 1 - ins + j(), r + 1 - ins + j()), e = this.proj(q + ins + j(), r + 1 - ins + j());
+        c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(d[0], d[1]); c.lineTo(e[0], e[1]); c.closePath();
+      },
       buildBoard() {
-        const d = this.d || 1, W = Math.ceil(this.w * d), H = Math.ceil(this.h * d), key = W + 'x' + H + ':' + this.cs;
+        const d = this.d || 1, W = Math.ceil(this.w * d), H = Math.ceil(this.h * d), key = W + 'x' + H + ':' + this.bw + ':' + this.yt;
         if (this.boardKey === key && this.boardC) return; this.boardKey = key;
         const o = document.createElement('canvas'); o.width = W; o.height = H; const c = o.getContext('2d'); c.scale(d, d);
-        const R = mulberry(4242), cs = this.cs, gx = this.gx, gy = this.gy, w = this.w; c.lineCap = 'round'; c.lineJoin = 'round';
-        // margin line
-        c.strokeStyle = 'rgba(226,70,70,.55)'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(12, 0); c.lineTo(12, this.h); c.stroke();
-        // sun doodle
+        const R = mulberry(4242), u = this.u, w = this.w, h = this.h, P = (U, V) => this.proj(U, V); c.lineCap = 'round'; c.lineJoin = 'round';
+        // graph paper in perspective: lines run away from you and meet far off, so the whole page looks tilted
+        const vTop = this.unproj(this.cx, 0)[1], vBot = this.unproj(this.cx, h + 4)[1], step = 0.5;
+        c.strokeStyle = 'rgba(80,120,200,.16)'; c.lineWidth = 1;
+        for (let V = Math.ceil(vTop / step) * step; V <= vBot; V += step) { const y = P(0, V)[1]; c.beginPath(); c.moveTo(0, y); c.lineTo(w, y); c.stroke(); }
+        for (let U = -24; U <= 32; U += step) { const a = P(U, vTop), b = P(U, vBot); if (Math.max(a[0], b[0]) < -2 || Math.min(a[0], b[0]) > w + 2) continue; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); }
+        // red margin line, tilted with the page
+        const zb = this.Hc / (h - this.hz), um = (10 - this.cx) * zb / u + 4, m0 = P(um, vTop), m1 = P(um, vBot);
+        c.strokeStyle = 'rgba(226,70,70,.55)'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(m0[0], m0[1]); c.lineTo(m1[0], m1[1]); c.stroke();
+        // sun doodle + stars up in the corner (drawn flat, like stickers on top)
         const sx = 34, sy = 34; c.strokeStyle = '#e8a21a'; c.lineWidth = 2;
         for (let i = 0; i < 10; i++) { const a = i / 10 * TAU + 0.2; c.beginPath(); c.moveTo(sx + Math.cos(a) * 15, sy + Math.sin(a) * 15); c.lineTo(sx + Math.cos(a) * (21 + R() * 4), sy + Math.sin(a) * (21 + R() * 4)); c.stroke(); }
         c.fillStyle = 'rgba(255,214,60,.6)'; c.beginPath(); c.arc(sx, sy, 12, 0, TAU); c.fill(); c.stroke();
         c.strokeStyle = INK; c.lineWidth = 1.4; c.beginPath(); c.arc(sx - 4, sy - 2, 2, Math.PI, 0); c.moveTo(sx + 6, sy - 2); c.arc(sx + 4, sy - 2, 2, Math.PI, 0); c.stroke();
         c.beginPath(); c.arc(sx, sy + 2, 5, 0.2 * Math.PI, 0.8 * Math.PI); c.stroke();
-        // little stars + flowers in the margins
         const star = (x, y, r, col) => { c.strokeStyle = col; c.lineWidth = 1.3; c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath(); c.stroke(); };
         star(w - 26, 24, 7, '#e8a21a'); star(w - 50, 40, 5, '#e8a21a'); star(w - 16, 52, 4, '#6b7fe8');
-        const flower = (x, y, col) => { c.strokeStyle = '#4c9a3c'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x - 3, y + 10, x, y + 18); c.stroke(); c.strokeStyle = col; for (let i = 0; i < 5; i++) { const a = i / 5 * TAU; c.beginPath(); c.ellipse(x + Math.cos(a) * 4, y + Math.sin(a) * 4, 3.4, 2.2, a, 0, TAU); c.stroke(); } c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(x, y, 2, 0, TAU); c.fill(); };
-        const below = gy + cs * 8 + 8; flower(w - 14, below + 6, '#ff7aa8');
-        // grass tufts on the board edge, like the hand-drawn ones
-        c.strokeStyle = '#5aa845'; c.lineWidth = 1.3; for (let i = 0; i < 6; i++) { const x = gx + cs * 4 + R() * cs * 4, y = gy - 4; c.beginPath(); c.moveTo(x - 3, y); c.lineTo(x - 1, y - 6); c.moveTo(x, y); c.lineTo(x + 1, y - 8); c.moveTo(x + 3, y); c.lineTo(x + 4, y - 5); c.stroke(); }
-        // squares: dark ones colored in with green crayon, light ones left as paper with a few pencil grass flicks
+        // squares
         for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
-          const X = gx + q * cs, Y = gy + r * cs;
-          c.save(); c.beginPath(); c.rect(X + 1.5, Y + 1.5, cs - 3, cs - 3); c.clip();
-          if ((r + q) % 2) { c.fillStyle = 'rgba(132,196,110,.28)'; c.fillRect(X, Y, cs, cs); hatch(c, R, X, Y, cs, cs, 'rgba(84,160,70,.5)', Math.max(3.5, cs * 0.09), 1.05 + (R() - 0.5) * 0.2, 1.3); }
-          else { c.strokeStyle = 'rgba(90,168,69,.35)'; c.lineWidth = 1; for (let i = 0; i < 2; i++) { const x = X + 6 + R() * (cs - 12), y = Y + 6 + R() * (cs - 12); c.beginPath(); c.moveTo(x, y); c.lineTo(x + 1, y - 4); c.moveTo(x + 3, y); c.lineTo(x + 4, y - 3); c.stroke(); } }
+          const a = P(q, r), b = P(q + 1, r + 1), s = (a[2] + b[2]) / 2;
+          c.save(); this.quad(c, r, q, 0.03); c.clip();
+          if ((r + q) % 2) { c.fillStyle = 'rgba(132,196,110,.3)'; c.fillRect(a[0] - u, a[1] - 2, u * 2.4, b[1] - a[1] + 4); hatch(c, R, Math.min(a[0], P(q, r + 1)[0]) - 2, a[1] - 2, u * 1.2, b[1] - a[1] + 4, 'rgba(84,160,70,.5)', Math.max(3, u * 0.085 * s), 1.05 + (R() - 0.5) * 0.2, 1.3); }
+          else { c.strokeStyle = 'rgba(90,168,69,.35)'; c.lineWidth = 1; for (let i = 0; i < 2; i++) { const g = P(q + 0.2 + R() * 0.6, r + 0.25 + R() * 0.6); c.beginPath(); c.moveTo(g[0], g[1]); c.lineTo(g[0] + 1, g[1] - 4 * g[2]); c.moveTo(g[0] + 3, g[1]); c.lineTo(g[0] + 4, g[1] - 3 * g[2]); c.stroke(); } }
           c.restore();
         }
-        // grid lines in pencil, overshooting the corners like real sketching
+        // grass tufts along the far edge, standing up a little
+        c.strokeStyle = '#5aa845'; c.lineWidth = 1.3;
+        for (let i = 0; i < 7; i++) { const g = P(R() * 8, -0.08), k = g[2]; c.beginPath(); c.moveTo(g[0] - 3, g[1]); c.lineTo(g[0] - 1, g[1] - 6 * k); c.moveTo(g[0], g[1]); c.lineTo(g[0] + 1, g[1] - 8 * k); c.moveTo(g[0] + 3, g[1]); c.lineTo(g[0] + 4, g[1] - 5 * k); c.stroke(); }
+        // pencil grid lines that overshoot the corners
         c.strokeStyle = 'rgba(40,40,60,.75)'; c.lineWidth = 1.6;
         for (let i = 0; i <= 8; i++) {
-          pline(c, R, gx - 6 - R() * 6, gy + i * cs, gx + cs * 8 + 6 + R() * 6, gy + i * cs, 1.6, 2);
-          pline(c, R, gx + i * cs, gy - 6 - R() * 6, gx + i * cs, gy + cs * 8 + 6 + R() * 6, 1.6, 2);
+          const o1 = 0.15 + R() * 0.15, o2 = 0.15 + R() * 0.15;
+          let a = P(-o1, i), b = P(8 + o2, i); pline(c, R, a[0], a[1], b[0], b[1], 1.4, 2);
+          a = P(i, -o1); b = P(i, 8 + o2); pline(c, R, a[0], a[1], b[0], b[1], 1.4, 2);
         }
-        // handwritten ranks and files
+        // handwritten ranks (shrinking into the distance) and files
         for (let i = 0; i < 8; i++) {
-          hand(c, String(8 - i), gx - 12, gy + i * cs + cs / 2 + 6, Math.min(20, cs * 0.45), '#c0392b', 'center', (R() - 0.5) * 0.2);
-          hand(c, 'abcdefgh'[i], gx + i * cs + cs / 2, gy + cs * 8 + 19, Math.min(18, cs * 0.4), PENCIL, 'center', (R() - 0.5) * 0.2);
+          const rk = P(-0.38, i + 0.62); hand(c, String(8 - i), rk[0], rk[1], Math.min(20, u * 0.48) * rk[2], '#c0392b', 'center', (R() - 0.5) * 0.2);
+          const fl = P(i + 0.5, 8.62); hand(c, 'abcdefgh'[i], fl[0], fl[1], Math.min(18, u * 0.42), PENCIL, 'center', (R() - 0.5) * 0.2);
         }
+        // a flower doodle by the near corner
+        const fp = P(8.55, 7.6), fx = Math.min(w - 12, fp[0]), fy = fp[1];
+        c.strokeStyle = '#4c9a3c'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(fx, fy); c.quadraticCurveTo(fx - 3, fy + 10, fx, fy + 20); c.stroke();
+        c.strokeStyle = '#ff7aa8'; for (let i = 0; i < 5; i++) { const a = i / 5 * TAU; c.beginPath(); c.ellipse(fx + Math.cos(a) * 4, fy + Math.sin(a) * 4, 3.4, 2.2, a, 0, TAU); c.stroke(); }
+        c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(fx, fy, 2, 0, TAU); c.fill();
         this.boardC = o;
       },
-      sqCenter(r, q) { return [this.gx + q * this.cs + this.cs / 2, this.gy + r * this.cs + this.cs / 2]; },
-      drawSprite(c, key, x, y, sc, sy) {
-        const s = this.sprites[key]; if (!s) return; const S = this.cs * 1.42 * sc;
-        c.save(); c.translate(x, y + S * 0.34 - S * 0.34 * (sy || 1)); c.scale(1, sy || 1); c.drawImage(s, -S / 2, -S / 2, S, S); c.restore();
+      sqCenter(r, q) { return this.proj(q + 0.5, r + 0.5); },
+      // pieces are flat drawings standing upright, feet on the square
+      drawSprite(c, key, x, footY, S, sy) {
+        const s = this.sprites[key]; if (!s) return; sy = sy || 1;
+        c.save(); c.translate(x, footY); c.scale(1, sy); c.drawImage(s, -S / 2, -S * 0.836, S, S); c.restore();
       },
       drawCaptured(c, list, x, y, team) {
-        const sz = Math.min(26, this.cs * 0.6); list.sort((a, b) => VAL[b[1]] - VAL[a[1]]);
-        list.forEach((p, i) => { const s = this.sprites[team + p[1] + '1']; if (s) { c.globalAlpha = 0.8; c.drawImage(s, x + i * sz * 0.62, y - sz / 2, sz, sz); c.globalAlpha = 1; } });
+        const sz = Math.min(26, this.u * 0.62); list.sort((a, b) => VAL[b[1]] - VAL[a[1]]);
+        list.forEach((p, i) => { const s = this.sprites[team + p[1] + '1']; if (s) { c.globalAlpha = 0.85; c.drawImage(s, x + i * sz * 0.62, y - sz / 2, sz, sz); c.globalAlpha = 1; } });
+      },
+      ring(c, X, Y, s, sq, rad, col, lw, seed) {
+        const R = mulberry(seed), rx = this.u * s * rad; c.strokeStyle = col; c.lineWidth = lw; c.beginPath();
+        for (let i = 0; i <= 18; i++) { const an = i / 18 * TAU * 1.1 + 0.4, j = 1 + (R() - 0.5) * 0.12; c.lineTo(X + Math.cos(an) * rx * j, Y + Math.sin(an) * rx * sq * j); }
+        c.stroke();
       },
       draw() {
-        const c = this.ctx, w = this.w, h = this.h, cs = this.cs, gx = this.gx, gy = this.gy, t = this.t;
+        const c = this.ctx, w = this.w, h = this.h, u = this.u, t = this.t;
         this.buildSprites(); this.buildBoard();
         c.save(); if (this.shake) c.translate((Math.random() - 0.5) * this.shake * 10, (Math.random() - 0.5) * this.shake * 10);
         c.drawImage(this.boardC, 0, 0, w, h);
@@ -12005,50 +12045,58 @@ const SUMMIT_LEVELS = [
         const R0 = mulberry(77); c.strokeStyle = '#e2362b'; c.lineWidth = 2.2; c.lineCap = 'round'; pline(c, R0, w / 2 - 74, 48, w / 2 + 76, 46, 2.2, 1);
         hand(c, 'score ' + this.score + (this.best ? '  ·  best ' + this.best : ''), 22, 72, 17, PENCIL, 'left');
         hand(c, this.status, w - 16, 72, 19, this.status.indexOf('CHECK') >= 0 ? '#e2362b' : INK, 'right', 0.02);
-        // captured doodles: orange crew's catch above the board, yours below
-        this.drawCaptured(c, this.capturedBy('b'), gx, gy - 24, 'w');
-        this.drawCaptured(c, this.capturedBy('w'), gx, gy + cs * 8 + 34, 'b');
-        // highlights in marker / highlighter style
-        const hl = (r, q, col, inset) => { const X = gx + q * cs, Y = gy + r * cs, R = mulberry(r * 8 + q + 9); c.save(); c.fillStyle = col; c.beginPath(); c.moveTo(X + inset + R() * 3, Y + inset); c.lineTo(X + cs - inset, Y + inset + R() * 3); c.lineTo(X + cs - inset - R() * 3, Y + cs - inset); c.lineTo(X + inset, Y + cs - inset - R() * 3); c.closePath(); c.fill(); c.restore(); };
-        if (this.last) { hl(this.last[0], this.last[1], 'rgba(255,230,60,.38)', 3); hl(this.last[2], this.last[3], 'rgba(255,230,60,.5)', 3); }
-        if (this.sel) hl(this.sel[0], this.sel[1], 'rgba(120,220,255,.55)', 2);
+        // captured doodles under the board: your catch, then theirs
+        const left = this.proj(0, 8)[0];
+        this.drawCaptured(c, this.capturedBy('w'), left, this.yb + 42, 'b');
+        this.drawCaptured(c, this.capturedBy('b'), left, this.yb + 64, 'w');
+        // highlighter marks on the paper
+        const hl = (r, q, col, ins) => { c.save(); c.fillStyle = col; this.quad(c, r, q, ins, mulberry(r * 8 + q + 9)); c.fill(); c.restore(); };
+        if (this.last) { hl(this.last[0], this.last[1], 'rgba(255,230,60,.38)', 0.07); hl(this.last[2], this.last[3], 'rgba(255,230,60,.5)', 0.07); }
+        if (this.sel) hl(this.sel[0], this.sel[1], 'rgba(120,220,255,.55)', 0.05);
         const kc = this.pos && inCheck(this.pos, this.pos.turn) ? findK(this.pos, this.pos.turn) : null;
-        if (kc) { const [X, Y] = this.sqCenter(kc[0], kc[1]), R = mulberry(5 + ((t * 8) | 0)); c.strokeStyle = 'rgba(226,54,43,.9)'; c.lineWidth = 2.6; for (let k = 0; k < 2; k++) { c.beginPath(); for (let i = 0; i <= 18; i++) { const a = i / 18 * TAU * 1.08, rr = cs * 0.5 + (R() - 0.5) * 4; c.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr); } c.stroke(); } hand(c, '!!', X + cs * 0.42, Y - cs * 0.3, cs * 0.45, '#e2362b', 'center', 0.2); }
-        // pieces
-        const a = this.anim;
-        for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
-          const p = this.pos.b[r][q]; if (!p) continue; if (a && a.m.tr === r && a.m.tc === q) continue;
-          const [X, Y] = this.sqCenter(r, q), ph = r * 1.7 + q * 2.3, bl = ((t * 0.9 + ph * 0.37) % 4.2) < 0.13 ? 1 : 0;
-          const sel = this.sel && this.sel[0] === r && this.sel[1] === q, bob = sel ? 1 + 0.07 * Math.sin(t * 9) : 1 + 0.025 * Math.sin(t * 2.2 + ph);
-          this.drawSprite(c, p[0] + p[1] + bl, X, Y - (sel ? cs * 0.08 : 0), 1, bob);
-        }
-        // captured piece shown fading under the landing one, then the mover hopping along
-        if (a) {
-          const [x0, y0] = this.sqCenter(a.m.fr, a.m.fc), [x1, y1] = this.sqCenter(a.m.tr, a.m.tc), k = Math.min(1, a.k), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-          if (a.cap) { const cr = a.m.ep ? a.m.fr : a.m.tr, cq = a.m.tc, [cx, cy] = this.sqCenter(cr, cq); c.globalAlpha = 1 - k * 0.5; this.drawSprite(c, a.cap[0] + a.cap[1] + '0', cx, cy, 1, 1 - k * 0.15); c.globalAlpha = 1; }
-          const hop = Math.sin(Math.PI * k) * cs * (a.p[1] === 'N' ? 0.7 : 0.35);
-          this.drawSprite(c, a.p[0] + a.p[1] + '0', x0 + (x1 - x0) * e, y0 + (y1 - y0) * e - hop, 1, 1 + Math.sin(Math.PI * k) * 0.08);
-        }
-        // legal move marks: pencil dots, red scribble rings on things you can take
+        if (kc) { const [X, Y, s] = this.sqCenter(kc[0], kc[1]), sq = this.squash(kc[0]); for (let k = 0; k < 2; k++) this.ring(c, X, Y, s, sq, 0.5, 'rgba(226,54,43,.9)', 2.6, 5 + k + ((t * 8) | 0)); }
+        // move marks drawn flat on the paper
         this.moves.forEach(m => {
-          const [X, Y] = this.sqCenter(m.tr, m.tc), R = mulberry(m.tr * 9 + m.tc);
-          if (this.pos.b[m.tr][m.tc] || m.ep) { c.strokeStyle = 'rgba(226,54,43,.85)'; c.lineWidth = 2.4; c.beginPath(); for (let i = 0; i <= 16; i++) { const an = i / 16 * TAU * 1.1 + 0.4, rr = cs * 0.46 + (R() - 0.5) * 3; c.lineTo(X + Math.cos(an) * rr, Y + Math.sin(an) * rr); } c.stroke(); }
-          else { c.fillStyle = 'rgba(39,35,77,.5)'; c.beginPath(); c.arc(X + (R() - 0.5) * 2, Y + (R() - 0.5) * 2, cs * 0.11, 0, TAU); c.fill(); }
+          const [X, Y, s] = this.sqCenter(m.tr, m.tc), sq = this.squash(m.tr);
+          if (this.pos.b[m.tr][m.tc] || m.ep) this.ring(c, X, Y, s, sq, 0.46, 'rgba(226,54,43,.85)', 2.4, m.tr * 9 + m.tc);
+          else { c.fillStyle = 'rgba(39,35,77,.5)'; c.beginPath(); c.ellipse(X, Y, u * s * 0.12, u * s * 0.12 * sq, 0, 0, TAU); c.fill(); }
         });
         if (this.hint) { const m = this.hint, [x0, y0] = this.sqCenter(m.fr, m.fc), [x1, y1] = this.sqCenter(m.tr, m.tc), R = mulberry(31); c.strokeStyle = 'rgba(30,140,255,.85)'; c.lineWidth = 3; c.lineCap = 'round'; pline(c, R, x0, y0, x1, y1, 2, 1); const an = Math.atan2(y1 - y0, x1 - x0); c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - Math.cos(an - 0.5) * 12, y1 - Math.sin(an - 0.5) * 12); c.moveTo(x1, y1); c.lineTo(x1 - Math.cos(an + 0.5) * 12, y1 - Math.sin(an + 0.5) * 12); c.stroke(); }
+        // pieces, back row first so the front ones overlap them
+        const a = this.anim, items = [];
+        for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
+          const p = this.pos.b[r][q]; if (!p) continue; if (a && a.m.tr === r && a.m.tc === q) continue;
+          items.push({ v: r + 0.5, f: () => {
+            const [X, Y, s] = this.sqCenter(r, q), ph = r * 1.7 + q * 2.3, bl = ((t * 0.9 + ph * 0.37) % 4.2) < 0.13 ? 1 : 0;
+            const sel = this.sel && this.sel[0] === r && this.sel[1] === q, bob = sel ? 1 + 0.07 * Math.sin(t * 9) : 1 + 0.025 * Math.sin(t * 2.2 + ph);
+            this.drawSprite(c, p[0] + p[1] + bl, X, Y - (sel ? u * s * 0.12 : 0), this.pieceSize(s), bob);
+          } });
+        }
+        if (a) {
+          const k = Math.min(1, a.k), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          if (a.cap) { const cr = a.m.ep ? a.m.fr : a.m.tr, cq = a.m.tc; items.push({ v: cr + 0.5, f: () => { const [cx, cy, s] = this.sqCenter(cr, cq); c.globalAlpha = 1 - k * 0.5; this.drawSprite(c, a.cap[0] + a.cap[1] + '0', cx, cy, this.pieceSize(s), 1 - k * 0.15); c.globalAlpha = 1; } }); }
+          const U = a.m.fc + 0.5 + (a.m.tc - a.m.fc) * e, V = a.m.fr + 0.5 + (a.m.tr - a.m.fr) * e;
+          items.push({ v: V + 0.01, f: () => {
+            const [X, Y, s] = this.proj(U, V), hop = Math.sin(Math.PI * k) * u * s * (a.p[1] === 'N' ? 0.8 : 0.4);
+            c.save(); c.globalAlpha = 0.25; c.fillStyle = INK; c.beginPath(); c.ellipse(X, Y, u * s * 0.3, u * s * 0.3 * this.squash(Math.min(7, Math.floor(V))), 0, 0, TAU); c.fill(); c.restore();
+            this.drawSprite(c, a.p[0] + a.p[1] + '0', X, Y - hop, this.pieceSize(s), 1 + Math.sin(Math.PI * k) * 0.08);
+          } });
+        }
+        items.sort((x, y) => x.v - y.v).forEach(it => it.f());
+        if (kc) { const [X, Y, s] = this.sqCenter(kc[0], kc[1]); hand(c, '!!', X + u * s * 0.42, Y - this.pieceSize(s) * 0.7, u * s * 0.5, '#e2362b', 'center', 0.2); }
         // poofs
         this.poofs.forEach(p => {
-          const R = mulberry(p.seed), k = p.age / 0.7; c.save(); c.globalAlpha = 1 - k; c.strokeStyle = INK; c.lineWidth = 2;
-          for (let i = 0; i < 7; i++) { const an = i / 7 * TAU + R(), d = cs * (0.25 + k * 0.6), rr = cs * (0.12 + R() * 0.08) * (1 - k * 0.3); c.beginPath(); c.arc(p.x + Math.cos(an) * d, p.y + Math.sin(an) * d, rr, 0, TAU); c.stroke(); }
-          hand(c, p.word, p.x, p.y - cs * 0.5 - k * 16, cs * 0.55, '#e2362b', 'center', (R() - 0.5) * 0.4); c.restore();
+          const R = mulberry(p.seed), k = p.age / 0.7, cs = u * p.s; c.save(); c.globalAlpha = 1 - k; c.strokeStyle = INK; c.lineWidth = 2;
+          for (let i = 0; i < 7; i++) { const an = i / 7 * TAU + R(), d = cs * (0.25 + k * 0.6), rr = cs * (0.12 + R() * 0.08) * (1 - k * 0.3); c.beginPath(); c.arc(p.x + Math.cos(an) * d, p.y + Math.sin(an) * d * 0.8, rr, 0, TAU); c.stroke(); }
+          hand(c, p.word, p.x, p.y - cs * 0.6 - k * 16, cs * 0.55, '#e2362b', 'center', (R() - 0.5) * 0.4); c.restore();
         });
         // speech bubble from whoever just got bonked
         if (this.bubble) {
-          const b = this.bubble, [X, Y] = this.sqCenter(b.r, b.c), bx = clamp(X, 60, w - 60), by = Math.max(54, Y - cs * 0.95), k = Math.min(1, b.age * 6);
+          const b = this.bubble, [X, Y0, s] = this.sqCenter(b.r, b.c), Y = Y0 - this.pieceSize(s) * 0.55, bx = clamp(X, 60, w - 60), by = Math.max(54, Y - u * 0.75), k = Math.min(1, b.age * 6);
           c.save(); c.globalAlpha = b.age > 1.3 ? (1.6 - b.age) / 0.3 : 1; c.translate(bx, by); c.scale(k, k);
           c.font = '700 18px ' + HAND; const tw = c.measureText(b.t).width + 22;
           c.fillStyle = '#fffef6'; c.strokeStyle = INK; c.lineWidth = 1.8; c.beginPath(); c.ellipse(0, 0, tw / 2, 16, 0, 0, TAU); c.fill(); c.stroke();
-          c.beginPath(); c.moveTo(-6, 14); c.lineTo(X - bx, Y - cs * 0.45 - by); c.lineTo(6, 15); c.fill(); c.stroke();
+          c.beginPath(); c.moveTo(-6, 14); c.lineTo(X - bx, Y - by); c.lineTo(6, 15); c.fill(); c.stroke();
           c.fillStyle = '#fffef6'; c.fillRect(-7, 10, 14, 5); hand(c, b.t, 0, 6, 18, INK, 'center'); c.restore();
         }
         // buttons drawn like boxes in the margin
@@ -12058,14 +12106,13 @@ const SUMMIT_LEVELS = [
           c.strokeStyle = INK; c.lineWidth = on ? 2.2 : 1.5; c.lineCap = 'round'; wbox(c, R, b.x, b.y, b.w, b.h, 1.6);
           hand(c, b.t, b.x + b.w / 2, b.y + 21, 19, INK, 'center');
         });
-        // floating score
         this.floats.forEach(f => hand(c, f.t, f.x, f.y - f.age * 30, 22, '#2b9a4a', 'center'));
         c.restore();
         if (this.flash) { c.fillStyle = 'rgba(226,54,43,' + this.flash * 0.35 + ')'; c.fillRect(0, 0, w, h); }
         // sticky note for start / game over
         if (this.state !== 'run') {
           c.fillStyle = 'rgba(255,253,245,.45)'; c.fillRect(0, 0, w, h);
-          const nw = Math.min(270, w - 40), nh = 170, nx = w / 2, ny = gy + cs * 4;
+          const nw = Math.min(270, w - 40), nh = 170, nx = w / 2, ny = (this.yt + this.yb) / 2;
           c.save(); c.translate(nx, ny); c.rotate(-0.035);
           c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(-nw / 2 + 5, -nh / 2 + 7, nw, nh);
           c.fillStyle = '#fff3a0'; c.fillRect(-nw / 2, -nh / 2, nw, nh);
@@ -12087,7 +12134,7 @@ const SUMMIT_LEVELS = [
     }, MIX);
   }
   skin('doodlepad', {
-    bg: ['#fffdf5', '#fbf6e6'], pat: 'grid', patc: 'rgba(80,120,200,.12)', fg: '#27234d', dim: '#6c6a86', panel: '#fffef8', pfg: '#27234d',
+    bg: ['#fffdf5', '#fbf6e6'], pat: 'none', fg: '#27234d', dim: '#6c6a86', panel: '#fffef8', pfg: '#27234d',
     line: '#27234d', lw: 2, r: 4, sketch: true, pal: ['#6b7fe8', '#f28a3d', '#84c46e', '#ffd23f'], good: '#2b9a4a', bad: '#e2362b',
     font: '"Caveat","Comic Sans MS",cursive', fw: 700, fs: 1.3, mono: '"Caveat","Comic Sans MS",cursive', mw: 700, ms: 1.2,
     veil: 'rgba(255,253,245,.8)', vfg: '#27234d',
