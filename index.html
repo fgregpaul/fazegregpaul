@@ -2564,18 +2564,18 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     return Object.assign({
       sk, hold: true, title: 'Slingshot', how: 'Pull back and let go.',
       state: 'ready', score: 0, best: 0, lives: 5, dead: 0, shake: 0, flash: 0, floats: [], ball: null, aim: null, tg: null, tt: 0,
-      geom() { this.ax = this.w / 2; this.ay = this.h - 100; },
+      geom() { this.zs = Math.max(1, this.h / 620); this.vw = this.w / this.zs; this.vh = this.h / this.zs; this.ax = this.vw / 2; this.ay = this.vh - 100; }, /* zoom in on tall screens (fullscreen) so the pig stays reachable */
       layout() { this.geom(); },
       newTarget() {
-        const r = Math.max(15, 28 - this.score * 0.8), amp = Math.min(70, this.score * 9), lo = r + 18 + amp, hi = this.w - r - 18 - amp;
-        this.tg = { r, amp, base: lo < hi ? rand(lo, hi) : this.w / 2, y: rand(110, this.h * 0.42), ph: rand(0, 6.28), x: 0 };
+        const r = Math.max(15, 28 - this.score * 0.8), amp = Math.min(70, this.score * 9), sp = Math.min(this.vw / 2, 230), lo = Math.max(r + 18, this.vw / 2 - sp + r + 18) + amp, hi = Math.min(this.vw - r - 18, this.vw / 2 + sp - r - 18) - amp; /* keep it in slingshot range on wide screens */
+        this.tg = { r, amp, base: lo < hi ? rand(lo, hi) : this.vw / 2, y: rand(110, this.vh * 0.42), ph: rand(0, 6.28), x: 0 };
         this.tg.x = this.tg.base;
       },
       reset() { this.geom(); this.score = 0; this.lives = 5; this.ball = null; this.aim = null; this.floats = []; this.newTarget(); this.state = 'ready'; },
       enter() { this.reset(); },
       pull(e) {
         const r = this.canvas.getBoundingClientRect();
-        let dx = this.ax - (e.clientX - r.left), dy = (e.clientY - r.top) - this.ay; if (dy < 0) dy = 0;
+        const z = this.zs || 1; let dx = this.ax - (e.clientX - r.left) / z, dy = (e.clientY - r.top) / z - this.ay; if (dy < 0) dy = 0;
         const L = Math.hypot(dx, dy) || 1, m = Math.min(L, MAXP) / L; this.aim = { dx: dx * m, dy: dy * m };
       },
       bind(cv) {
@@ -2589,20 +2589,20 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       },
       tick(dt) {
         this.decay(dt); this.tt += dt;
-        const g = this.tg; g.x = clamp(g.base + Math.sin(this.tt * 1.3 + g.ph) * g.amp, g.r + 10, this.w - g.r - 10);
+        const g = this.tg; g.x = clamp(g.base + Math.sin(this.tt * 1.3 + g.ph) * g.amp, g.r + 10, this.vw - g.r - 10);
         if (this.state === 'dead') { this.dead += dt; return; }
         const b = this.ball; if (this.state !== 'run' || !b) return;
         b.t += dt; b.vy += G * dt; b.x += b.vx * dt; b.y += b.vy * dt;
-        if (b.x < 8) { b.x = 8; b.vx = Math.abs(b.vx) * 0.8; } if (b.x > this.w - 8) { b.x = this.w - 8; b.vx = -Math.abs(b.vx) * 0.8; }
+        if (b.x < 8) { b.x = 8; b.vx = Math.abs(b.vx) * 0.8; } if (b.x > this.vw - 8) { b.x = this.vw - 8; b.vx = -Math.abs(b.vx) * 0.8; }
         if (Math.hypot(b.x - g.x, b.y - g.y) < g.r + 8) {
           this.score++; this.floats.push({ t: '+1', x: g.x, y: g.y - 20, age: 0, c: 'good' }); sfx(700, 0.12, 0.06); sfx(990, 0.2, 0.05); this.ball = null; this.newTarget(); return;
         }
-        if (b.y > this.h + 30 || b.t > 6) { this.ball = null; this.hurt('MISS', clamp(b.x, 40, this.w - 40), this.h - 70); sfx(150, 0.2, 0.05, 'sawtooth'); }
+        if (b.y > this.vh + 30 || b.t > 6) { this.ball = null; this.hurt('MISS', clamp(b.x, 40, this.vw - 40), this.vh - 70); sfx(150, 0.2, 0.05, 'sawtooth'); }
       },
       draw() {
-        const c = this.ctx, w = this.w, h = this.h, sk = SK, g = this.tg, ax = this.ax, ay = this.ay;
+        const c = this.ctx, w = this.vw, h = this.vh, sk = SK, g = this.tg, ax = this.ax, ay = this.ay;
         drawBg(c, w, h);
-        c.save(); if (this.shake > 0) c.translate(rand(-1, 1) * this.shake * 6, rand(-1, 1) * this.shake * 6);
+        c.save(); c.scale(this.zs || 1, this.zs || 1); if (this.shake > 0) c.translate(rand(-1, 1) * this.shake * 6, rand(-1, 1) * this.shake * 6);
         c.fillStyle = sk.dim; c.globalAlpha = 0.5; c.fillRect(0, ay + 52, w + 60, h - ay - 52 + 150); c.globalAlpha = 1;
         [[sk.pal[0], 1], [sk.fg, 0.62], [sk.pal[0], 0.28]].forEach(([col, k]) => dot(c, g.x, g.y, g.r * k, col, { lw: k === 1 ? undefined : 0 }));
         txt(c, label || 'PIG', g.x, g.y, Math.max(8, g.r * 0.5), onC(sk.pal[0]), 'center', MONO);
