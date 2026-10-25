@@ -50,10 +50,10 @@ The file is too big to read whole. **Find things with grep on these markers**, n
 | `endless generator` | `PACKS` + `genSlide()`: re-skinned simple games appended forever after the hand-made ones. **New big games are inserted just before this marker.** |
 | `const SLIDES = [` | The original 8, then `SLIDES.push(...NEW_SLIDES)`, comments attached, then **the feed is shuffled** on every load. |
 | `buildSlide` | Builds each post's DOM (canvas, like/comment/share/donate rail, caption). |
-| `?debug` → `window.__gs` | Test hook: `{ games, SLIDES, SKINS, ensureAhead, cur }`. Only exists with `?debug` in the URL. |
+| `?debug` → `window.__gs` | Test hook: `{ games, SLIDES, SKINS, ensureAhead, cur }`, plus `casino: { inst, setGal(n) }` once the casino loads (`inst.cluck` etc. after a tab is opened). Only exists with `?debug` in the URL. |
 | `MUS = {` | Per-slide generated chiptune music. |
 | `desktop fullscreen` | Fullscreen button (desktop only, under the up/down arrows). In fullscreen `html.fs` is set, the top bar/caption/rail hide, and every game's play area becomes the whole monitor (e.g. 1920x1080), so `layout()` must cope with wide screens: size things by `Math.min(w..., h...)` and centre them. |
-| `Galaxy Casino` | The crate sheet's tabs: Crate, Blackjack, Hold'em, Roulette, Slots, Crash, Mines. Games built with `g.casino = true`; chips are bound to the galaxy balance. |
+| `Galaxy Casino` | The crate sheet's tabs: Crate, Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross. Games built with `g.casino = true`; chips are bound to the galaxy balance. |
 
 ### The game object contract
 
@@ -107,7 +107,7 @@ Minimum before merging:
 
 ## Game list (82 hand-made games, shuffled into the feed on each load)
 
-Plus the 6 Galaxy Casino table games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines) and the endless re-skinned games after them.
+Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
 | Game | Inspired by | `kind` |
 |---|---|---|
