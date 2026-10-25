@@ -103,7 +103,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (81 hand-made games, shuffled into the feed on each load)
+## Game list (82 hand-made games, shuffled into the feed on each load)
 
 Plus the 6 Galaxy Casino table games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines) and the endless re-skinned games after them.
 
@@ -127,6 +127,7 @@ Plus the 6 Galaxy Casino table games (Blackjack, Hold'em, Roulette, Slots, Crash
 | Content Creator | creator sim | `creator` |
 | Crush | Candy Crush | `crush` |
 | Dark Pattern | GregSnap original (movie joke) | (one of the original 8) |
+| Doodle Chess | chess on hand-drawn notebook paper (doodle creature pieces) | `doodlechess` |
 | Darts | darts | `darts` |
 | Deepland | Terraria | `deep` |
 | Drop Four | Connect Four | `four` |

@@ -1462,6 +1462,7 @@ body{overscroll-behavior:none;-webkit-text-size-adjust:100%}
     under: ['the dash blast boon is great', 'the boss room came fast', 'archers are annoying', 'i love when the room clears', 'reached room 7'],
     isle: ['rowan saying one line in his journal took an hour. im unwell', 'married juni and she fixed the cat', 'the lantern night scene made me tear up', 'elio burning 200 buns is so real', 'cloud fishing is genius', 'gave marisol a moonflower and she said i understand her. ok i do', 'kai delivered their own love letter LOL', 'my turnips survived i am a farmer now', 'wren talking to the sunflower about me', 'the moon isle at night is so pretty', 'pip winked at elio. PIP', 'spent 3 in game days just fishing off the dock'],
 
+    doodlechess: ['the little mustache king is so cute', 'the horse doodle hopping over everything lmao', 'got bonked by an orange blob', 'this looks like my math notebook in 6th grade', 'the pieces blink im obsessed', 'beat it on medium after like 6 tries', 'hard mode is not playing around', 'POW when you take a piece is so satisfying', 'who drew these they are adorable', 'the spiky queen carried my whole game', 'it said nom nom when it took my queen i am crying', 'erase button saved me so many times', 'graph paper chess is a vibe', 'i keep forgetting the wizard moves diagonal'],
     drop: ['called an airstrike on myself again', 'the reinforce code is burned into my brain', 'orbital laser deleted the whole bug breach', 'chargers from the back only', 'extraction with 2 seconds left', 'the sentry carried me', 'cinderfall bots are no joke', 'accidentals: 4 lol', 'resupply pod landed on my head', 'for democracy'],
     deep: ['first night the zombies got me instantly', 'found a life crystal in a cave', 'the torch lighting underground is so good', 'built a house out of planks', 'iron pickaxe changes everything', 'the watcher dashes so fast', 'chopping trees is weirdly satisfying', 'gold is so deep down', 'eyes keep dropping lenses for me', 'my world has the coolest cave'],
     hollow: ['the guardian hits so hard', 'pogoing off the spikes feels so good', 'the lantern glow in the dark is beautiful', 'lost all my geo and then got it back from my shade', 'mossgrave is my favourite area', 'phase two with the falling rocks is insane', 'focusing to heal mid fight is clutch', 'the pixel art is so clean', 'that acid pit got me 5 times', 'finally beat the guardian with 1 mask left'],
@@ -11634,6 +11635,466 @@ const SUMMIT_LEVELS = [
   skin('isle', { bg: ['#ffe6f1', '#cfe8fb'], pat: 'none', fg: '#4a3346', dim: '#8a6aa8', panel: '#fffaf2', pfg: '#4a3346', dark: false, line: '#ff7aa8', lw: 0, r: 14, pal: ['#ff7aa8', '#8fd474', '#9fd6f8', '#c9a8ff'], good: '#3f8a73', bad: '#d0507e', font: 'Nunito,ui-rounded,system-ui,sans-serif', fw: 900, fs: 1, mono: 'Nunito,ui-rounded,system-ui,sans-serif', mw: 800, ms: 0.9, veil: 'rgba(60,30,90,.5)', vfg: '#ffffff', slide: '#3a2a56', sbgc: '#3a2a56', sfg: '#ffffff', sdim: '#ffe0f0', stag: '#ffb3cf', tsize: 24, tfw: 900, tls: '.01em', frame: '' });
   NEW_SLIDES.push(mk(makeIsles(SKINS.isle), 'Petal Isles', SKINS.isle, 'Farm on islands floating above the clouds, fish the cloud sea, and fall for one of six villagers. Gifts, heart events, festivals, dating and marriage.', '#farming #datingsim #cozygames', 24.8e9, 7.9e9, 5.2e9, 'isle'));
 
+
+  /* ===== Doodle Chess: chess on graph paper with felt-tip doodle creatures ===== */
+  function makeDoodleChess(sk) {
+    const SAVE_K = 'gregsnap_doodlechess_v1';
+    const HAND = '"Caveat","Comic Neue","Comic Sans MS",cursive';
+    const INK = '#27234d', PENCIL = 'rgba(60,60,70,.55)';
+    const TEAM = {
+      w: { body: '#6b7fe8', dark: '#4152b8', light: '#a9b6ff', acc: '#ff9ec7' },
+      b: { body: '#f28a3d', dark: '#c75a1a', light: '#ffc28c', acc: '#7fd36b' }
+    };
+    const VAL = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 0 };
+    const NAME = { P: 'blob', N: 'pony', B: 'wizard', R: 'tower', Q: 'spike queen', K: 'king' };
+    const other = c => c === 'w' ? 'b' : 'w';
+    /* ---- rules + engine ---- */
+    const start = () => {
+      const b = []; for (let r = 0; r < 8; r++) b.push(new Array(8).fill(null));
+      const back = ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']; for (let c = 0; c < 8; c++) { b[0][c] = 'b' + back[c]; b[1][c] = 'bP'; b[6][c] = 'wP'; b[7][c] = 'w' + back[c]; }
+      return { b, turn: 'w', cr: { wK: 1, wQ: 1, bK: 1, bQ: 1 }, ep: null };
+    };
+    const inb = (y, x) => y >= 0 && y < 8 && x >= 0 && x < 8;
+    const KN = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+    const attacked = (pos, r, c, by) => {
+      const b = pos.b;
+      const pr = by === 'w' ? r + 1 : r - 1; for (const dc of [-1, 1]) if (inb(pr, c + dc) && b[pr][c + dc] === by + 'P') return true;
+      for (const d of KN) { const y = r + d[0], x = c + d[1]; if (inb(y, x) && b[y][x] === by + 'N') return true; }
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dy && !dx) continue; const y = r + dy, x = c + dx; if (inb(y, x) && b[y][x] === by + 'K') return true; }
+      for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        let y = r + d[0], x = c + d[1]; const diag = d[0] && d[1];
+        while (inb(y, x)) { const p = b[y][x]; if (p) { if (p[0] === by && (p[1] === 'Q' || (diag ? p[1] === 'B' : p[1] === 'R'))) return true; break; } y += d[0]; x += d[1]; }
+      }
+      return false;
+    };
+    const findK = (pos, col) => { for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (pos.b[r][c] === col + 'K') return [r, c]; return null; };
+    const inCheck = (pos, col) => { const k = findK(pos, col); return k ? attacked(pos, k[0], k[1], other(col)) : false; };
+    const pseudo = (pos, col, capsOnly) => {
+      const b = pos.b, out = [], add = (r, c, y, x, extra) => { const m = { fr: r, fc: c, tr: y, tc: x }; if (extra) Object.assign(m, extra); out.push(m); };
+      for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+        const p = b[r][c]; if (!p || p[0] !== col) continue; const t = p[1];
+        if (t === 'P') {
+          const dir = col === 'w' ? -1 : 1, st = col === 'w' ? 6 : 1, pr = col === 'w' ? 0 : 7, y = r + dir;
+          if (!capsOnly && inb(y, c) && !b[y][c]) { add(r, c, y, c, y === pr ? { promo: 'Q' } : null); if (r === st && !b[y + dir][c]) add(r, c, y + dir, c); }
+          for (const dc of [-1, 1]) { const x = c + dc; if (!inb(y, x)) continue; if (b[y][x] && b[y][x][0] !== col) add(r, c, y, x, y === pr ? { promo: 'Q' } : null); else if (pos.ep && pos.ep[0] === y && pos.ep[1] === x) add(r, c, y, x, { ep: true }); }
+        } else if (t === 'N') { for (const d of KN) { const y = r + d[0], x = c + d[1]; if (inb(y, x) && (!b[y][x] || b[y][x][0] !== col) && (!capsOnly || b[y][x])) add(r, c, y, x); } }
+        else if (t === 'K') {
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dy && !dx) continue; const y = r + dy, x = c + dx; if (inb(y, x) && (!b[y][x] || b[y][x][0] !== col) && (!capsOnly || b[y][x])) add(r, c, y, x); }
+          if (!capsOnly) { const hr = col === 'w' ? 7 : 0, en = other(col);
+            if (r === hr && c === 4 && !attacked(pos, hr, 4, en)) {
+              if (pos.cr[col + 'K'] && !b[hr][5] && !b[hr][6] && b[hr][7] === col + 'R' && !attacked(pos, hr, 5, en)) add(r, c, hr, 6, { castle: 'K' });
+              if (pos.cr[col + 'Q'] && !b[hr][3] && !b[hr][2] && !b[hr][1] && b[hr][0] === col + 'R' && !attacked(pos, hr, 3, en)) add(r, c, hr, 2, { castle: 'Q' });
+            } }
+        } else {
+          const dirs = t === 'R' ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : t === 'B' ? [[1, 1], [1, -1], [-1, 1], [-1, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+          for (const d of dirs) { let y = r + d[0], x = c + d[1]; while (inb(y, x)) { if (b[y][x]) { if (b[y][x][0] !== col) add(r, c, y, x); break; } if (!capsOnly) add(r, c, y, x); y += d[0]; x += d[1]; } }
+        }
+      }
+      return out;
+    };
+    const make = (pos, m) => {
+      const b = pos.b, p = b[m.fr][m.fc], cap = b[m.tr][m.tc], u = { p, cap, cr: Object.assign({}, pos.cr), ep: pos.ep, epcap: null };
+      b[m.tr][m.tc] = m.promo ? p[0] + m.promo : p; b[m.fr][m.fc] = null;
+      if (m.ep) { u.epcap = b[m.fr][m.tc]; b[m.fr][m.tc] = null; }
+      if (m.castle === 'K') { b[m.tr][5] = b[m.tr][7]; b[m.tr][7] = null; } else if (m.castle === 'Q') { b[m.tr][3] = b[m.tr][0]; b[m.tr][0] = null; }
+      if (p[1] === 'K') { pos.cr[p[0] + 'K'] = 0; pos.cr[p[0] + 'Q'] = 0; }
+      const sq = (r, c) => { if (r === 7 && c === 0) pos.cr.wQ = 0; if (r === 7 && c === 7) pos.cr.wK = 0; if (r === 0 && c === 0) pos.cr.bQ = 0; if (r === 0 && c === 7) pos.cr.bK = 0; };
+      sq(m.fr, m.fc); sq(m.tr, m.tc);
+      pos.ep = p[1] === 'P' && Math.abs(m.tr - m.fr) === 2 ? [(m.fr + m.tr) / 2, m.fc] : null; pos.turn = other(pos.turn); return u;
+    };
+    const unmake = (pos, m, u) => {
+      const b = pos.b; b[m.fr][m.fc] = u.p; b[m.tr][m.tc] = u.cap;
+      if (m.ep) b[m.fr][m.tc] = u.epcap;
+      if (m.castle === 'K') { b[m.tr][7] = b[m.tr][5]; b[m.tr][5] = null; } else if (m.castle === 'Q') { b[m.tr][0] = b[m.tr][3]; b[m.tr][3] = null; }
+      pos.cr = u.cr; pos.ep = u.ep; pos.turn = other(pos.turn);
+    };
+    const legal = (pos, col) => { const out = []; pseudo(pos, col).forEach(m => { const u = make(pos, m); if (!inCheck(pos, col)) out.push(m); unmake(pos, m, u); }); return out; };
+    const PST = (t, r, c, col) => {
+      const rr = col === 'w' ? r : 7 - r, cd = Math.abs(3.5 - c) + Math.abs(3.5 - rr);
+      if (t === 'P') return (6 - rr) * 6 + (c > 1 && c < 6 ? 4 : 0) + (rr === 3 || rr === 4 ? 6 : 0); if (t === 'N') return 28 - cd * 7; if (t === 'B') return 14 - cd * 3; if (t === 'R') return rr === 1 ? 10 : 0; if (t === 'Q') return 6 - cd; if (t === 'K') return rr >= 6 ? 12 : -rr * 4; return 0;
+    };
+    const evalW = pos => { let s = 0; for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = pos.b[r][c]; if (!p) continue; const v = VAL[p[1]] + PST(p[1], r, c, p[0]); s += p[0] === 'w' ? v : -v; } return s; };
+    const order = (pos, ms) => ms.map(m => { const t = pos.b[m.tr][m.tc]; return [m, (t ? 10 * VAL[t[1]] - VAL[pos.b[m.fr][m.fc][1]] : 0) + (m.promo ? 800 : 0)]; }).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    const quiesce = (pos, alpha, beta, col, d) => {
+      const sp = evalW(pos) * (col === 'w' ? 1 : -1); if (d <= 0) return sp; if (sp >= beta) return sp; if (sp > alpha) alpha = sp;
+      for (const m of order(pos, pseudo(pos, col, true))) { const u = make(pos, m); if (inCheck(pos, col)) { unmake(pos, m, u); continue; } const s = -quiesce(pos, -beta, -alpha, other(col), d - 1); unmake(pos, m, u); if (s >= beta) return s; if (s > alpha) alpha = s; }
+      return alpha;
+    };
+    const nega = (pos, depth, alpha, beta, col, ply) => {
+      if (depth <= 0) return quiesce(pos, alpha, beta, col, 3);
+      const ms = order(pos, legal(pos, col)); if (!ms.length) return inCheck(pos, col) ? -100000 + ply : 0;
+      let best = -1e9; for (const m of ms) { const u = make(pos, m); const s = -nega(pos, depth - 1, -beta, -alpha, other(col), ply + 1); unmake(pos, m, u); if (s > best) best = s; if (s > alpha) alpha = s; if (alpha >= beta) break; }
+      return best;
+    };
+    const pickMove = (pos, col, depth) => {
+      const ms = order(pos, legal(pos, col)); let best = null, bs = -1e9;
+      for (const m of ms) { const u = make(pos, m); const s = -nega(pos, depth - 1, -1e9, 1e9, other(col), 1) + rand(0, 8); unmake(pos, m, u); if (s > bs) { bs = s; best = m; } }
+      return best;
+    };
+
+    /* ---- hand-drawn helpers ---- */
+    // smooth closed (or open) curve through points, catmull-rom style
+    const curve = (c, pts, closed) => {
+      const n = pts.length; c.beginPath();
+      if (!closed) c.moveTo(pts[0][0], pts[0][1]); else c.moveTo((pts[n - 1][0] + pts[0][0]) / 2, (pts[n - 1][1] + pts[0][1]) / 2);
+      if (closed) { for (let i = 0; i < n; i++) { const p = pts[i], q = pts[(i + 1) % n]; c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2); } c.closePath(); }
+      else { for (let i = 1; i < n - 1; i++) { const p = pts[i], q = pts[i + 1]; c.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2); } c.lineTo(pts[n - 1][0], pts[n - 1][1]); }
+    };
+    const jit = (pts, R, a) => pts.map(p => [p[0] + (R() - 0.5) * a, p[1] + (R() - 0.5) * a]);
+    const poly = (c, pts) => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); };
+    // a wobbly pencil line drawn twice, like someone traced it with a ruler-less hand
+    const pline = (c, R, x0, y0, x1, y1, wob, passes) => {
+      const len = Math.hypot(x1 - x0, y1 - y0), seg = Math.max(2, Math.round(len / 18)), nx = -(y1 - y0) / (len || 1), ny = (x1 - x0) / (len || 1);
+      for (let p = 0; p < (passes || 2); p++) {
+        c.beginPath(); const o0 = (R() - 0.5) * wob * 1.5, o1 = (R() - 0.5) * wob * 1.5;
+        for (let i = 0; i <= seg; i++) { const t = i / seg, w = (R() - 0.5) * wob + o0 * (1 - t) + o1 * t, x = x0 + (x1 - x0) * t + nx * w, y = y0 + (y1 - y0) * t + ny * w; if (!i) c.moveTo(x - (x1 - x0) / len * R() * 3, y - (y1 - y0) / len * R() * 3); else c.lineTo(x, y); }
+        c.stroke();
+      }
+    };
+    const wbox = (c, R, x, y, w, h, wob) => { pline(c, R, x, y, x + w, y, wob, 1); pline(c, R, x + w, y, x + w, y + h, wob, 1); pline(c, R, x + w, y + h, x, y + h, wob, 1); pline(c, R, x, y + h, x, y, wob, 1); };
+    // crayon hatching inside the current clip
+    const hatch = (c, R, x, y, w, h, col, gap, ang, lw) => {
+      c.save(); c.strokeStyle = col; c.lineWidth = lw; c.lineCap = 'round';
+      const L = w + h, ca = Math.cos(ang), sa = Math.sin(ang);
+      for (let i = -L; i < L; i += gap * (0.75 + R() * 0.5)) {
+        const cx = x + w / 2 + ca * i, cy = y + h / 2 + sa * i; c.beginPath();
+        c.moveTo(cx - sa * L + (R() - .5) * 2, cy + ca * L); c.lineTo(cx + sa * L, cy - ca * L + (R() - .5) * 2); c.stroke();
+      }
+      c.restore();
+    };
+    const hand = (c, s, x, y, size, col, align, rot) => {
+      c.save(); c.translate(x, y); if (rot) c.rotate(rot); c.font = '700 ' + Math.round(size) + 'px ' + HAND; c.textAlign = align || 'center'; c.textBaseline = 'alphabetic'; c.fillStyle = col; c.fillText(s, 0, 0); c.restore();
+    };
+
+    /* ---- the doodle pieces (unit space: about -0.5..0.5, feet at y≈0.42) ---- */
+    const SHAPE = {
+      P: [[-0.25, 0.36], [-0.28, 0.08], [-0.2, -0.14], [0, -0.22], [0.2, -0.14], [0.28, 0.08], [0.25, 0.36], [0.13, 0.31], [0, 0.37], [-0.13, 0.31]],
+      R: [[-0.26, 0.38], [-0.26, -0.18], [-0.31, -0.36], [-0.17, -0.36], [-0.17, -0.27], [-0.06, -0.27], [-0.06, -0.38], [0.06, -0.38], [0.06, -0.27], [0.17, -0.27], [0.17, -0.36], [0.31, -0.36], [0.26, -0.18], [0.26, 0.38]],
+      N: [[-0.22, 0.38], [-0.2, 0.06], [-0.25, -0.12], [-0.17, -0.3], [-0.1, -0.44], [-0.02, -0.33], [0.12, -0.29], [0.28, -0.12], [0.34, 0.02], [0.27, 0.1], [0.12, 0.07], [0.17, 0.38]],
+      B: [[-0.24, 0.38], [-0.26, 0.12], [-0.17, -0.12], [-0.06, -0.3], [0.02, -0.46], [0.08, -0.3], [0.18, -0.12], [0.26, 0.12], [0.24, 0.38]],
+      Q: [[-0.27, 0.36], [-0.3, 0.12], [-0.22, -0.08], [0, -0.14], [0.22, -0.08], [0.3, 0.12], [0.27, 0.36], [0, 0.4]],
+      K: [[-0.28, 0.37], [-0.3, 0.1], [-0.24, -0.1], [0, -0.16], [0.24, -0.1], [0.3, 0.1], [0.28, 0.37], [0, 0.41]]
+    };
+    const FACE = { P: 0.04, R: -0.06, N: -0.16, B: 0.08, Q: 0.1, K: 0.1 };
+    function drawPiece(c, t, team, blink, seed) {
+      const R = mulberry(seed), T = TEAM[team], flip = team === 'b' ? -1 : 1;
+      c.lineJoin = 'round'; c.lineCap = 'round';
+      // pencil shadow
+      c.save(); c.beginPath(); c.ellipse(0.02, 0.44, 0.32, 0.07, 0, 0, TAU); c.clip(); hatch(c, R, -0.4, 0.34, 0.8, 0.2, 'rgba(70,70,80,.45)', 0.035, -0.7, 0.018); c.restore();
+      // feet
+      c.fillStyle = T.dark; c.strokeStyle = INK; c.lineWidth = 0.035;
+      [-0.12, 0.12].forEach(fx => { c.beginPath(); c.ellipse(fx, 0.4, 0.08, 0.05, 0, 0, TAU); c.fill(); c.stroke(); });
+      c.save(); if (t === 'N') c.scale(flip, 1);
+      const pts = t === 'R' ? jit(SHAPE.R, R, 0.025) : jit(SHAPE[t], R, 0.03);
+      const body = () => (t === 'R' ? poly(c, pts) : curve(c, pts, true));
+      // crayon fill: base + hatching + a lighter streak
+      body(); c.fillStyle = T.body; c.fill();
+      c.save(); body(); c.clip();
+      hatch(c, R, -0.5, -0.5, 1, 1, T.dark, 0.05, 0.9, 0.022);
+      hatch(c, R, -0.5, -0.5, 0.45, 1, 'rgba(255,255,255,.28)', 0.06, 0.9, 0.03);
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(-0.13, -0.02, 0.05, 0.14, 0.2, 0, TAU); c.fill();
+      c.restore();
+      // per-type extras under the outline
+      if (t === 'R') { c.strokeStyle = 'rgba(39,35,77,.45)'; c.lineWidth = 0.022; [[-0.2, 0.2, -0.04, 0.2], [0.06, 0.12, 0.2, 0.12], [-0.12, 0.29, 0.04, 0.29]].forEach(l => { c.beginPath(); c.moveTo(l[0], l[1]); c.lineTo(l[2], l[3]); c.stroke(); }); }
+      // outline, drawn twice for the felt-tip look
+      c.strokeStyle = INK; c.lineWidth = 0.045; body(); c.stroke();
+      c.lineWidth = 0.02; c.globalAlpha = 0.6; const p2 = jit(pts, R, 0.03); if (t === 'R') poly(c, p2); else curve(c, p2, true); c.stroke(); c.globalAlpha = 1;
+      if (t === 'R') { // door + little flag
+        c.fillStyle = T.dark; c.beginPath(); c.moveTo(-0.07, 0.38); c.lineTo(-0.07, 0.24); c.quadraticCurveTo(0, 0.16, 0.07, 0.24); c.lineTo(0.07, 0.38); c.closePath(); c.fill(); c.lineWidth = 0.03; c.stroke();
+        c.lineWidth = 0.03; c.beginPath(); c.moveTo(0, -0.38); c.lineTo(0, -0.56); c.stroke(); c.fillStyle = T.acc; c.beginPath(); c.moveTo(0, -0.56); c.lineTo(0.17 * flip, -0.5); c.lineTo(0, -0.45); c.closePath(); c.fill(); c.stroke();
+      }
+      if (t === 'N') { // mane zigzag + nostril
+        c.strokeStyle = T.acc; c.lineWidth = 0.06; c.beginPath(); c.moveTo(-0.11, -0.36); c.lineTo(-0.24, -0.26); c.lineTo(-0.16, -0.2); c.lineTo(-0.28, -0.1); c.lineTo(-0.19, -0.04); c.lineTo(-0.27, 0.06); c.stroke();
+        c.strokeStyle = INK; c.lineWidth = 0.025; c.beginPath(); c.moveTo(-0.11, -0.36); c.lineTo(-0.24, -0.26); c.lineTo(-0.16, -0.2); c.lineTo(-0.28, -0.1); c.lineTo(-0.19, -0.04); c.lineTo(-0.27, 0.06); c.stroke();
+        c.fillStyle = INK; c.beginPath(); c.arc(0.27, -0.02, 0.022, 0, TAU); c.fill();
+      }
+      if (t === 'B') { // stars on the wizard robe + tip pompom
+        c.fillStyle = '#ffe066'; c.strokeStyle = INK; c.lineWidth = 0.018;
+        [[0.13, 0.24, 0.05], [-0.15, 0.22, 0.04], [0.04, -0.16, 0.035]].forEach(s => { c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? s[2] * 0.45 : s[2]; c.lineTo(s[0] + Math.cos(a) * rr, s[1] + Math.sin(a) * rr); } c.closePath(); c.fill(); c.stroke(); });
+        c.fillStyle = T.acc; c.lineWidth = 0.03; c.beginPath(); c.arc(0.02, -0.47, 0.05, 0, TAU); c.fill(); c.stroke();
+      }
+      if (t === 'Q') { // spiky crown of a hedgehog queen
+        c.fillStyle = '#ffd23f'; c.strokeStyle = INK; c.lineWidth = 0.03;
+        const sp = [-0.22, -0.11, 0, 0.11, 0.22];
+        sp.forEach((x, i) => { const h = i === 2 ? 0.36 : i % 2 ? 0.3 : 0.24; c.beginPath(); c.moveTo(x - 0.065, -0.1); c.lineTo(x + (R() - 0.5) * 0.03, -0.1 - h); c.lineTo(x + 0.065, -0.1); c.closePath(); c.fill(); c.stroke(); c.fillStyle = T.acc; c.beginPath(); c.arc(x, -0.1 - h, 0.03, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#ffd23f'; });
+      }
+      if (t === 'K') { // crown + cross
+        c.fillStyle = '#ffd23f'; c.strokeStyle = INK; c.lineWidth = 0.03;
+        c.beginPath(); c.moveTo(-0.2, -0.12); c.lineTo(-0.22, -0.34); c.lineTo(-0.11, -0.24); c.lineTo(0, -0.38); c.lineTo(0.11, -0.24); c.lineTo(0.22, -0.34); c.lineTo(0.2, -0.12); c.closePath(); c.fill(); c.stroke();
+        c.fillStyle = T.acc; [[-0.1, -0.18], [0.1, -0.18]].forEach(g => { c.beginPath(); c.arc(g[0], g[1], 0.03, 0, TAU); c.fill(); c.stroke(); });
+        c.lineWidth = 0.045; c.beginPath(); c.moveTo(0, -0.38); c.lineTo(0, -0.54); c.moveTo(-0.07, -0.47); c.lineTo(0.07, -0.47); c.stroke();
+        c.strokeStyle = INK; c.lineWidth = 0.035; c.beginPath(); c.moveTo(-0.11, 0.24); c.quadraticCurveTo(-0.05, 0.2, 0, 0.24); c.quadraticCurveTo(0.05, 0.2, 0.11, 0.24); c.stroke(); // mustache
+      }
+      if (t === 'P') { c.strokeStyle = INK; c.lineWidth = 0.03; c.beginPath(); c.moveTo(0, -0.22); c.quadraticCurveTo(0.05 * flip, -0.32, 0.02 * flip, -0.36); c.stroke(); c.fillStyle = T.acc; c.beginPath(); c.arc(0.02 * flip, -0.37, 0.04, 0, TAU); c.fill(); c.stroke(); }
+      // face
+      const fy = FACE[t], ex = t === 'N' ? [0.08] : [-0.09, 0.09], er = t === 'P' ? 0.07 : 0.065;
+      ex.forEach(x => {
+        if (blink) { c.strokeStyle = INK; c.lineWidth = 0.03; c.beginPath(); c.arc(x, fy - 0.01, er * 0.8, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke(); }
+        else {
+          c.fillStyle = '#ffffff'; c.strokeStyle = INK; c.lineWidth = 0.025; c.beginPath(); c.ellipse(x, fy, er, er * 1.2, 0, 0, TAU); c.fill(); c.stroke();
+          c.fillStyle = INK; c.beginPath(); c.arc(x + (t === 'N' ? 0.02 : 0.015 * flip), fy + 0.015, er * 0.52, 0, TAU); c.fill();
+          c.fillStyle = '#ffffff'; c.beginPath(); c.arc(x + 0.02 - 0.012, fy - 0.01, er * 0.18, 0, TAU); c.fill();
+        }
+      });
+      if (t !== 'K') { c.strokeStyle = INK; c.lineWidth = 0.028; const mx = t === 'N' ? 0.17 : 0; c.beginPath(); c.arc(mx, fy + 0.08, 0.05, 0.15 * Math.PI, 0.85 * Math.PI); c.stroke(); }
+      c.fillStyle = 'rgba(255,110,150,.55)'; (t === 'N' ? [0.19] : [-0.17, 0.17]).forEach(x => { c.beginPath(); c.ellipse(x, fy + 0.07, 0.045, 0.03, 0, 0, TAU); c.fill(); });
+      if (t === 'Q') { c.strokeStyle = INK; c.lineWidth = 0.02; [-0.09, 0.09].forEach(x => { for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(x + i * 0.03, fy - 0.075); c.lineTo(x + i * 0.045, fy - 0.11); c.stroke(); } }); }
+      c.restore();
+    }
+
+    return Object.assign({
+      sk, hold: true, noVeil: true, title: 'Doodle Chess', how: 'You are the blue crew. Tap a doodle, then tap where it should go.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], pos: null, sel: null, moves: [], last: null, think: 0, over: false, keep: false, ply: 0, status: '', lvl: 1, hist: [], hint: null,
+      t: 0, anim: null, poofs: [], bubble: null, sprites: null, spriteKey: '', boardC: null, boardKey: '', msg: '',
+      geom() {
+        const w = this.w, h = this.h;
+        this.cs = Math.max(20, Math.floor(Math.min((w - 46) / 8, (h - 240) / 8)));
+        this.gx = Math.floor((w - this.cs * 8) / 2) + 6; this.gy = 110;
+      },
+      layout() { this.geom(); this.boardKey = ''; this.spriteKey = ''; },
+      reset() {
+        this.geom(); try { this.best = +localStorage.getItem(SAVE_K) || 0; } catch (_) {}
+        this.pos = start(); this.hist = []; this.hint = null; this.sel = null; this.moves = []; this.last = null; this.think = 0; this.over = false; this.ply = 0;
+        this.status = 'your turn!'; this.floats = []; this.poofs = []; this.anim = null; this.bubble = null; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready';
+      },
+      enter() { this.reset(); },
+      saveBest() { this.best = Math.max(this.best, this.score); try { localStorage.setItem(SAVE_K, String(this.best)); } catch (_) {} },
+      aiMove() { const ms = legal(this.pos, 'b'); if (!ms.length) return null; const L = this.lvl; if (L === 0 && Math.random() < 0.5) return pick(ms); if (L === 1 && Math.random() < 0.12) return pick(ms); return pickMove(this.pos, 'b', L === 0 ? 1 : L === 1 ? 2 : 3); },
+      undo() {
+        if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.hist.length < 2 || this.anim) return;
+        for (let i = 0; i < 2; i++) { const h = this.hist.pop(); unmake(this.pos, h.m, h.u); }
+        const l = this.hist[this.hist.length - 1]; this.last = l ? [l.m.fr, l.m.fc, l.m.tr, l.m.tc] : null; this.sel = null; this.moves = []; this.hint = null; this.think = 0;
+        this.status = 'erased it!'; this.ply = Math.max(0, this.ply - 2); this.score = Math.max(0, this.score - 10); sfx(300, 0.08, 0.04, 'sine');
+      },
+      giveHint() { if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.anim) return; const m = pickMove(this.pos, 'w', 2); if (m) { this.hint = m; this.sel = null; this.moves = []; this.score = Math.max(0, this.score - 5); this.status = 'psst... try that'; sfx(660, 0.12, 0.04, 'sine'); } },
+      btnRects() {
+        const g = this.gy + this.cs * 8 + 52, w = this.w, r = [], bw = (w - 40) / 3;
+        ['easy', 'medium', 'hard'].forEach((n, i) => r.push({ k: 'l' + i, t: n, x: 20 + i * bw + 4, y: g, w: bw - 8, h: 30 }));
+        r.push({ k: 'hint', t: 'hint (-5)', x: 24, y: g + 40, w: (w - 40) / 2 - 8, h: 30 });
+        r.push({ k: 'undo', t: 'erase (-10)', x: w / 2 + 4, y: g + 40, w: (w - 40) / 2 - 8, h: 30 });
+        return r;
+      },
+      capturedBy(col) { const out = []; this.hist.forEach(h => { if (h.who !== col) return; const p = h.u.cap || h.u.epcap; if (p) out.push(p); }); return out; },
+      afterMove(who) {
+        const p = this.pos, next = p.turn, ms = legal(p, next), chk = inCheck(p, next); this.ply++;
+        if (!ms.length) {
+          this.over = true;
+          if (chk) {
+            if (who === 'w') { this.score += 200; this.saveBest(); this.keep = true; this.msg = 'checkmate! you win!'; this.state = 'dead'; this.dead = 0; try { JING('win'); } catch (_) {} }
+            else { this.shake = 0.5; this.flash = 0.3; this.finish(); this.saveBest(); this.msg = 'checkmate... orange crew wins'; }
+          } else { this.keep = true; this.msg = 'stalemate. it\'s a draw'; this.state = 'dead'; this.dead = 0; }
+          return;
+        }
+        if (this.ply > 160) { this.over = true; this.keep = true; this.msg = 'too many moves. draw!'; this.state = 'dead'; this.dead = 0; return; }
+        this.status = chk ? (next === 'w' ? 'CHECK!! save your king' : 'check! nice') : (next === 'w' ? 'your turn!' : 'hmm... thinking');
+        if (chk) { sfx(500, 0.15, 0.06); buzz(20); }
+        if (next === 'b') this.think = 0.55;
+      },
+      doMove(m, who) {
+        const pc = this.pos.b[m.fr][m.fc], cap = this.pos.b[m.tr][m.tc] || (m.ep ? this.pos.b[m.fr][m.tc] : null);
+        const u = make(this.pos, m); this.hist.push({ m, u, who }); this.hint = null; this.last = [m.fr, m.fc, m.tr, m.tc]; this.sel = null; this.moves = [];
+        this.anim = { m, p: m.promo ? pc[0] + m.promo : pc, k: 0, dur: 0.3, cap, who };
+        if (who === 'b' && cap && Math.random() < 0.7) this.bubble = { t: pick(['nom nom', 'gotcha', 'mine now', 'hehe', 'oops sorry', 'bonk']), age: 0, r: m.tr, c: m.tc };
+        else if (who === 'w' && cap && Math.random() < 0.5) this.bubble = { t: pick(['nooo', 'rude!!', 'ow', 'not my ' + NAME[cap[1]], 'hey!']), age: 0, r: m.tr, c: m.tc };
+        if (!cap) sfx(320 + Math.random() * 60, 0.05, 0.04, 'triangle');
+        this.afterMove(who);
+      },
+      land() {
+        const a = this.anim; this.anim = null; const m = a.m, cs = this.cs;
+        const X = this.gx + m.tc * cs + cs / 2, Y = this.gy + m.tr * cs + cs / 2;
+        if (a.cap) {
+          sfx(200, 0.1, 0.07, 'square'); buzz(12);
+          this.poofs.push({ x: X, y: Y, age: 0, word: pick(['POW', 'BONK', 'POOF', 'ZAP', 'WHAM']), seed: (Math.random() * 1e9) | 0 });
+          if (a.who === 'w') { const pts = Math.round(VAL[a.cap[1]] / 100) * 5; this.score += pts; this.saveBest(); this.floats.push({ t: '+' + pts, x: X, y: Y - cs * 0.4, age: 0, c: 'good' }); }
+        } else sfx(260, 0.04, 0.03, 'sine');
+      },
+      bind(cv) {
+        cv.addEventListener('pointerdown', e => {
+          const p = ptrPos(cv, e), bt = this.btnRects().find(b => p[0] >= b.x && p[0] <= b.x + b.w && p[1] >= b.y && p[1] <= b.y + b.h);
+          if (bt && this.state !== 'dead') { if (bt.k[0] === 'l') { this.lvl = +bt.k[1]; sfx(500, 0.05, 0.04, 'sine'); } else if (bt.k === 'hint') this.giveHint(); else this.undo(); return; }
+          if (this.kick()) return; if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.anim) return;
+          const c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs);
+          if (c < 0 || r < 0 || c > 7 || r > 7) { this.sel = null; this.moves = []; return; }
+          const mv = this.moves.find(m => m.tr === r && m.tc === c); if (mv) { this.doMove(mv, 'w'); return; }
+          const pc = this.pos.b[r][c];
+          if (pc && pc[0] === 'w') { this.sel = [r, c]; this.moves = legal(this.pos, 'w').filter(m => m.fr === r && m.fc === c); sfx(420, 0.03, 0.03); if (!this.moves.length) this.status = 'that ' + NAME[pc[1]] + ' is stuck'; }
+          else { this.sel = null; this.moves = []; }
+        });
+      },
+      key(e) {
+        if (e.key === 'u' || e.key === 'U') { this.undo(); return true; }
+        if (e.key === 'h' || e.key === 'H') { this.giveHint(); return true; }
+        if (e.key === ' ' || e.key === 'Enter') { this.kick(); return true; }
+        return false;
+      },
+      tick(dt) {
+        this.t += dt; this.decay(dt);
+        this.poofs.forEach(p => p.age += dt); this.poofs = this.poofs.filter(p => p.age < 0.7);
+        if (this.bubble) { this.bubble.age += dt; if (this.bubble.age > 1.6) this.bubble = null; }
+        if (this.anim) { this.anim.k += dt / this.anim.dur; if (this.anim.k >= 1) this.land(); }
+        if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return;
+        if (this.think > 0 && !this.anim) { this.think -= dt; if (this.think <= 0 && !this.over) { const m = this.aiMove(); if (m) this.doMove(m, 'b'); } }
+      },
+      /* cached art */
+      buildSprites() {
+        const d = this.d || 1, S = Math.ceil(this.cs * d * 1.42), key = S + '';
+        if (this.spriteKey === key && this.sprites) return; this.spriteKey = key; this.sprites = {};
+        'PNBRQK'.split('').forEach((t, ti) => ['w', 'b'].forEach(team => [0, 1].forEach(bl => {
+          const o = document.createElement('canvas'); o.width = S; o.height = S; const x = o.getContext('2d');
+          x.translate(S / 2, S * 0.5); x.scale(S / 1.25, S / 1.25); drawPiece(x, t, team, bl, 1000 + ti * 17 + (team === 'b' ? 5 : 0));
+          this.sprites[team + t + bl] = o;
+        })));
+      },
+      buildBoard() {
+        const d = this.d || 1, W = Math.ceil(this.w * d), H = Math.ceil(this.h * d), key = W + 'x' + H + ':' + this.cs;
+        if (this.boardKey === key && this.boardC) return; this.boardKey = key;
+        const o = document.createElement('canvas'); o.width = W; o.height = H; const c = o.getContext('2d'); c.scale(d, d);
+        const R = mulberry(4242), cs = this.cs, gx = this.gx, gy = this.gy, w = this.w; c.lineCap = 'round'; c.lineJoin = 'round';
+        // margin line
+        c.strokeStyle = 'rgba(226,70,70,.55)'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(12, 0); c.lineTo(12, this.h); c.stroke();
+        // sun doodle
+        const sx = 34, sy = 34; c.strokeStyle = '#e8a21a'; c.lineWidth = 2;
+        for (let i = 0; i < 10; i++) { const a = i / 10 * TAU + 0.2; c.beginPath(); c.moveTo(sx + Math.cos(a) * 15, sy + Math.sin(a) * 15); c.lineTo(sx + Math.cos(a) * (21 + R() * 4), sy + Math.sin(a) * (21 + R() * 4)); c.stroke(); }
+        c.fillStyle = 'rgba(255,214,60,.6)'; c.beginPath(); c.arc(sx, sy, 12, 0, TAU); c.fill(); c.stroke();
+        c.strokeStyle = INK; c.lineWidth = 1.4; c.beginPath(); c.arc(sx - 4, sy - 2, 2, Math.PI, 0); c.moveTo(sx + 6, sy - 2); c.arc(sx + 4, sy - 2, 2, Math.PI, 0); c.stroke();
+        c.beginPath(); c.arc(sx, sy + 2, 5, 0.2 * Math.PI, 0.8 * Math.PI); c.stroke();
+        // little stars + flowers in the margins
+        const star = (x, y, r, col) => { c.strokeStyle = col; c.lineWidth = 1.3; c.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath(); c.stroke(); };
+        star(w - 26, 24, 7, '#e8a21a'); star(w - 50, 40, 5, '#e8a21a'); star(w - 16, 52, 4, '#6b7fe8');
+        const flower = (x, y, col) => { c.strokeStyle = '#4c9a3c'; c.lineWidth = 1.4; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x - 3, y + 10, x, y + 18); c.stroke(); c.strokeStyle = col; for (let i = 0; i < 5; i++) { const a = i / 5 * TAU; c.beginPath(); c.ellipse(x + Math.cos(a) * 4, y + Math.sin(a) * 4, 3.4, 2.2, a, 0, TAU); c.stroke(); } c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(x, y, 2, 0, TAU); c.fill(); };
+        const below = gy + cs * 8 + 8; flower(w - 14, below + 6, '#ff7aa8');
+        // grass tufts on the board edge, like the hand-drawn ones
+        c.strokeStyle = '#5aa845'; c.lineWidth = 1.3; for (let i = 0; i < 6; i++) { const x = gx + cs * 4 + R() * cs * 4, y = gy - 4; c.beginPath(); c.moveTo(x - 3, y); c.lineTo(x - 1, y - 6); c.moveTo(x, y); c.lineTo(x + 1, y - 8); c.moveTo(x + 3, y); c.lineTo(x + 4, y - 5); c.stroke(); }
+        // squares: dark ones colored in with green crayon, light ones left as paper with a few pencil grass flicks
+        for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
+          const X = gx + q * cs, Y = gy + r * cs;
+          c.save(); c.beginPath(); c.rect(X + 1.5, Y + 1.5, cs - 3, cs - 3); c.clip();
+          if ((r + q) % 2) { c.fillStyle = 'rgba(132,196,110,.28)'; c.fillRect(X, Y, cs, cs); hatch(c, R, X, Y, cs, cs, 'rgba(84,160,70,.5)', Math.max(3.5, cs * 0.09), 1.05 + (R() - 0.5) * 0.2, 1.3); }
+          else { c.strokeStyle = 'rgba(90,168,69,.35)'; c.lineWidth = 1; for (let i = 0; i < 2; i++) { const x = X + 6 + R() * (cs - 12), y = Y + 6 + R() * (cs - 12); c.beginPath(); c.moveTo(x, y); c.lineTo(x + 1, y - 4); c.moveTo(x + 3, y); c.lineTo(x + 4, y - 3); c.stroke(); } }
+          c.restore();
+        }
+        // grid lines in pencil, overshooting the corners like real sketching
+        c.strokeStyle = 'rgba(40,40,60,.75)'; c.lineWidth = 1.6;
+        for (let i = 0; i <= 8; i++) {
+          pline(c, R, gx - 6 - R() * 6, gy + i * cs, gx + cs * 8 + 6 + R() * 6, gy + i * cs, 1.6, 2);
+          pline(c, R, gx + i * cs, gy - 6 - R() * 6, gx + i * cs, gy + cs * 8 + 6 + R() * 6, 1.6, 2);
+        }
+        // handwritten ranks and files
+        for (let i = 0; i < 8; i++) {
+          hand(c, String(8 - i), gx - 12, gy + i * cs + cs / 2 + 6, Math.min(20, cs * 0.45), '#c0392b', 'center', (R() - 0.5) * 0.2);
+          hand(c, 'abcdefgh'[i], gx + i * cs + cs / 2, gy + cs * 8 + 19, Math.min(18, cs * 0.4), PENCIL, 'center', (R() - 0.5) * 0.2);
+        }
+        this.boardC = o;
+      },
+      sqCenter(r, q) { return [this.gx + q * this.cs + this.cs / 2, this.gy + r * this.cs + this.cs / 2]; },
+      drawSprite(c, key, x, y, sc, sy) {
+        const s = this.sprites[key]; if (!s) return; const S = this.cs * 1.42 * sc;
+        c.save(); c.translate(x, y + S * 0.34 - S * 0.34 * (sy || 1)); c.scale(1, sy || 1); c.drawImage(s, -S / 2, -S / 2, S, S); c.restore();
+      },
+      drawCaptured(c, list, x, y, team) {
+        const sz = Math.min(26, this.cs * 0.6); list.sort((a, b) => VAL[b[1]] - VAL[a[1]]);
+        list.forEach((p, i) => { const s = this.sprites[team + p[1] + '1']; if (s) { c.globalAlpha = 0.8; c.drawImage(s, x + i * sz * 0.62, y - sz / 2, sz, sz); c.globalAlpha = 1; } });
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h, cs = this.cs, gx = this.gx, gy = this.gy, t = this.t;
+        this.buildSprites(); this.buildBoard();
+        c.save(); if (this.shake) c.translate((Math.random() - 0.5) * this.shake * 10, (Math.random() - 0.5) * this.shake * 10);
+        c.drawImage(this.boardC, 0, 0, w, h);
+        // header
+        hand(c, 'Doodle Chess', w / 2, 40, 34, INK, 'center', -0.03);
+        const R0 = mulberry(77); c.strokeStyle = '#e2362b'; c.lineWidth = 2.2; c.lineCap = 'round'; pline(c, R0, w / 2 - 74, 48, w / 2 + 76, 46, 2.2, 1);
+        hand(c, 'score ' + this.score + (this.best ? '  ·  best ' + this.best : ''), 22, 72, 17, PENCIL, 'left');
+        hand(c, this.status, w - 16, 72, 19, this.status.indexOf('CHECK') >= 0 ? '#e2362b' : INK, 'right', 0.02);
+        // captured doodles: orange crew's catch above the board, yours below
+        this.drawCaptured(c, this.capturedBy('b'), gx, gy - 24, 'w');
+        this.drawCaptured(c, this.capturedBy('w'), gx, gy + cs * 8 + 34, 'b');
+        // highlights in marker / highlighter style
+        const hl = (r, q, col, inset) => { const X = gx + q * cs, Y = gy + r * cs, R = mulberry(r * 8 + q + 9); c.save(); c.fillStyle = col; c.beginPath(); c.moveTo(X + inset + R() * 3, Y + inset); c.lineTo(X + cs - inset, Y + inset + R() * 3); c.lineTo(X + cs - inset - R() * 3, Y + cs - inset); c.lineTo(X + inset, Y + cs - inset - R() * 3); c.closePath(); c.fill(); c.restore(); };
+        if (this.last) { hl(this.last[0], this.last[1], 'rgba(255,230,60,.38)', 3); hl(this.last[2], this.last[3], 'rgba(255,230,60,.5)', 3); }
+        if (this.sel) hl(this.sel[0], this.sel[1], 'rgba(120,220,255,.55)', 2);
+        const kc = this.pos && inCheck(this.pos, this.pos.turn) ? findK(this.pos, this.pos.turn) : null;
+        if (kc) { const [X, Y] = this.sqCenter(kc[0], kc[1]), R = mulberry(5 + ((t * 8) | 0)); c.strokeStyle = 'rgba(226,54,43,.9)'; c.lineWidth = 2.6; for (let k = 0; k < 2; k++) { c.beginPath(); for (let i = 0; i <= 18; i++) { const a = i / 18 * TAU * 1.08, rr = cs * 0.5 + (R() - 0.5) * 4; c.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr); } c.stroke(); } hand(c, '!!', X + cs * 0.42, Y - cs * 0.3, cs * 0.45, '#e2362b', 'center', 0.2); }
+        // pieces
+        const a = this.anim;
+        for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
+          const p = this.pos.b[r][q]; if (!p) continue; if (a && a.m.tr === r && a.m.tc === q) continue;
+          const [X, Y] = this.sqCenter(r, q), ph = r * 1.7 + q * 2.3, bl = ((t * 0.9 + ph * 0.37) % 4.2) < 0.13 ? 1 : 0;
+          const sel = this.sel && this.sel[0] === r && this.sel[1] === q, bob = sel ? 1 + 0.07 * Math.sin(t * 9) : 1 + 0.025 * Math.sin(t * 2.2 + ph);
+          this.drawSprite(c, p[0] + p[1] + bl, X, Y - (sel ? cs * 0.08 : 0), 1, bob);
+        }
+        // captured piece shown fading under the landing one, then the mover hopping along
+        if (a) {
+          const [x0, y0] = this.sqCenter(a.m.fr, a.m.fc), [x1, y1] = this.sqCenter(a.m.tr, a.m.tc), k = Math.min(1, a.k), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+          if (a.cap) { const cr = a.m.ep ? a.m.fr : a.m.tr, cq = a.m.tc, [cx, cy] = this.sqCenter(cr, cq); c.globalAlpha = 1 - k * 0.5; this.drawSprite(c, a.cap[0] + a.cap[1] + '0', cx, cy, 1, 1 - k * 0.15); c.globalAlpha = 1; }
+          const hop = Math.sin(Math.PI * k) * cs * (a.p[1] === 'N' ? 0.7 : 0.35);
+          this.drawSprite(c, a.p[0] + a.p[1] + '0', x0 + (x1 - x0) * e, y0 + (y1 - y0) * e - hop, 1, 1 + Math.sin(Math.PI * k) * 0.08);
+        }
+        // legal move marks: pencil dots, red scribble rings on things you can take
+        this.moves.forEach(m => {
+          const [X, Y] = this.sqCenter(m.tr, m.tc), R = mulberry(m.tr * 9 + m.tc);
+          if (this.pos.b[m.tr][m.tc] || m.ep) { c.strokeStyle = 'rgba(226,54,43,.85)'; c.lineWidth = 2.4; c.beginPath(); for (let i = 0; i <= 16; i++) { const an = i / 16 * TAU * 1.1 + 0.4, rr = cs * 0.46 + (R() - 0.5) * 3; c.lineTo(X + Math.cos(an) * rr, Y + Math.sin(an) * rr); } c.stroke(); }
+          else { c.fillStyle = 'rgba(39,35,77,.5)'; c.beginPath(); c.arc(X + (R() - 0.5) * 2, Y + (R() - 0.5) * 2, cs * 0.11, 0, TAU); c.fill(); }
+        });
+        if (this.hint) { const m = this.hint, [x0, y0] = this.sqCenter(m.fr, m.fc), [x1, y1] = this.sqCenter(m.tr, m.tc), R = mulberry(31); c.strokeStyle = 'rgba(30,140,255,.85)'; c.lineWidth = 3; c.lineCap = 'round'; pline(c, R, x0, y0, x1, y1, 2, 1); const an = Math.atan2(y1 - y0, x1 - x0); c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1 - Math.cos(an - 0.5) * 12, y1 - Math.sin(an - 0.5) * 12); c.moveTo(x1, y1); c.lineTo(x1 - Math.cos(an + 0.5) * 12, y1 - Math.sin(an + 0.5) * 12); c.stroke(); }
+        // poofs
+        this.poofs.forEach(p => {
+          const R = mulberry(p.seed), k = p.age / 0.7; c.save(); c.globalAlpha = 1 - k; c.strokeStyle = INK; c.lineWidth = 2;
+          for (let i = 0; i < 7; i++) { const an = i / 7 * TAU + R(), d = cs * (0.25 + k * 0.6), rr = cs * (0.12 + R() * 0.08) * (1 - k * 0.3); c.beginPath(); c.arc(p.x + Math.cos(an) * d, p.y + Math.sin(an) * d, rr, 0, TAU); c.stroke(); }
+          hand(c, p.word, p.x, p.y - cs * 0.5 - k * 16, cs * 0.55, '#e2362b', 'center', (R() - 0.5) * 0.4); c.restore();
+        });
+        // speech bubble from whoever just got bonked
+        if (this.bubble) {
+          const b = this.bubble, [X, Y] = this.sqCenter(b.r, b.c), bx = clamp(X, 60, w - 60), by = Math.max(54, Y - cs * 0.95), k = Math.min(1, b.age * 6);
+          c.save(); c.globalAlpha = b.age > 1.3 ? (1.6 - b.age) / 0.3 : 1; c.translate(bx, by); c.scale(k, k);
+          c.font = '700 18px ' + HAND; const tw = c.measureText(b.t).width + 22;
+          c.fillStyle = '#fffef6'; c.strokeStyle = INK; c.lineWidth = 1.8; c.beginPath(); c.ellipse(0, 0, tw / 2, 16, 0, 0, TAU); c.fill(); c.stroke();
+          c.beginPath(); c.moveTo(-6, 14); c.lineTo(X - bx, Y - cs * 0.45 - by); c.lineTo(6, 15); c.fill(); c.stroke();
+          c.fillStyle = '#fffef6'; c.fillRect(-7, 10, 14, 5); hand(c, b.t, 0, 6, 18, INK, 'center'); c.restore();
+        }
+        // buttons drawn like boxes in the margin
+        this.btnRects().forEach((b, i) => {
+          const on = b.k[0] === 'l' && +b.k[1] === this.lvl, R = mulberry(300 + i);
+          if (on) { c.fillStyle = 'rgba(255,230,60,.6)'; c.fillRect(b.x + 3, b.y + 4, b.w - 6, b.h - 7); }
+          c.strokeStyle = INK; c.lineWidth = on ? 2.2 : 1.5; c.lineCap = 'round'; wbox(c, R, b.x, b.y, b.w, b.h, 1.6);
+          hand(c, b.t, b.x + b.w / 2, b.y + 21, 19, INK, 'center');
+        });
+        // floating score
+        this.floats.forEach(f => hand(c, f.t, f.x, f.y - f.age * 30, 22, '#2b9a4a', 'center'));
+        c.restore();
+        if (this.flash) { c.fillStyle = 'rgba(226,54,43,' + this.flash * 0.35 + ')'; c.fillRect(0, 0, w, h); }
+        // sticky note for start / game over
+        if (this.state !== 'run') {
+          c.fillStyle = 'rgba(255,253,245,.45)'; c.fillRect(0, 0, w, h);
+          const nw = Math.min(270, w - 40), nh = 170, nx = w / 2, ny = gy + cs * 4;
+          c.save(); c.translate(nx, ny); c.rotate(-0.035);
+          c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(-nw / 2 + 5, -nh / 2 + 7, nw, nh);
+          c.fillStyle = '#fff3a0'; c.fillRect(-nw / 2, -nh / 2, nw, nh);
+          c.fillStyle = 'rgba(255,255,255,.5)'; c.save(); c.rotate(0.05); c.fillRect(-36, -nh / 2 - 10, 72, 20); c.restore();
+          if (this.state === 'ready') {
+            hand(c, 'Doodle Chess', 0, -nh / 2 + 42, 32, INK, 'center');
+            hand(c, 'you\'re the blue crew', 0, -nh / 2 + 76, 20, '#4152b8', 'center');
+            hand(c, 'tap a doodle, then where it goes', 0, -nh / 2 + 102, 18, PENCIL, 'center');
+            hand(c, 'tap to start', 0, -nh / 2 + 140, 24, '#e2362b', 'center');
+          } else {
+            const win = this.msg.indexOf('you win') >= 0;
+            hand(c, this.msg, 0, -nh / 2 + 52, this.msg.length > 22 ? 22 : 27, win ? '#2b9a4a' : INK, 'center');
+            hand(c, 'score ' + this.score + '   best ' + this.best, 0, -nh / 2 + 92, 20, PENCIL, 'center');
+            if (this.dead > 0.6) hand(c, 'tap for a new page', 0, -nh / 2 + 138, 23, '#e2362b', 'center');
+          }
+          c.restore();
+        }
+      }
+    }, MIX);
+  }
+  skin('doodlepad', {
+    bg: ['#fffdf5', '#fbf6e6'], pat: 'grid', patc: 'rgba(80,120,200,.12)', fg: '#27234d', dim: '#6c6a86', panel: '#fffef8', pfg: '#27234d',
+    line: '#27234d', lw: 2, r: 4, sketch: true, pal: ['#6b7fe8', '#f28a3d', '#84c46e', '#ffd23f'], good: '#2b9a4a', bad: '#e2362b',
+    font: '"Caveat","Comic Sans MS",cursive', fw: 700, fs: 1.3, mono: '"Caveat","Comic Sans MS",cursive', mw: 700, ms: 1.2,
+    veil: 'rgba(255,253,245,.8)', vfg: '#27234d',
+    slide: '#9fd18b', sbgc: '#9fd18b', sfg: '#1f3b17', sdim: '#3d6330', stag: '#3b4fc4', tsize: 32, tfw: 700, tls: '0',
+    frame: 'border:8px solid #fffdf5;border-radius:4px;box-shadow:0 0 0 2px #27234d,0 10px 22px rgba(30,50,20,.35)'
+  });
+  NEW_SLIDES.push(mk(makeDoodleChess(SKINS.doodlepad), 'Doodle Chess', SKINS.doodlepad, 'Chess drawn in my notebook. Every piece is a little doodle guy: blob pawns, tower rooks, pony knights, wizard bishops, a spiky queen and a king with a mustache. Easy, medium and hard.', '#chess #doodle #handdrawn #notebook', 9.4e9, 2.6e9, 1.3e9, 'doodlechess'));
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
   const PACKS = [
