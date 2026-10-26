@@ -14031,7 +14031,7 @@ function engine(){
   /* ===== search ===== */
   (function () {
     const st = document.createElement('style');
-    st.textContent = '#sbtn{position:relative;flex:none;margin-left:auto;margin-right:8px;z-index:30;width:30px;height:30px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--hdc,#fff);color:var(--hdi,#111);cursor:pointer;pointer-events:auto;padding:0}#sbtn svg{width:16px;height:16px}' +
+    st.textContent = '#sbtn{position:relative;flex:none;margin-left:auto;margin-right:8px;z-index:30;width:30px;height:30px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--hdc,#fff);color:var(--hdi,#111);transition:background-color .3s,color .3s;cursor:pointer;pointer-events:auto;padding:0}#sbtn svg{width:16px;height:16px}' +
       '#sov{position:absolute;inset:0;z-index:60;background:rgba(10,10,14,.92);backdrop-filter:blur(10px);display:none;flex-direction:column;padding:calc(16px + var(--sat,0px)) 16px var(--sab,0px);color:#fff}#sov.on{display:flex}' +
       '#sov .sr{display:flex;gap:8px;align-items:center}#sin{flex:1;min-width:0;height:42px;border-radius:21px;border:2px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font:500 16px system-ui,sans-serif;padding:0 16px;outline:none}#sin:focus{border-color:#fff}' +
       '#sx{border:0;background:none;color:#fff;font:600 14px system-ui,sans-serif;padding:8px;cursor:pointer}#sl{flex:1;overflow:auto;margin:12px -16px 0;padding:0 16px 24px}' +
