@@ -4725,19 +4725,31 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
   /* ===== stage 5b: rocks, river hop, fishing, encore, order up ===== */
 
   function makeRocks(sk) {
+    // The game runs in a "virtual" field. On big screens (desktop fullscreen) the camera zooms in so the
+    // field stays about phone-sized: ship, rocks and speeds scale up together instead of the ship crawling
+    // across an empty monitor. On phones z stays 1, so nothing changes there.
+    const REF = 430;
     return Object.assign({
       sk, hold: true, title: 'Space Rocks', how: 'Drag to fly. Your ship auto-fires at the nearest rock. Rocks split when shot.',
-      state: 'ready', score: 0, best: 0, lives: 3, dead: 0, shake: 0, flash: 0, floats: [], ship: null, rocks: [], bl: [], tx: 0, ty: 0, cd: 0, inv: 0, wave: 1, t: 0, parts: [],
-      layout() {},
-      spawn(n) { for (let i = 0; i < n; i++) { const a = rand(0, TAU), d = Math.max(this.w, this.h) * 0.6; this.rocks.push(this.rock(this.w / 2 + Math.cos(a) * d * 0.7, this.h / 2 + Math.sin(a) * d * 0.7, 34, a + Math.PI + rand(-0.5, 0.5))); } },
+      state: 'ready', score: 0, best: 0, lives: 3, dead: 0, shake: 0, flash: 0, floats: [], ship: null, rocks: [], bl: [], tx: 0, ty: 0, cd: 0, inv: 0, wave: 1, t: 0, parts: [], z: 1, vw: 0, vh: 0,
+      geo() {
+        const z = Math.max(1, Math.min(this.w, this.h) / REF), vw = this.w / z, vh = this.h / z;
+        if (this.vw && (Math.abs(vw - this.vw) > 0.5 || Math.abs(vh - this.vh) > 0.5)) {
+          const kx = vw / this.vw, ky = vh / this.vh, sc = o => { o.x *= kx; o.y *= ky; };
+          if (this.ship) sc(this.ship); this.rocks.forEach(sc); this.bl.forEach(sc); this.parts.forEach(sc); this.floats.forEach(sc); this.tx *= kx; this.ty *= ky;
+        }
+        this.z = z; this.vw = vw; this.vh = vh;
+      },
+      layout() { this.geo(); },
+      spawn(n) { const W = this.vw, H = this.vh; for (let i = 0; i < n; i++) { const a = rand(0, TAU), d = Math.max(W, H) * 0.6; this.rocks.push(this.rock(W / 2 + Math.cos(a) * d * 0.7, H / 2 + Math.sin(a) * d * 0.7, 34, a + Math.PI + rand(-0.5, 0.5))); } },
       rock(x, y, r, a) { const n = 9, sp = rand(30, 70) * (1 + this.wave * 0.06), vs = []; for (let i = 0; i < n; i++) vs.push(rand(0.75, 1.15)); return { x, y, r, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: rand(0, TAU), vr: rand(-1, 1), vs }; },
-      reset() { this.ship = { x: this.w / 2, y: this.h / 2, a: -Math.PI / 2 }; this.tx = this.w / 2; this.ty = this.h / 2; this.rocks = []; this.bl = []; this.parts = []; this.score = 0; this.lives = 3; this.wave = 1; this.cd = 0; this.inv = 1.5; this.floats = []; this.spawn(4); this.state = 'ready'; },
+      reset() { this.vw = 0; this.geo(); const W = this.vw, H = this.vh; this.ship = { x: W / 2, y: H / 2, a: -Math.PI / 2 }; this.tx = W / 2; this.ty = H / 2; this.rocks = []; this.bl = []; this.parts = []; this.score = 0; this.lives = 3; this.wave = 1; this.cd = 0; this.inv = 1.5; this.floats = []; this.spawn(4); this.state = 'ready'; },
       enter() { this.reset(); },
-      bind(cv) { const mv = e => { const p = ptrPos(cv, e); this.tx = p[0]; this.ty = p[1]; }; cv.addEventListener('pointerdown', e => { if (this.kick()) return; mv(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', mv); },
+      bind(cv) { const mv = e => { const p = ptrPos(cv, e); this.tx = p[0] / this.z; this.ty = p[1] / this.z; }; cv.addEventListener('pointerdown', e => { if (this.kick()) return; mv(e); try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', mv); },
       key(e) { if (this.state !== 'run') return false; const s = this.ship, st = 40; if (e.type !== 'keydown') return false; if (e.code === 'ArrowLeft') this.tx = s.x - st * 3; else if (e.code === 'ArrowRight') this.tx = s.x + st * 3; else if (e.code === 'ArrowUp') this.ty = s.y - st * 3; else if (e.code === 'ArrowDown') this.ty = s.y + st * 3; else return false; return true; },
       burst(x, y, n, col) { for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(40, 160); this.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: rand(0.3, 0.7), c: col }); } },
       tick(dt) {
-        this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.t += dt; const s = this.ship, w = this.w, h = this.h;
+        this.geo(); this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; this.t += dt; const s = this.ship, w = this.vw, h = this.vh;
         const dx = this.tx - s.x, dy = this.ty - s.y, d = Math.hypot(dx, dy); if (d > 6) { const sp = Math.min(d * 6, 260); s.x += dx / d * sp * dt; s.y += dy / d * sp * dt; }
         s.x = clamp(s.x, 12, w - 12); s.y = clamp(s.y, 12, h - 12); this.inv = Math.max(0, this.inv - dt);
         let near = null, nd = 1e9; this.rocks.forEach(r => { const q = Math.hypot(r.x - s.x, r.y - s.y); if (q < nd) { nd = q; near = r; } });
@@ -4752,13 +4764,18 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
         if (!this.rocks.length && this.state === 'run') { this.wave++; this.score += 100; this.floats.push({ t: 'Wave ' + this.wave, x: w / 2, y: h / 2, age: 0, c: 'good' }); this.spawn(3 + this.wave); JING('coin'); }
       },
       draw() {
-        const c = this.ctx, w = this.w, h = this.h, sk = SK, s = this.ship; drawBg(c, w, h);
-        c.fillStyle = 'rgba(255,255,255,.55)'; for (let i = 0; i < 40; i++) c.fillRect((i * 97) % w, (i * 53 + this.t * 6 * (1 + i % 3)) % h, 1.5, 1.5);
+        this.geo(); const c = this.ctx, W = this.w, sk = SK, s = this.ship, z = this.z, w = this.vw, h = this.vh; drawBg(c, W, this.h);
+        c.save(); c.scale(z, z);
+        const ns = Math.round(40 * Math.max(1, (w * h) / (REF * 640))); c.fillStyle = 'rgba(255,255,255,.55)'; for (let i = 0; i < ns; i++) c.fillRect((i * 97) % w, (i * 53 + this.t * 6 * (1 + i % 3)) % h, 1.5, 1.5);
         c.lineWidth = 2.5; c.lineJoin = 'round'; this.rocks.forEach(r => { c.strokeStyle = sk.fg; c.fillStyle = 'rgba(255,255,255,.07)'; c.beginPath(); r.vs.forEach((v, i) => { const a = r.rot + i / r.vs.length * TAU, x = r.x + Math.cos(a) * r.r * v, y = r.y + Math.sin(a) * r.r * v; i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.closePath(); c.fill(); c.stroke(); });
         this.bl.forEach(b => dot(c, b.x, b.y, 3, sk.pal[1], { lw: 0 })); this.parts.forEach(p => { c.globalAlpha = clamp(p.life * 2, 0, 1); dot(c, p.x, p.y, 2.5, p.c, { lw: 0 }); c.globalAlpha = 1; });
         if (this.state !== 'dead' && (this.inv <= 0 || Math.floor(this.inv * 10) % 2)) { c.save(); c.translate(s.x, s.y); c.rotate(s.a); c.fillStyle = sk.pal[0]; c.strokeStyle = sk.fg; c.lineWidth = 2; c.beginPath(); c.moveTo(14, 0); c.lineTo(-10, -9); c.lineTo(-5, 0); c.lineTo(-10, 9); c.closePath(); c.fill(); c.stroke(); c.restore(); }
-        txt(c, String(this.score), 16, 26, 26, sk.fg, 'left'); txt(c, 'WAVE ' + this.wave, w - 14, 22, 12, sk.dim, 'right', MONO); for (let i = 0; i < this.lives; i++) { c.fillStyle = sk.pal[0]; c.beginPath(); c.moveTo(w - 14 - i * 18, 34); c.lineTo(w - 24 - i * 18, 52); c.lineTo(w - 4 - i * 18, 52); c.fill(); }
-        drawFloats(c, this); flashFx(c, this); endVeil(this);
+        drawFloats(c, this); c.restore();
+        // HUD in screen space, scaled up a bit less than the world so it stays tidy in the corners
+        const u = Math.min(z, 1.8); c.save(); c.scale(u, u); const hw = W / u;
+        txt(c, String(this.score), 16, 26, 26, sk.fg, 'left'); txt(c, 'WAVE ' + this.wave, hw - 14, 22, 12, sk.dim, 'right', MONO); for (let i = 0; i < this.lives; i++) { c.fillStyle = sk.pal[0]; c.beginPath(); c.moveTo(hw - 14 - i * 18, 34); c.lineTo(hw - 24 - i * 18, 52); c.lineTo(hw - 4 - i * 18, 52); c.fill(); }
+        c.restore();
+        flashFx(c, this); endVeil(this);
       }
     }, MIX);
   }
