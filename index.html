@@ -1482,7 +1482,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     doodlechess: ['the little mustache king is so cute', 'the horse doodle hopping over everything lmao', 'got bonked by an orange blob', 'this looks like my math notebook in 6th grade', 'the pieces blink im obsessed', 'beat it on medium after like 6 tries', 'hard mode is not playing around', 'POW when you take a piece is so satisfying', 'who drew these they are adorable', 'the spiky queen carried my whole game', 'it said nom nom when it took my queen i am crying', 'erase button saved me so many times', 'graph paper chess is a vibe', 'i keep forgetting the wizard moves diagonal'],
     crownrush: ['hoodie greg just walks past everything like he has a meeting at the tower', 'lag spike + galaxy bomb is so dirty', 'the pigeons are actually broken', 'lost to a bot named kayla.mp4 im deleting the app', 'interns cost 2 and still carry', 'server rack on defense saves me every time', 'my deck is all flying stuff and nobody can stop it', 'the doggo says WOOF when it bites lmao', '3 crowned the bot in overtime lets gooo', 'reply guys shooting little text bubbles is too accurate', 'who else just spams skater kid', 'the elixir bar going 2x at the end gets me every time', 'mall cop with the flashlight is my favorite', 'coffee thrower is lowkey the best card'],
     lawn: ['paper io but with lawn mowers lol', 'got boxed in by my own greed', 'the bots hunt your trail so mean', 'hit the fence again 😭', 'i got to 31% and a purple guy cut me', 'swipe controls are so smooth', 'why is it so satisfying to close a loop', 'dont leave your tail out too long', 'my lawn my rules', 'ran out of room and mowed myself', 'i own the neighborhood now', 'the stripes on the grass are a nice touch'],
-    kart: ['this feels like the old snes kart games', 'the paper ball sniped me right before the finish 😭', 'mini turbo on every corner is the move', 'drove straight into the lake twice', 'tasha is cracked at this game', 'got 1st on my 4th try', 'the puddles are so annoying lol', 'who put trees there', 'coins actually make you faster??', 'the countdown music hits', 'dave rammed me off the track', 'need more tracks pls'],
+    kart: ['this feels like the old snes kart games', 'the paper ball sniped me right before the finish 😭', 'mini turbo on every corner is the move', 'drove straight into the lake twice', 'tasha is cracked at this game', 'got 1st on my 4th try', 'the oil slicks are so annoying lol', 'who put trees there', 'coins actually make you faster??', 'the countdown music hits', 'dave rammed me off the track', 'need more tracks pls'],
     drop: ['called an airstrike on myself again', 'the reinforce code is burned into my brain', 'orbital laser deleted the whole bug breach', 'chargers from the back only', 'extraction with 2 seconds left', 'the sentry carried me', 'cinderfall bots are no joke', 'accidentals: 4 lol', 'resupply pod landed on my head', 'for democracy'],
     deep: ['first night the zombies got me instantly', 'found a life crystal in a cave', 'the torch lighting underground is so good', 'built a house out of planks', 'iron pickaxe changes everything', 'the watcher dashes so fast', 'chopping trees is weirdly satisfying', 'gold is so deep down', 'eyes keep dropping lenses for me', 'my world has the coolest cave'],
     hollow: ['the guardian hits so hard', 'pogoing off the spikes feels so good', 'the lantern glow in the dark is beautiful', 'lost all my geo and then got it back from my shade', 'mossgrave is my favourite area', 'phase two with the falling rocks is insane', 'focusing to heal mid fight is clutch', 'the pixel art is so clean', 'that acid pit got me 5 times', 'finally beat the guardian with 1 mask left'],
@@ -13778,13 +13778,21 @@ function engine(){
       x.fillStyle = '#ffffff'; x.font = 'bold 11px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('?', 8, 9);
       return cv;
     };
-    const ballSprite = () => { const cv = mkCv(12, 12), x = cv.getContext('2d'); x.fillStyle = '#d9d9de'; x.beginPath(); x.arc(6, 6, 6, 0, TAU); x.fill(); x.fillStyle = '#f7f7fa'; x.beginPath(); x.arc(5, 5, 4.5, 0, TAU); x.fill(); x.strokeStyle = '#9a9aa6'; x.lineWidth = 1; x.beginPath(); x.moveTo(2, 7); x.lineTo(6, 4); x.lineTo(9, 8); x.moveTo(4, 9); x.lineTo(8, 6); x.stroke(); return cv; };
+    /* --- pixel-art items: each one shows what it does --- */
+    const pix = (rows, pal) => { const cv = mkCv(rows[0].length, rows.length), x = cv.getContext('2d'); rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) { const col = pal[r[i]]; if (col) { x.fillStyle = col; x.fillRect(i, j, 1, 1); } } }); return cv; };
+    const ROCKET = ['................', '................', '....kkk.........', '....krRk........', '....krrRkkkkk...', '..o.kkpppppppkk.', '.oyOkrrrrkkrrrrk', 'oyyykrrrkbbkrrrk', 'oyyykrrrkbbkrrrk', '.oyOkrrrrkkrrrrk', '..o.kkRRRRRRRkk.', '....krrRkkkkk...', '....krRk........', '....kkk.........', '................', '................'];
+    const PAPER = ['................', '................', '................', '........kkkk....', '......kkwwwgk...', '.....kwwgwwwwk..', 'ss..kwwwwgwgwwk.', '....kwgwwwwwgwk.', 'sss.kwwwgwwwwgk.', '....kgwwwwgwwwk.', 'ss..kwwgwwwwgwk.', '.....kwwwgwwgk..', '......kkgwwwk...', '........kkkk....', '................', '................'];
+    const OIL = ['................', '................', '................', '....kkkkkk......', '..kkKKKKKKkk....', '.kKKKKmKKKKKk...', 'kKKcKKKKKKKKKk..', 'kKKKKKKKKKKKKKk.', 'kKKKKKKKKKKmKKk.', '.kKKKKKKKKKKKKk.', '.kKKmKKKKKKKKk..', '..kKKKKKKKKKk...', '...kkKKKKKkk....', '.....kkkkk......', '................', '................'];
+    const IPAL = { k: '#14121c', r: '#e8343f', R: '#9a1f28', p: '#ff8a96', b: '#39d0ff', y: '#ffe14d', o: '#ff8a1e', O: '#ff4f1f', w: '#ffffff', g: '#9aa0aa', s: '#7fe0ff', K: '#2a2633', m: '#c46cff', c: '#3ad1d1' };
+    const oilSprite = () => { const cv = pix(OIL, IPAL), x = cv.getContext('2d'); x.fillStyle = '#e6e6f2'; for (let t = 0.6; t < 11; t += 0.22) { const r = t * 0.52; x.fillRect(Math.round(7.5 + Math.cos(t) * r), Math.round(8.2 + Math.sin(t) * r * 0.62), 1, 1); } return cv; };
+    const ballSprite = () => pix(PAPER.map(r => r.replace(/s/g, '.')), IPAL);
+    const ITEMS = { boost: ['TURBO ROCKET', 'speed boost'], ball: ['PAPER BALL', 'throw it ahead'], puddle: ['OIL SLICK', 'drop it behind'] };
 
     return Object.assign({
       sk, hold: true, noVeil: true, title: 'Hoodie Kart', how: 'Steer and grab items. Hold a hard turn to charge a mini-turbo.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], t: 0, keys: {}, touches: null, karts: [], boxes: [], coins: [], haz: [], trees: [],
       ensure() {
-        if (!this.KS) { this.KS = CREW.map(c => { const a = []; for (let i = 0; i < 16; i++) a.push(kartSprite(c, i / 16 * TAU)); return a; }); this.CB = { coin: coinSprite(), box: boxSprite(), ball: ballSprite() }; }
+        if (!this.KS) { this.KS = CREW.map(c => { const a = []; for (let i = 0; i < 16; i++) a.push(kartSprite(c, i / 16 * TAU)); return a; }); this.CB = { coin: coinSprite(), box: boxSprite(), ball: ballSprite(), oil: oilSprite() }; this.IC = { boost: pix(ROCKET, IPAL), ball: pix(PAPER, IPAL), puddle: oilSprite() }; }
         if (!TR.tex) this.buildTrack();
         this.tex = TR.tex; this.surf = TR.surf; this.trees = TR.trees; this.mini = TR.mini;
         this.SPR = { k: this.KS, coin: this.CB.coin, box: this.CB.box, ball: this.CB.ball, tree: TR.spr.tree, bush: TR.spr.bush, tw: TR.spr.tw, bw: TR.spr.bw };
@@ -14057,8 +14065,8 @@ function engine(){
           if (it.f === 't') { const arr = o.b ? S.bush : S.tree, im = arr[o.v % arr.length], dw = (o.b ? S.bw : S.tw) * s, dh = dw * im.height / im.width; bx.fillStyle = 'rgba(0,0,0,.18)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.4, dw * 0.12, 0, 0, TAU); bx.fill(); bx.drawImage(im, p.sx - dw / 2, p.sy - dh, dw, dh); }
           else if (it.f === 'c') { const dw = 9 * s * Math.max(0.15, Math.abs(Math.cos(this.t * 4 + o.x))); bx.drawImage(S.coin, p.sx - dw / 2, p.sy - 13 * s, dw, 9 * s); }
           else if (it.f === 'b') { const dw = 14 * s, bob = Math.sin(this.t * 3 + o.x) * 1.5 * s; bx.fillStyle = 'rgba(0,0,0,.2)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.45, dw * 0.15, 0, 0, TAU); bx.fill(); bx.drawImage(S.box, p.sx - dw / 2, p.sy - 20 * s + bob, dw, dw); }
-          else if (it.f === 'puddle') { bx.fillStyle = '#6b4a2b'; bx.beginPath(); bx.ellipse(p.sx, p.sy, 12 * s, 3.6 * s, 0, 0, TAU); bx.fill(); bx.fillStyle = '#8a6440'; bx.beginPath(); bx.ellipse(p.sx - 2 * s, p.sy - 0.6 * s, 6 * s, 1.6 * s, 0, 0, TAU); bx.fill(); }
-          else if (it.f === 'ball') { const dw = 9 * s; bx.drawImage(S.ball, p.sx - dw / 2, p.sy - dw - 2 * s, dw, dw); }
+          else if (it.f === 'puddle') { const dw = 26 * s; bx.drawImage(this.CB.oil, p.sx - dw / 2, p.sy - dw * 0.18, dw, dw * 0.36); }
+          else if (it.f === 'ball') { const dw = 12 * s; bx.save(); bx.translate(p.sx, p.sy - dw * 0.5 - 2 * s); bx.rotate(this.t * 12); bx.drawImage(S.ball, -dw / 2, -dw / 2, dw, dw); bx.restore(); }
           else if (it.f === 'k') {
             const bear = Math.atan2(o.y - this.camy, o.x - this.camx), th = wrapA(o.a + o.spinA - bear), idx = ((Math.round(th / TAU * 16) % 16) + 16) % 16;
             const im = S.k[o.i][idx], dw = KW * s, dh = dw * im.height / im.width; let yy = p.sy - dh * (31 / 34), al = 1;
@@ -14091,13 +14099,7 @@ function engine(){
         c.font = '400 ' + size + 'px ' + sk.font; c.textAlign = al || 'left'; c.textBaseline = 'middle'; c.lineJoin = 'round';
         c.lineWidth = Math.max(3, size / 5); c.strokeStyle = stroke || '#14143a'; c.strokeText(s, x, y); c.fillStyle = fill; c.fillText(s, x, y);
       },
-      icon(c, it, x, y, s) {
-        c.save(); c.translate(x, y); c.scale(s / 40, s / 40);
-        if (it === 'boost') { c.fillStyle = '#2b2b33'; rr(c, -11, -17, 22, 34, 5); c.fill(); c.fillStyle = '#39d0ff'; rr(c, -9, -12, 18, 24, 3); c.fill(); c.fillStyle = '#ffe14d'; c.beginPath(); c.moveTo(2, -10); c.lineTo(-6, 2); c.lineTo(0, 2); c.lineTo(-3, 11); c.lineTo(6, -2); c.lineTo(0, -2); c.closePath(); c.fill(); c.fillStyle = '#c9ced8'; c.fillRect(-8, -19, 16, 4); }
-        else if (it === 'puddle') { c.fillStyle = '#6b4a2b'; c.beginPath(); for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = i & 1 ? 11 : 16; c.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.75); } c.closePath(); c.fill(); c.fillStyle = '#9a7048'; c.beginPath(); c.ellipse(-4, -3, 5, 3, 0, 0, TAU); c.fill(); }
-        else if (it === 'ball') { c.fillStyle = '#d9d9de'; c.beginPath(); c.arc(0, 0, 15, 0, TAU); c.fill(); c.fillStyle = '#f7f7fa'; c.beginPath(); c.arc(-2, -2, 12, 0, TAU); c.fill(); c.strokeStyle = '#8a8a96'; c.lineWidth = 2; c.beginPath(); c.moveTo(-10, 4); c.lineTo(-2, -6); c.lineTo(6, 2); c.lineTo(11, -4); c.moveTo(-6, 9); c.lineTo(3, 5); c.stroke(); }
-        c.restore();
-      },
+      icon(c, it, x, y, s) { const im = this.IC && this.IC[it]; if (!im) return; c.imageSmoothingEnabled = false; c.drawImage(im, Math.round(x - s / 2), Math.round(y - s / 2), Math.round(s), Math.round(s)); c.imageSmoothingEnabled = true; },
       hud(c, w, h) {
         const me = this.me, big = clamp(Math.min(w, h) / 9, 30, 64), sm = clamp(big * 0.36, 12, 22), fmt = t => { t = Math.max(0, t); const m = Math.floor(t / 60), s = t - m * 60; return m + "'" + (s < 10 ? '0' : '') + s.toFixed(2).replace('.', '"'); };
         if (this.state === 'run') {
@@ -14105,8 +14107,8 @@ function engine(){
           this.ht(c, fmt(this.cd > 0 ? 0 : (me.done ? me.time : this.t) - (this.t0r || 0)), w - 12, 26, sm, '#ffe14d', 'right');
           /* item box */
           const r = this.itemRect(); c.fillStyle = 'rgba(20,20,58,.55)'; rr(c, r.x, r.y, r.w, r.h, 10); c.fill(); c.lineWidth = 3; c.strokeStyle = '#ffffff'; rr(c, r.x, r.y, r.w, r.h, 10); c.stroke();
-          if (this.roll > 0) this.icon(c, ['boost', 'ball', 'puddle'][Math.floor(this.t * 14) % 3], r.x + r.w / 2, r.y + r.h / 2, r.w * 0.7);
-          else if (me.item) this.icon(c, me.item, r.x + r.w / 2, r.y + r.h / 2, r.w * 0.7);
+          if (this.roll > 0) this.icon(c, ['boost', 'ball', 'puddle'][Math.floor(this.t * 14) % 3], r.x + r.w / 2, r.y + r.h / 2, r.w * 0.82);
+          else if (me.item) { this.icon(c, me.item, r.x + r.w / 2, r.y + r.h / 2, r.w * 0.82); const L = ITEMS[me.item]; this.ht(c, L[0], r.x + r.w / 2, r.y + r.h + sm * 0.75, sm * 0.62, '#ffffff', 'center'); this.ht(c, L[1], r.x + r.w / 2, r.y + r.h + sm * 1.55, sm * 0.5, '#ffe14d', 'center'); }
           /* coins + minimap */
           c.fillStyle = '#c47d00'; c.beginPath(); c.arc(22, h - 22, 10, 0, TAU); c.fill(); c.fillStyle = '#ffcf2e'; c.beginPath(); c.arc(22, h - 22, 7.5, 0, TAU); c.fill();
           this.ht(c, '×' + me.coins, 38, h - 22, sm, '#ffffff');
@@ -14154,7 +14156,7 @@ function engine(){
     slide: '#1d2a7a', sbgc: '#1d2a7a', sfg: '#ffffff', sdim: '#c9d6ff', stag: '#ffe14d', tsize: 28, tfw: 400, tls: '.02em',
     frame: 'border:4px solid #14143a;border-radius:14px;box-shadow:0 0 0 3px #ffe14d,0 10px 22px rgba(10,16,60,.45)'
   });
-  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Hoodie Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop puddles and charge mini-turbos.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
+  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Hoodie Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop oil slicks and fire turbo rockets.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
   const PACKS = [
