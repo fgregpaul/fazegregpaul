@@ -105,7 +105,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (82 hand-made games, shuffled into the feed on each load)
+## Game list (83 hand-made games, shuffled into the feed on each load)
 
 Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
@@ -157,6 +157,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Hop | Doodle Jump | `hop` |
 | Hot Time | SUPERHOT | `hot` |
 | Lanes | Crossy Road | `cross` |
+| Lawn Lords | Paper.io-style territory grab, done with lawn mowers | `lawn` |
 | Log Hop | Frogger | `river` |
 | Merge | 2048 | `merge` |
 | Moto Seasons | Trials / Moto X3M | `moto` |
