@@ -41,6 +41,7 @@ The file is too big to read whole. **Find things with grep on these markers**, n
 | Marker (grep for it) | What's there |
 |---|---|
 | `<style>` / `layout v2` | Feed CSS. Phones: full-screen. Desktop (≥700px): TikTok-style card with the rail outside it. |
+| `iOS home-screen web app` | iOS 26+ draws its own blur over the status bar and ~40pt below it in installed web apps (can't be turned off). `html.sa` is set in standalone mode: the header gets `--sbx` extra top padding to sit below that blur, and `#sbar` is a solid fixed strip in the skin colour (`--sbc`). Don't put text in the top ~100px of the installed app. |
 | `skins: every game gets its own look` | `skin(name, {...})` → `SKINS[name]`. Colours, fonts, patterns. Every game has its own skin so it looks made by a different creator. |
 | `const MIX = {` | Shared game mixin: `kick()` (ready→run, dead→retry), `finish()`, `hurt()`, `decay()`. |
 | `game loop plumbing` | `mount(canvas, game)`, the host. Sets `g.ctx`, `g.w/g.h` (play area), `g.W/g.H` (full canvas), `g.ox/g.oy` (play-area offset; ctx is already translated so (0,0) is the play area's top-left), `g.d` (DPR). Only the current slide's game gets `tick(dt)` + `draw()`. |
