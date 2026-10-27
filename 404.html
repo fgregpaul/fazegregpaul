@@ -1,9 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-   
-    <title>fazegregpaul: 404</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GregSnap</title>
+    <meta property="og:title" content="GregSnap">
+    <meta property="og:description" content="TikTok for games. Come play.">
+    <script>
+        /* game links: fazegregpaul.com/chess has no file of its own, so hand it to the app as /?g=chess */
+        (function () {
+            var p = location.pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '');
+            if (p && /^[A-Za-z0-9%._-]+$/.test(p)) location.replace('/?g=' + encodeURIComponent(decodeURIComponent(p)) + (location.search ? '&' + location.search.slice(1) : '') + location.hash);
+        })();
+    </script>
+    <link rel="stylesheet" href="/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Asset&display=swap" rel="stylesheet">
      <style>
         body {
@@ -13,6 +23,6 @@
 </head>
 <body>
       <h1 class="title">404</h1>
-      
+
         </body>
 </html>
