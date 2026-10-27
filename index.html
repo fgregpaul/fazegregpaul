@@ -13244,7 +13244,7 @@ function engine(){
 
   /* ===== Lawn Lords: territory-grab mower game (paper.io-style), original ===== */
   function makeLawn(sk) {
-    const N = 60, NB = 5, SP_ME = 5.4, SP_BOT = 4.6, WIN = 0.45;
+    const N = 60, NB = 5, SP_ME = 6, SP_BOT = 4.8, WIN = 0.45;
     const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
     const COLS = ['#ff4f6d', '#2f8bff', '#ffb300', '#a45cf0', '#12c2a4', '#ff7a2f'];
     const hx2 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -13263,7 +13263,7 @@ function engine(){
         }
         if (!ok) { x = Math.floor(rand(5, N - 5)); y = Math.floor(rand(5, N - 5)); }
         for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const q = (y + j) * N + x + i; this.owner[q] = e.id; this.trailO[q] = 0; }
-        e.cx = x; e.cy = y; e.p = 0; e.trail = []; e.alive = true; e.respawn = 0; e.q = []; e.phase = 0; e.steps = 0; e.target = null; e.plan = null; e.mode = 'home';
+        e.cx = x; e.cy = y; e.p = 0; e.vx = 0; e.vy = 0; e.trail = []; e.alive = true; e.respawn = 0; e.q = []; e.phase = 0; e.steps = 0; e.target = null; e.plan = null; e.mode = 'home';
         const d = (Math.abs(x - N / 2) > Math.abs(y - N / 2)) ? (x > N / 2 ? DIRS[2] : DIRS[0]) : (y > N / 2 ? DIRS[3] : DIRS[1]);
         e.dx = d[0]; e.dy = d[1];
       },
@@ -13276,14 +13276,18 @@ function engine(){
       },
       enter() { this.reset(); },
       count() { this.cnt.fill(0); for (let i = 0; i < N * N; i++) if (this.owner[i]) this.cnt[this.owner[i]]++; },
-      setDir(dx, dy) { const e = this.ents[0], q = e.q, last = q.length ? q[q.length - 1] : [e.dx, e.dy]; if (last[0] === dx && last[1] === dy) return; q.push([dx, dy]); if (q.length > 2) q.shift(); },
+      setDir(dx, dy) {
+        const e = this.ents[0], q = e.q, last = q.length ? q[q.length - 1] : [e.dx, e.dy]; if (last[0] === dx && last[1] === dy) return;
+        if (!q.length && e.alive && this.state === 'run' && dx * e.dx + dy * e.dy === 0 && e.p < 0.55) { e.vx = e.dx * e.p; e.vy = e.dy * e.p; e.dx = dx; e.dy = dy; e.p = 0; return; } /* quick turn: take it right now, the head glides over */
+        q.push([dx, dy]); if (q.length > 2) q.shift();
+      },
       bind(cv) {
         const at = ev => { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
         const steer = (a, b, min) => { const dx = a.x - b.x, dy = a.y - b.y; if (Math.hypot(dx, dy) < min) return false; if (Math.abs(dx) > Math.abs(dy)) this.setDir(dx > 0 ? 1 : -1, 0); else this.setDir(0, dy > 0 ? 1 : -1); return true; };
         cv.addEventListener('pointerdown', ev => { if (this.kick()) return; this.down = true; this.start = at(ev); try { cv.setPointerCapture(ev.pointerId); } catch (_) {} });
         cv.addEventListener('pointermove', ev => {
           if (this.state !== 'run') return; const p = at(ev);
-          if (this.down && this.start) { if (steer(p, this.start, 14)) this.start = p; }
+          if (this.down && this.start) { if (steer(p, this.start, 9)) this.start = p; }
           else if (ev.pointerType === 'mouse') steer(p, { x: this.w / 2, y: this.h / 2 }, 46);
         });
         ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { this.down = false; this.start = null; }));
@@ -13381,12 +13385,12 @@ function engine(){
         this.t += dt; this.cntT -= dt; if (this.cntT <= 0) { this.cntT = 0.25; this.count(); }
         for (const e of this.ents) {
           if (!e.alive) { if (e.id !== 1) { e.respawn -= dt; if (e.respawn <= 0) this.spawn(e); } continue; }
-          e.p += (e.id === 1 ? SP_ME : SP_BOT) * dt;
+          e.p += (e.id === 1 ? SP_ME : SP_BOT) * dt; if (e.vx || e.vy) { const k = Math.exp(-dt * 22); e.vx *= k; e.vy *= k; if (Math.abs(e.vx) + Math.abs(e.vy) < 0.01) e.vx = e.vy = 0; }
           let n = 0; while (e.p >= 1 && e.alive && n++ < 3) { e.p -= 1; this.step(e); if (this.state !== 'run') return; }
         }
         const me = this.ents[0]; this.score = this.cnt[1]; this.peak = Math.max(this.peak, this.score); this.best = Math.max(this.best, this.peak);
         if (me.alive && this.cnt[1] >= N * N * WIN) { this.score = this.cnt[1]; this.best = Math.max(this.best, this.score); this.state = 'dead'; this.dead = 0; this.msg = 'Lawn Lord!'; try { JING('win'); } catch (_) {} }
-        const tx = me.cx + 0.5 + me.dx * me.p, ty = me.cy + 0.5 + me.dy * me.p, k = Math.min(1, dt * 7);
+        const tx = me.cx + 0.5 + me.dx * me.p + (me.vx || 0), ty = me.cy + 0.5 + me.dy * me.p + (me.vy || 0), k = Math.min(1, dt * 10);
         this.cam.x += (tx - this.cam.x) * k; this.cam.y += (ty - this.cam.y) * k;
       },
       draw() {
@@ -13410,7 +13414,7 @@ function engine(){
         c.strokeStyle = '#e8c9a0'; c.lineWidth = 0.08; c.setLineDash([0.25, 0.25]); c.strokeRect(-0.17, -0.17, N + 0.34, N + 0.34); c.setLineDash([]);
         const heads = this.ents.filter(e => e.alive).sort((a, b) => a.id - b.id);
         for (const e of heads) {
-          const x = e.cx + 0.5 + e.dx * e.p, y = e.cy + 0.5 + e.dy * e.p, cc = CC[e.id - 1];
+          const x = e.cx + 0.5 + e.dx * e.p + (e.vx || 0), y = e.cy + 0.5 + e.dy * e.p + (e.vy || 0), cc = CC[e.id - 1];
           c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x, y + 0.34, 0.4, 0.17, 0, 0, TAU); c.fill();
           c.fillStyle = cc.dark; rr(c, x - 0.42, y - 0.36, 0.84, 0.78, 0.2); c.fill();
           c.fillStyle = e.id === 1 ? '#ffffff' : cc.base; rr(c, x - 0.36, y - 0.42, 0.72, 0.7, 0.2); c.fill();
