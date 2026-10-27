@@ -1435,7 +1435,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     g64: ['the 3d is so smooth', 'how is this running in a browser', 'the double jump saves me every time', 'i fell off 4 times', 'the camera is hard but i love it', 'got all 8 galaxies in 80 seconds', 'the spiky guys are so cute lol', 'ok this is the best one on here'],
     pong: ['pong but harder', 'the cpu is cheating', 'my dad would love this', 'it gets so fast', 'got 40 returns'],
     merge: ['2048 addict here', 'i got to 512 and ran out of room', 'swipe controls are so smooth', 'corners strategy only'],
-    hop: ['doodle jump flashbacks', 'the moving platforms are evil', 'i fell at 800 so close', 'the bounce feels so good'],
+    hop: ['doodle jump flashbacks', 'the moving platforms are evil', 'i fell at 800 so close', 'the bounce feels so good', 'the black hole got me at 2400 😭', 'jetpack is so op', 'i keep landing on the brown ones', 'you can go off the side and come out the other side??', 'shot the red one 3 times and it finally died', 'trampoline flip is so satisfying', 'stomping the purple guys never gets old', 'propeller hat carried my run'],
     slice: ['fruit ninja but better', 'the spiky ones get me every time', 'the swipe trail is so clean', 'got a combo of 4'],
     cross: ['crossy road vibes', 'the cars come out of nowhere', 'i got hit at row 30 😭', 'why is the chicken so cute'],
     quest: ['the sword swing sounds so good', 'i found the key finally', 'the boss dash is scary', 'zelda vibes but its its own thing', 'the bats keep hitting me', 'how do you open the locked door lol', 'killed the boss with 1 heart left'],
@@ -1707,66 +1707,239 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     }, MIX);
   }
 
-  /* --- doodle jump: Hop --- */
+  /* --- doodle jump: Hop (breakable/moving/vanishing platforms, springs, trampolines, propeller hat, jetpack, monsters, shooting, black holes, wrap-around) --- */
   function makeHop(sk) {
-    const G = 1500, JV = 640, PW = 62;
+    const G = 1500, JV = 640, PW = 62, MAXJ = JV * JV / (2 * G);
+    const BROWN = '#b07a40', BROWN2 = '#6e4520', NOTES = [392, 440, 523, 587, 659, 587, 523, 440];
     return Object.assign({
-      sk, hold: true, title: 'Hop', how: 'Drag left and right. Keep bouncing up.',
-      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], x: 0, y: 0, vy: 0, tx: 0, cam: 0, plats: [], top: 0, minY: 0, t: 0, down: false,
+      sk, hold: true, fsAspect: 0.62, title: 'Hop', how: 'Drag to move, tap to shoot. Stomp monsters, dodge black holes, grab springs and rockets.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], x: 0, y: 0, vx: 0, vy: 0, cam: 0, plats: [], mons: [], shots: [], top: 0, solidTop: 0, minY: 0, t: 0, down: false, keys: {}, face: 1, fly: null, flyT: 0, stun: 0, suck: null, bonus: 0, shootT: 0, nudge: 0, mx: null, flip: 0, lastHaz: 0,
       layout() { },
-      mkPlat(y) { const k = Math.min(1, -y / 9000), type = Math.random() < 0.15 + k * 0.25 ? 'm' : 'n'; this.plats.push({ x: rand(8, this.w - PW - 8), y, type, ph: rand(0, 6), w: PW, hit: 0 }); this.top = y; },
+      lvl() { return clamp(this.score / 3000, 0, 1); },
+      addPlat(y, type, extra) {
+        const p = Object.assign({ x: rand(6, this.w - PW - 6), y, by: y, type, ph: rand(0, TAU), w: PW, hit: 0, gone: 0, item: null, vx: rand(50, 90) * (Math.random() < 0.5 ? -1 : 1), amp: rand(36, 64) }, extra || {});
+        this.plats.push(p); if (y < this.top) this.top = y; return p;
+      },
+      gen() {
+        const k = this.lvl(), hi = Math.min(MAXJ - 16, 70 + k * 58), gap = rand(Math.max(30, hi - 34), hi), y = this.solidTop - gap;
+        this.solidTop = y;
+        const r = Math.random(); let type = 'n';
+        if (this.score > 40) { if (r < 0.08 + k * 0.2) type = 'm'; else if (r < 0.11 + k * 0.27) type = 'v'; else if (r < 0.14 + k * 0.33) type = 'w'; }
+        const p = this.addPlat(y, type);
+        if (type === 'n' || type === 'm') {
+          const q = Math.random();
+          if (q < 0.075) p.item = { k: 'spring', off: rand(8, PW - 22), used: 0 };
+          else if (q < 0.1) p.item = { k: 'tramp', off: rand(4, PW - 36), used: 0 };
+          else if (q < 0.115 && this.score > 150) p.item = { k: 'hat', off: PW / 2 - 9 };
+          else if (q < 0.123 && this.score > 500) p.item = { k: 'jet', off: PW / 2 - 9 };
+        }
+        if (this.score > 20 && Math.random() < 0.2 + k * 0.3) this.addPlat(y + gap * rand(0.35, 0.65), 'b');
+        if (this.score > 120 && this.lastHaz - y > 700 - k * 260 && Math.random() < 0.07 + k * 0.1) this.addMon(y - gap * 0.5);
+      },
+      addMon(y) {
+        const k = this.lvl(), r = Math.random(), hole = this.score > 300 && r < 0.28 + k * 0.1;
+        const kind = hole ? 'hole' : r < 0.6 ? 'blob' : r < 0.85 ? 'fly' : 'big', R = kind === 'hole' ? 26 : kind === 'big' ? 25 : 18;
+        let bx = this.w / 2, bd = -1;
+        for (let t = 0; t < 10; t++) { const x = rand(R + 6, this.w - R - 6); let d = 1e9; this.plats.forEach(p => { if (Math.abs(p.y - y) < 70) d = Math.min(d, Math.abs(p.x + p.w / 2 - x)); }); if (d > bd) { bd = d; bx = x; } }
+        this.mons.push({ kind, x: bx, y, bx, R, hp: kind === 'big' ? 3 : 1, ph: rand(0, TAU), dead: 0, vy: 0, hurt: 0, vx: kind === 'fly' ? rand(60, 110) * (Math.random() < 0.5 ? -1 : 1) : 0 });
+        this.lastHaz = y;
+      },
       reset() {
-        this.plats = []; this.t = 0; this.score = 0; this.floats = []; this.cam = 0; this.minY = 0;
-        const y0 = this.h - 90; this.plats.push({ x: this.w / 2 - 40, y: y0, type: 'n', ph: 0, w: 80, hit: 0 }); this.top = y0;
-        while (this.top > -this.h) this.mkPlat(this.top - rand(60, 100));
-        this.x = this.w / 2; this.y = y0 - 14; this.vy = -JV; this.tx = this.x; this.minY = this.y; this.startY = this.y; this.state = 'ready';
+        this.plats = []; this.mons = []; this.shots = []; this.t = 0; this.score = 0; this.bonus = 0; this.floats = []; this.cam = 0; this.keys = {}; this.fly = null; this.flyT = 0; this.stun = 0; this.suck = null; this.vx = 0; this.face = 1; this.shootT = 0; this.nudge = 0; this.mx = null; this.flip = 0; this.spin = 0; this.shrink = 1;
+        const y0 = this.h - 90; this.top = y0; this.addPlat(y0, 'n', { x: this.w / 2 - 40, w: 80 }); this.solidTop = y0; this.lastHaz = y0;
+        while (this.solidTop > -this.h) this.gen();
+        this.x = this.w / 2; this.y = y0 - 14; this.vy = -JV; this.minY = this.y; this.startY = this.y; this.state = 'ready';
       },
       enter() { this.reset(); },
-      move(x) { this.tx = clamp(x, 14, this.w - 14); },
-      swipe(d) { if (!this.kick()) this.tx = clamp(this.tx + d * 60, 14, this.w - 14); },
+      shoot(tx, ty) {
+        if (this.state !== 'run' || this.stun > 0 || this.suck || this.fly) return;
+        let a = -Math.PI / 2;
+        if (tx != null) { a = Math.atan2(ty - (this.y - this.cam - 10), tx - this.x); if (a > 0) a = tx < this.x ? -Math.PI * 0.8 : -Math.PI * 0.2; a = clamp(a, -Math.PI * 0.8, -Math.PI * 0.2); }
+        this.shots.push({ x: this.x, y: this.y - 18, vx: Math.cos(a) * 950, vy: Math.sin(a) * 950 }); this.shootT = 0.2; sfx(880, 0.06, 0.04, 'square');
+      },
       key(e) {
-        const m = { ArrowLeft: -1, ArrowRight: 1, KeyA: -1, KeyD: 1 }[e.code]; if (!m) return false;
-        if (this.state !== 'run') { this.kick(); return true; } this.tx = clamp(this.tx + m * 50, 14, this.w - 14); return true;
+        const down = e.type === 'keydown', k = e.key;
+        if (this.state !== 'run') { if (down && (k === ' ' || k === 'ArrowLeft' || k === 'ArrowRight')) { this.kick(); return true; } return false; }
+        if (k === 'ArrowLeft' || k === 'ArrowRight') { this.keys[k === 'ArrowLeft' ? 'l' : 'r'] = down; if (down) this.mx = null; return true; }
+        if (k === 'ArrowUp' || k === ' ') { if (down && !e.repeat) this.shoot(); return true; }
+        return false;
       },
       bind(cv) {
-        const at = e => this.move(e.clientX - cv.getBoundingClientRect().left);
-        cv.addEventListener('pointerdown', e => { if (this.kick()) return; this.down = true; at(e); });
-        cv.addEventListener('pointermove', e => { if (this.down || e.pointerType === 'mouse') at(e); });
-        ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, () => { this.down = false; }));
+        const at = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+        let st = null;
+        cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = at(e); st = { lx: p.x, t: performance.now(), moved: 0, mouse: e.pointerType === 'mouse' }; this.down = true; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+        cv.addEventListener('pointermove', e => {
+          const p = at(e);
+          if (st && this.down) { const d = p.x - st.lx; st.lx = p.x; st.moved += Math.abs(d); if (!st.mouse) this.nudge += d * 1.35; }
+          if (e.pointerType === 'mouse' && this.state === 'run') this.mx = p.x;
+        });
+        cv.addEventListener('pointerup', e => { if (st && st.moved < 12 && performance.now() - st.t < 300) { const p = at(e); this.shoot(p.x, p.y); } this.down = false; st = null; });
+        cv.addEventListener('pointercancel', () => { this.down = false; st = null; });
       },
+      die(msg) { this.finish(); this.msg = msg; },
       tick(dt) {
         this.decay(dt); this.t += dt;
         if (this.state === 'dead') { this.dead += dt; return; }
         if (this.state !== 'run') return;
-        this.plats.forEach(p => { p.hit = Math.max(0, p.hit - dt); if (p.type === 'm') p.x = (this.w - PW) / 2 + Math.sin(this.t * 1.4 + p.ph) * (this.w - PW - 24) / 2; });
-        this.x += (this.tx - this.x) * Math.min(1, dt * 14);
-        const py = this.y; this.vy += G * dt; this.y += this.vy * dt;
-        if (this.vy > 0) for (const p of this.plats) {
-          if (py + 14 <= p.y + 4 && this.y + 14 >= p.y && this.x + 10 > p.x && this.x - 10 < p.x + p.w) { this.vy = -JV; p.hit = 0.2; this.nt = ((this.nt || 0) + 1) % 8; sfx([392, 440, 523, 587, 659, 587, 523, 440][this.nt], 0.35, 0.035, 'sine'); break; }
+        const w = this.w, k = this.lvl();
+        this.shootT = Math.max(0, this.shootT - dt); this.flip = Math.max(0, this.flip - dt * 1.6);
+        /* platforms */
+        for (const p of this.plats) {
+          p.hit = Math.max(0, p.hit - dt); if (p.item && p.item.used) p.item.used = Math.max(0, p.item.used - dt);
+          if (p.gone) { p.gone += dt; continue; }
+          if (p.type === 'm') { p.x += p.vx * dt * (1 + k * 0.6); if (p.x < 4) { p.x = 4; p.vx = Math.abs(p.vx); } if (p.x > w - p.w - 4) { p.x = w - p.w - 4; p.vx = -Math.abs(p.vx); } }
+          if (p.type === 'v') p.y = p.by + Math.sin(this.t * 1.6 + p.ph) * p.amp;
         }
-        if (this.y < this.minY) { this.minY = this.y; this.score = Math.floor((this.startY - this.minY) / 10); }
+        /* black hole: get pulled in */
+        if (this.suck) {
+          const m = this.suck; m.t2 = (m.t2 || 0) + dt; this.x += (m.x - this.x) * Math.min(1, dt * 6); this.y += (m.y - this.y) * Math.min(1, dt * 6); this.spin += dt * 16; this.shrink = Math.max(0, 1 - m.t2 / 0.9);
+          if (m.t2 > 1.05) this.die('Sucked into a black hole!'); return;
+        }
+        /* steering */
+        let ax = (this.keys.r ? 1 : 0) - (this.keys.l ? 1 : 0); const free = this.stun <= 0;
+        if (ax && free) this.vx += (ax * 430 - this.vx) * Math.min(1, dt * 10);
+        else if (this.mx != null && free) this.vx = clamp((this.mx - this.x) * 9, -520, 520);
+        else this.vx *= Math.pow(0.0004, dt);
+        if (this.nudge && free) { this.x += this.nudge; if (Math.abs(this.nudge) > 0.6) this.face = Math.sign(this.nudge); } this.nudge = 0;
+        this.x += this.vx * dt; if (Math.abs(this.vx) > 25) this.face = Math.sign(this.vx);
+        if (this.x < -14) this.x += w + 28; else if (this.x > w + 14) this.x -= w + 28;
+        /* vertical */
+        const py = this.y;
+        if (this.fly) {
+          this.flyT -= dt; const sp = this.fly === 'jet' ? 1450 : 900; this.vy = -sp * Math.min(1, 0.35 + this.flyT * 1.5);
+          if (this.flyT <= 0) { this.fly = null; this.vy = -JV * 0.5; }
+        } else this.vy += G * dt;
+        this.y += this.vy * dt;
+        /* landing: springs and trampolines first, then platforms */
+        if (this.vy > 0 && free && !this.fly) {
+          let landed = false;
+          for (const p of this.plats) {
+            const it = p.item; if (p.gone || !it || (it.k !== 'spring' && it.k !== 'tramp')) continue;
+            const ix = p.x + it.off, iw = it.k === 'spring' ? 14 : 32, iy = p.y - (it.k === 'spring' ? 11 : 7);
+            if (py + 14 <= iy + 6 && this.y + 14 >= iy && this.x + 10 > ix && this.x - 10 < ix + iw) {
+              this.y = iy - 14; this.vy = it.k === 'spring' ? -JV * 1.7 : -JV * 2.3; it.used = 0.3; landed = true;
+              if (it.k === 'tramp') { this.flip = 1; sfx(330, 0.3, 0.05, 'triangle'); sfx(660, 0.4, 0.04, 'triangle'); } else { sfx(520, 0.12, 0.05, 'square'); sfx(1040, 0.18, 0.03, 'square'); }
+              break;
+            }
+          }
+          if (!landed) for (const p of this.plats) {
+            if (p.gone) continue;
+            if (py + 14 <= p.y + 4 && this.y + 14 >= p.y && this.x + 10 > p.x && this.x - 10 < p.x + p.w) {
+              if (p.type === 'b') { p.gone = 0.001; sfx(140, 0.18, 0.05, 'sawtooth'); continue; }
+              this.y = p.y - 14; this.vy = -JV; p.hit = 0.2; this.nt = ((this.nt || 0) + 1) % 8; sfx(NOTES[this.nt], 0.35, 0.035, 'sine');
+              if (p.type === 'w') { p.gone = 0.001; sfx(990, 0.1, 0.03, 'sine'); }
+              break;
+            }
+          }
+        }
+        /* power-ups */
+        if (!this.fly && free) for (const p of this.plats) {
+          const it = p.item; if (!it || p.gone || (it.k !== 'hat' && it.k !== 'jet')) continue;
+          const ix = p.x + it.off + 9, iy = p.y - 10;
+          if (Math.abs(this.x - ix) < 20 && Math.abs(this.y - iy) < 22) { this.fly = it.k; this.flyT = it.k === 'jet' ? 3.2 : 2.4; p.item = null; sfx(it.k === 'jet' ? 160 : 440, 0.5, 0.05, it.k === 'jet' ? 'sawtooth' : 'triangle'); this.floats.push({ t: it.k === 'jet' ? 'JETPACK!' : 'PROPELLER!', x: w / 2, y: this.h * 0.35, age: 0, c: 'good' }); }
+        }
+        /* monsters and black holes */
+        for (const m of this.mons) {
+          if (m.dead) { m.vy += G * dt; m.y += m.vy * dt; m.dead += dt; continue; }
+          m.hurt = Math.max(0, m.hurt - dt);
+          if (m.kind === 'fly') { m.x += m.vx * dt * (1 + k * 0.5); if (m.x < m.R) { m.x = m.R; m.vx = Math.abs(m.vx); } if (m.x > w - m.R) { m.x = w - m.R; m.vx = -Math.abs(m.vx); } }
+          else if (m.kind !== 'hole') m.x = m.bx + Math.sin(this.t * 2.2 + m.ph) * 7;
+          const dx = this.x - m.x, dy = this.y - m.y, d = Math.hypot(dx, dy);
+          if (m.kind === 'hole') {
+            if (this.fly) continue;
+            if (d < m.R + 2) { this.suck = m; this.vx = 0; sfx(110, 1, 0.06, 'sine'); sfx(70, 1.1, 0.05, 'sawtooth'); buzz(120); }
+            else if (d < m.R + 70) { const f = 90 * (1 - d / (m.R + 70)); this.x -= dx / d * f * dt; this.y -= dy / d * f * dt * 0.5; }
+            continue;
+          }
+          if (this.fly || !free) continue;
+          if (d < m.R + 12) {
+            if (this.vy > 0 && this.y < m.y - m.R * 0.25) { m.dead = 0.001; m.vy = -100; this.vy = -JV * 1.05; this.bonus += 50; this.floats.push({ t: '+50', x: m.x, y: m.y - this.cam - 20, age: 0, c: 'good' }); sfx(300, 0.08, 0.06, 'square'); sfx(600, 0.12, 0.05, 'square'); }
+            else { this.stun = 1; this.vy = Math.max(this.vy, 150); this.shake = 0.7; this.flash = 0.45; sfx(200, 0.4, 0.06, 'sawtooth'); buzz(90); }
+          }
+        }
+        /* bullets */
+        for (const s of this.shots) {
+          s.x += s.vx * dt; s.y += s.vy * dt;
+          for (const m of this.mons) { if (m.dead || s.hit) continue; if (Math.hypot(s.x - m.x, s.y - m.y) < m.R + 4) { s.hit = 1; if (m.kind === 'hole') continue; m.hp--; m.hurt = 0.15; if (m.hp <= 0) { m.dead = 0.001; m.vy = -220; const pts = m.kind === 'big' ? 150 : 75; this.bonus += pts; this.floats.push({ t: '+' + pts, x: m.x, y: m.y - this.cam - 20, age: 0, c: 'good' }); sfx(220, 0.2, 0.06, 'square'); } else sfx(500, 0.05, 0.04, 'square'); } }
+        }
+        this.shots = this.shots.filter(s => !s.hit && s.y > this.cam - 40 && s.x > -30 && s.x < w + 30);
+        /* score, camera, world */
+        if (this.y < this.minY) this.minY = this.y;
+        this.score = Math.floor((this.startY - this.minY) / 10) + this.bonus;
         const camTarget = this.minY - this.h * 0.45; if (camTarget < this.cam) this.cam = camTarget;
-        while (this.top > this.cam - 120) this.mkPlat(this.top - rand(60, 100 + Math.min(40, -this.top / 220)));
-        this.plats = this.plats.filter(p => p.y < this.cam + this.h + 60);
-        if (this.y > this.cam + this.h + 30) { this.shake = 0.7; this.flash = 0.45; sfx(262, 0.5, 0.04, 'sine'); sfx(196, 0.7, 0.03, 'sine'); this.finish(); }
+        while (this.solidTop > this.cam - 160) this.gen();
+        this.plats = this.plats.filter(p => p.y < this.cam + this.h + 60 && !(p.gone > 1.2));
+        this.mons = this.mons.filter(m => m.y < this.cam + this.h + 90 && !(m.dead > 2.5));
+        if (this.y > this.cam + this.h + 30) { this.shake = 0.7; this.flash = 0.45; sfx(262, 0.5, 0.04, 'sine'); sfx(196, 0.7, 0.03, 'sine'); this.die(this.stun > 0 ? 'A monster got you!' : pick(['Fell off!', 'Missed it.', 'So close.', 'Oof.'])); }
+      },
+      drawItem(c, p, y) {
+        const it = p.item; if (!it) return; const x = p.x + it.off;
+        if (it.k === 'spring') { const ext = it.used > 0 ? 16 : 7; c.strokeStyle = '#5a5f6a'; c.lineWidth = 2.5; c.beginPath(); for (let i = 0; i <= 5; i++) c.lineTo(x + (i & 1 ? 13 : 1), y - i * ext / 5 - 1); c.stroke(); c.fillStyle = '#e8343f'; c.fillRect(x - 1, y - ext - 5, 16, 4); c.fillStyle = 'rgba(255,255,255,.6)'; c.fillRect(x, y - ext - 5, 14, 1); }
+        else if (it.k === 'tramp') { const sq = it.used > 0 ? 3 : 0; c.fillStyle = '#5a5f6a'; c.fillRect(x + 2, y - 6, 3, 6); c.fillRect(x + 27, y - 6, 3, 6); c.strokeStyle = '#2f8bff'; c.lineWidth = 4; c.beginPath(); c.moveTo(x, y - 7); c.quadraticCurveTo(x + 16, y - 7 + sq * 2, x + 32, y - 7); c.stroke(); }
+        else if (it.k === 'hat') { c.fillStyle = '#ffcf33'; c.beginPath(); c.arc(x + 9, y - 3, 8, Math.PI, TAU); c.fill(); c.fillStyle = '#e8343f'; c.fillRect(x + 8, y - 15, 2, 5); const s = Math.sin(this.t * 20) * 9; c.fillStyle = '#2f8bff'; c.fillRect(x + 9 - Math.abs(s), y - 17, Math.abs(s) * 2, 2); }
+        else if (it.k === 'jet') { c.fillStyle = '#8a8f99'; c.fillRect(x + 1, y - 18, 7, 16); c.fillRect(x + 10, y - 18, 7, 16); c.fillStyle = '#e8343f'; c.fillRect(x + 1, y - 18, 7, 4); c.fillRect(x + 10, y - 18, 7, 4); c.fillStyle = '#5a5f6a'; c.fillRect(x + 7, y - 14, 4, 8); }
+      },
+      drawMon(c, m, y) {
+        const t = this.t, R = m.R; c.save(); c.translate(m.x, y); if (m.dead) c.rotate(m.dead * 6);
+        if (m.kind === 'hole') {
+          const g = c.createRadialGradient(0, 0, 2, 0, 0, R + 10); g.addColorStop(0, '#000'); g.addColorStop(0.6, '#0b0618'); g.addColorStop(1, 'rgba(40,10,80,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R + 10, 0, TAU); c.fill();
+          c.strokeStyle = 'rgba(160,110,255,.55)'; c.lineWidth = 2; for (let i = 0; i < 4; i++) { c.beginPath(); for (let s = 0; s < 18; s++) { const a = -t * 3 + i * TAU / 4 + s * 0.28, r = R + 6 - s * 1.3; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke(); }
+          c.fillStyle = '#000'; c.beginPath(); c.arc(0, 0, R * 0.55, 0, TAU); c.fill();
+        } else {
+          const col = m.hurt > 0 ? '#ffffff' : m.kind === 'big' ? '#e8343f' : m.kind === 'fly' ? '#2fbf6a' : '#7a4ce0', dk = m.kind === 'big' ? '#9a1f28' : m.kind === 'fly' ? '#1a7a40' : '#4a2a9a';
+          if (m.kind === 'fly') { const f = Math.sin(t * 22) * 8; c.fillStyle = 'rgba(220,240,255,.85)'; c.beginPath(); c.ellipse(-R + 2, -6 - f * 0.3, 11, 5 + Math.abs(f) * 0.4, -0.5, 0, TAU); c.ellipse(R - 2, -6 - f * 0.3, 11, 5 + Math.abs(f) * 0.4, 0.5, 0, TAU); c.fill(); }
+          if (m.kind === 'big') { c.fillStyle = dk; c.beginPath(); c.moveTo(-R * 0.7, -R * 0.6); c.lineTo(-R * 0.45, -R * 1.25); c.lineTo(-R * 0.15, -R * 0.75); c.moveTo(R * 0.7, -R * 0.6); c.lineTo(R * 0.45, -R * 1.25); c.lineTo(R * 0.15, -R * 0.75); c.fill(); }
+          c.fillStyle = dk; c.beginPath(); c.ellipse(0, 3, R, R * 0.9, 0, 0, TAU); c.fill(); c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, R, R * 0.88, 0, 0, TAU); c.fill();
+          if (m.kind === 'blob') { c.fillStyle = dk; for (let i = -2; i <= 2; i++) c.fillRect(i * 6 - 2, R * 0.75, 4, 6 + (i & 1) * 3); }
+          const ex = clamp((this.x - m.x) / 60, -2, 2); c.fillStyle = '#fff'; c.beginPath(); c.arc(-R * 0.35, -R * 0.2, R * 0.26, 0, TAU); c.arc(R * 0.35, -R * 0.2, R * 0.26, 0, TAU); c.fill();
+          c.fillStyle = '#111'; c.beginPath(); c.arc(-R * 0.35 + ex, -R * 0.15, R * 0.12, 0, TAU); c.arc(R * 0.35 + ex, -R * 0.15, R * 0.12, 0, TAU); c.fill();
+          c.fillStyle = '#111'; c.beginPath(); c.ellipse(0, R * 0.35, R * 0.45, R * 0.18, 0, 0, Math.PI); c.fill(); c.fillStyle = '#fff'; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(i * R * 0.2 - 3, R * 0.35); c.lineTo(i * R * 0.2 + 3, R * 0.35); c.lineTo(i * R * 0.2, R * 0.48); c.fill(); }
+          if (m.kind === 'big' && !m.dead) for (let i = 0; i < 3; i++) { c.fillStyle = i < m.hp ? '#3ad16b' : 'rgba(0,0,0,.25)'; c.fillRect(-12 + i * 9, -R - 10, 7, 4); }
+        }
+        c.restore();
       },
       draw() {
         const c = this.ctx, w = this.w, h = this.h, sk = SK, cam = this.cam;
         drawBg(c, w, h);
         c.save(); if (this.shake > 0) c.translate(rand(-1, 1) * this.shake * 5, rand(-1, 1) * this.shake * 5);
         this.plats.forEach(p => {
-          const y = p.y - cam; if (y < -20 || y > h + 20) return;
-          box(c, p.x, y + (p.hit > 0 ? 4 : 0), p.w, 12, { fill: p.type === 'm' ? sk.pal[1] : sk.pal[2], r: Math.min(sk.r, 6), hard: Math.min(sk.hard, 3), soft: 0 });
+          const y = p.y - cam; if (y < -30 || y > h + 30) return;
+          if (p.type === 'b') {
+            const g = p.gone, dy = g ? g * g * 900 : 0;
+            [0, 1].forEach(s => { c.save(); c.translate(p.x + (s ? p.w * 0.75 : p.w * 0.25), y + 6 + dy); c.rotate(g ? (s ? 1 : -1) * g * 2.2 : 0); c.fillStyle = BROWN2; c.fillRect(-p.w / 4, -4, p.w / 2, 12); c.fillStyle = BROWN; c.fillRect(-p.w / 4, -6, p.w / 2, 10); c.restore(); });
+            c.strokeStyle = BROWN2; c.lineWidth = 1.5; if (!g) { c.beginPath(); c.moveTo(p.x + p.w / 2 - 2, y); c.lineTo(p.x + p.w / 2 + 3, y + 4); c.lineTo(p.x + p.w / 2 - 3, y + 7); c.lineTo(p.x + p.w / 2 + 1, y + 10); c.stroke(); c.beginPath(); c.moveTo(p.x + 8, y + 3); c.lineTo(p.x + 16, y + 5); c.moveTo(p.x + p.w - 10, y + 6); c.lineTo(p.x + p.w - 18, y + 3); c.stroke(); }
+            return;
+          }
+          if (p.type === 'w') { if (p.gone > 0.3) return; c.globalAlpha = 1 - p.gone / 0.3; box(c, p.x, y + (p.hit > 0 ? 4 : 0), p.w, 12, { fill: '#ffffff', r: Math.min(sk.r, 6), hard: 0, soft: 0 }); c.strokeStyle = sk.dim; c.lineWidth = 1.5; c.setLineDash([4, 3]); c.strokeRect(p.x + 1, y + 1 + (p.hit > 0 ? 4 : 0), p.w - 2, 10); c.setLineDash([]); c.globalAlpha = 1; return; }
+          this.drawItem(c, p, y + (p.hit > 0 ? 4 : 0));
+          box(c, p.x, y + (p.hit > 0 ? 4 : 0), p.w, 12, { fill: p.type === 'm' ? sk.pal[1] : p.type === 'v' ? sk.pal[3] : sk.pal[2], r: Math.min(sk.r, 6), hard: Math.min(sk.hard, 3), soft: 0 });
+          if (p.type === 'm' || p.type === 'v') { c.fillStyle = 'rgba(255,255,255,.7)'; const cx = p.x + p.w / 2, cy = y + 6 + (p.hit > 0 ? 4 : 0); c.beginPath(); if (p.type === 'm') { c.moveTo(cx - 12, cy); c.lineTo(cx - 7, cy - 3); c.lineTo(cx - 7, cy + 3); c.moveTo(cx + 12, cy); c.lineTo(cx + 7, cy - 3); c.lineTo(cx + 7, cy + 3); } else { c.moveTo(cx - 4, cy - 1); c.lineTo(cx, cy - 4); c.lineTo(cx + 4, cy - 1); c.moveTo(cx - 4, cy + 1); c.lineTo(cx, cy + 4); c.lineTo(cx + 4, cy + 1); } c.fill(); }
         });
-        const x = this.x, y = this.y - cam, sq = this.vy < 0 ? 1.08 : 0.94;
-        c.save(); c.translate(x, y); c.scale(1 / sq, sq);
-        dot(c, 0, -2, 13, sk.pal[0]);
-        c.fillStyle = sk.dark ? '#000' : '#fff'; c.fillRect(-6, -8, 4, 5); c.fillRect(2, -8, 4, 5);
-        c.fillStyle = sk.fg; c.fillRect(-5, -6, 2, 3); c.fillRect(3, -6, 2, 3);
+        this.mons.forEach(m => { const y = m.y - cam; if (y > -60 && y < h + 60) this.drawMon(c, m, y); });
+        c.fillStyle = sk.fg; this.shots.forEach(s => { c.beginPath(); c.arc(s.x, s.y - cam, 4, 0, TAU); c.fill(); });
+        /* the hopper */
+        const x = this.x, y = this.y - cam, sq = this.fly ? 1 : this.vy < 0 ? 1.08 : 0.94, f = this.face, up = this.shootT > 0;
+        const drawMe = ox => {
+          c.save(); c.translate(x + ox, y);
+          if (this.suck) { c.rotate(this.spin); c.scale(this.shrink, this.shrink); }
+          if (this.flip > 0) c.rotate((1 - this.flip) * TAU * f);
+          c.scale(1 / sq, sq);
+          if (this.fly === 'jet') { c.fillStyle = '#8a8f99'; c.fillRect(-f * 12 - 5, -10, 8, 18); c.fillStyle = (this.t * 30 | 0) & 1 ? '#ffb300' : '#ff4f1f'; c.beginPath(); c.moveTo(-f * 12 - 5, 8); c.lineTo(-f * 12 + 3, 8); c.lineTo(-f * 12 - 1, 20 + Math.random() * 10); c.fill(); }
+          c.fillStyle = sk.fg; c.fillRect(-8, 9, 4, 6); c.fillRect(4, 9, 4, 6);
+          dot(c, 0, -2, 13, sk.pal[0]);
+          const ex = up ? 0 : f * 2, ey = up ? -4 : 0;
+          c.fillStyle = sk.dark ? '#000' : '#fff'; c.fillRect(-6 + ex, -8 + ey, 4, 5); c.fillRect(2 + ex, -8 + ey, 4, 5);
+          c.fillStyle = sk.fg; c.fillRect(-5 + ex, -6 + ey - (up ? 2 : 0), 2, 3); c.fillRect(3 + ex, -6 + ey - (up ? 2 : 0), 2, 3);
+          if (up) { c.fillStyle = sk.fg; c.beginPath(); c.arc(0, 3, 2.5, 0, TAU); c.fill(); }
+          if (this.fly === 'hat') { c.fillStyle = '#ffcf33'; c.beginPath(); c.arc(0, -13, 8, Math.PI, TAU); c.fill(); c.fillStyle = '#e8343f'; c.fillRect(-1, -24, 2, 7); const s = Math.sin(this.t * 40) * 12; c.fillStyle = '#2f8bff'; c.fillRect(-Math.abs(s), -26, Math.abs(s) * 2, 3); }
+          c.restore();
+          if (this.stun > 0) for (let i = 0; i < 3; i++) { const a = this.t * 6 + i * TAU / 3; c.fillStyle = '#ffd34d'; c.beginPath(); c.arc(x + ox + Math.cos(a) * 16, y - 18 + Math.sin(a) * 5, 3, 0, TAU); c.fill(); }
+        };
+        drawMe(0); if (x < 16) drawMe(w + 28); else if (x > w - 16) drawMe(-w - 28);
         c.restore();
-        c.restore();
+        if (this.fly) { const r = clamp(this.flyT / (this.fly === 'jet' ? 3.2 : 2.4), 0, 1); c.fillStyle = 'rgba(0,0,0,.15)'; c.fillRect(w / 2 - 40, 58, 80, 5); c.fillStyle = sk.good; c.fillRect(w / 2 - 40, 58, 80 * r, 5); }
         txt(c, String(this.score), w / 2, 36, 38, sk.fg, 'center'); txt(c, 'BEST ' + this.best, w - 14, 18, 11, sk.dim, 'right', MONO);
-        flashFx(c, this); endVeil(this);
+        drawFloats(c, this); flashFx(c, this); endVeil(this);
       }
     }, MIX);
   }
@@ -2637,7 +2810,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     mk(makeGalaxy64(SKINS.sky), 'Galaxy Hunt 64', SKINS.sky, 'Explore the plaza, the sky islands and a field of tiny planets you can run all the way around. Triple jumps, wall kicks, ground pounds. Find all 12 galaxies.', '#3d #platformer #minigames', 9.4e9, 3.3e9, 1.2e9, 'g64'),
     mk(makePong(SKINS.blueprint), 'Rally', SKINS.blueprint, 'Pong, but it speeds up every time you return the ball.', '#pong #retro #fyp', 3.1e9, 520e6, 98e6, 'pong'),
     mk(makeMerge(SKINS.luxury), 'Merge', SKINS.luxury, 'Swipe to merge the tiles. How high can you get?', '#2048 #puzzle #brain', 5.6e9, 1.4e9, 330e6, 'merge'),
-    mk(makeHop(SKINS.sticker), 'Hop', SKINS.sticker, 'Drag left and right and keep bouncing higher. Do not fall.', '#doodlejump #climb #viral', 4.4e9, 960e6, 210e6, 'hop'),
+    mk(makeHop(SKINS.sticker), 'Hop', SKINS.sticker, 'Bounce as high as you can. Breakable planks, springs, trampolines, propeller hats, jetpacks, monsters to stomp or shoot, and black holes. Drag to move, tap to shoot.', '#doodlejump #climb #viral', 4.4e9, 960e6, 210e6, 'hop'),
     mk(makeSlice(SKINS.chalk, ['PEACH', 'KIWI', 'LIME', 'PLUM'], ['BOMB', 'SPIKE']), 'Slice', SKINS.chalk, 'Swipe through the fruit. Dodge the spiky ones.', '#fruitninja #slice #satisfying', 6.2e9, 1.7e9, 480e6, 'slice'),
     mk(makeCross(SKINS.newsprint), 'Lanes', SKINS.newsprint, 'Tap to hop forward. Swipe to dodge the traffic.', '#crossyroad #traffic #minigames', 7.7e9, 2.2e9, 560e6, 'cross'),
     mk(makeSnake(SKINS.pixel, ['APPLE', 'PEAR', 'PLUM', 'CHERRY']), 'Snack Attack', SKINS.pixel, 'Swipe to steer. Eat the fruit. Do not eat yourself.', '#snake #retro #minigames', 7.3e9, 1.9e9, 640e6, 'snake'),
