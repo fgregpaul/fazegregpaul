@@ -105,7 +105,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (83 hand-made games, shuffled into the feed on each load)
+## Game list (84 hand-made games, shuffled into the feed on each load)
 
 Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
@@ -154,6 +154,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Hole Hunter | Hole.io | `hole` |
 | Hollow Path | Hollow Knight | `hollow` |
 | Hoodie Dash | GregSnap original (movie joke) | (one of the original 8) |
+| Hoodie Kart | 16-bit kart racers (Mode 7 style faux 3D: floor texture projected per scanline into a low-res buffer, billboard sprites) | `kart` |
 | Hop | Doodle Jump | `hop` |
 | Hot Time | SUPERHOT | `hot` |
 | Lanes | Crossy Road | `cross` |

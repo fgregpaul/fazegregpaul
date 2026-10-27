@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=VT323:wght@400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1481,6 +1482,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     doodlechess: ['the little mustache king is so cute', 'the horse doodle hopping over everything lmao', 'got bonked by an orange blob', 'this looks like my math notebook in 6th grade', 'the pieces blink im obsessed', 'beat it on medium after like 6 tries', 'hard mode is not playing around', 'POW when you take a piece is so satisfying', 'who drew these they are adorable', 'the spiky queen carried my whole game', 'it said nom nom when it took my queen i am crying', 'erase button saved me so many times', 'graph paper chess is a vibe', 'i keep forgetting the wizard moves diagonal'],
     crownrush: ['hoodie greg just walks past everything like he has a meeting at the tower', 'lag spike + galaxy bomb is so dirty', 'the pigeons are actually broken', 'lost to a bot named kayla.mp4 im deleting the app', 'interns cost 2 and still carry', 'server rack on defense saves me every time', 'my deck is all flying stuff and nobody can stop it', 'the doggo says WOOF when it bites lmao', '3 crowned the bot in overtime lets gooo', 'reply guys shooting little text bubbles is too accurate', 'who else just spams skater kid', 'the elixir bar going 2x at the end gets me every time', 'mall cop with the flashlight is my favorite', 'coffee thrower is lowkey the best card'],
     lawn: ['paper io but with lawn mowers lol', 'got boxed in by my own greed', 'the bots hunt your trail so mean', 'hit the fence again 😭', 'i got to 31% and a purple guy cut me', 'swipe controls are so smooth', 'why is it so satisfying to close a loop', 'dont leave your tail out too long', 'my lawn my rules', 'ran out of room and mowed myself', 'i own the neighborhood now', 'the stripes on the grass are a nice touch'],
+    kart: ['this feels like the old snes kart games', 'the paper ball sniped me right before the finish 😭', 'mini turbo on every corner is the move', 'drove straight into the lake twice', 'tasha is cracked at this game', 'got 1st on my 4th try', 'the puddles are so annoying lol', 'who put trees there', 'coins actually make you faster??', 'the countdown music hits', 'dave rammed me off the track', 'need more tracks pls'],
     drop: ['called an airstrike on myself again', 'the reinforce code is burned into my brain', 'orbital laser deleted the whole bug breach', 'chargers from the back only', 'extraction with 2 seconds left', 'the sentry carried me', 'cinderfall bots are no joke', 'accidentals: 4 lol', 'resupply pod landed on my head', 'for democracy'],
     deep: ['first night the zombies got me instantly', 'found a life crystal in a cave', 'the torch lighting underground is so good', 'built a house out of planks', 'iron pickaxe changes everything', 'the watcher dashes so fast', 'chopping trees is weirdly satisfying', 'gold is so deep down', 'eyes keep dropping lenses for me', 'my world has the coolest cave'],
     hollow: ['the guardian hits so hard', 'pogoing off the spikes feels so good', 'the lantern glow in the dark is beautiful', 'lost all my geo and then got it back from my shade', 'mossgrave is my favourite area', 'phase two with the falling rocks is insane', 'focusing to heal mid fight is clutch', 'the pixel art is so clean', 'that acid pit got me 5 times', 'finally beat the guardian with 1 mask left'],
@@ -13446,6 +13448,443 @@ function engine(){
     frame: 'border:5px solid #fffbea;border-radius:22px;box-shadow:0 8px 0 #1d5a28,0 14px 22px rgba(10,40,16,.35)'
   });
   NEW_SLIDES.push(mk(makeLawn(SKINS.lawn), 'Lawn Lords', SKINS.lawn, 'Mow a loop around the grass to claim it. Cross another mower\'s trail and they are toast. Do not hit the fence. First to half the lawn wins.', '#lawn #io #territory #mowing', 12.4e9, 3.7e9, 1.5e9, 'lawn'));
+
+  /* ===== Hoodie Kart: mode-7 style kart racer (inspired by 16-bit kart racers, all original) ===== */
+  function makeKart(sk) {
+    const TS = 1024, M = TS - 1, RWD = 40, LAPS = 3, NK = 6, TOP = 170, ACC = 115, GRIP = 5.2, KW = 34, STEP = 6;
+    const CREW = [
+      { name: 'Greg', body: '#e8343f', hood: '#2b2b33', skin: '#f1c7a0' },
+      { name: 'Tasha', body: '#2f7bff', hood: '#ffcf33', skin: '#8d5a3b' },
+      { name: 'Marco', body: '#18b06a', hood: '#f4f4f4', skin: '#e0ac80' },
+      { name: 'Priya', body: '#a24cf0', hood: '#ff8fc8', skin: '#c98f5f' },
+      { name: 'Dave', body: '#ff8a1e', hood: '#3b3b7a', skin: '#f7d7b5' },
+      { name: 'Mia', body: '#13b8c9', hood: '#ffffff', skin: '#f2c9a0' }
+    ];
+    const PTS = [15, 12, 10, 8, 6, 4], ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th'];
+    const wrapA = a => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
+    const hx2 = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    const shade = (h, k) => { const a = hx2(h); return 'rgb(' + a.map(v => Math.round(k >= 0 ? v + (255 - v) * k : v * (1 + k))).join(',') + ')'; };
+    const pack = (r, g, b) => ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
+    const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+
+    /* --- the circuit: a closed Catmull-Rom loop, resampled every STEP texels --- */
+    const CP = [[140, 760], [140, 430], [200, 220], [360, 130], [520, 170], [570, 300], [480, 420], [520, 540], [680, 560], [790, 440], [800, 250], [870, 140], [940, 330], [920, 570], [850, 800], [660, 900], [400, 880], [230, 900]];
+    const CL = (() => {
+      const n = CP.length, dense = [];
+      const cr = (a, b, c, d, t, k) => { const t2 = t * t, t3 = t2 * t; return 0.5 * (2 * b[k] + (-a[k] + c[k]) * t + (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t2 + (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * t3); };
+      for (let i = 0; i < n; i++) { const a = CP[(i - 1 + n) % n], b = CP[i], c = CP[(i + 1) % n], d = CP[(i + 2) % n]; for (let k = 0; k < 30; k++) dense.push([cr(a, b, c, d, k / 30, 0), cr(a, b, c, d, k / 30, 1)]); }
+      const out = [dense[0].slice()]; let need = STEP;
+      for (let i = 1; i <= dense.length; i++) {
+        const a = dense[i - 1], b = dense[i % dense.length];
+        let seg = Math.hypot(b[0] - a[0], b[1] - a[1]), t0 = 0;
+        while (seg - t0 >= need) { t0 += need; const f = t0 / seg; out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); need = STEP; }
+        need -= (seg - t0);
+      }
+      if (Math.hypot(out[out.length - 1][0] - out[0][0], out[out.length - 1][1] - out[0][1]) < STEP * 0.6) out.pop();
+      const N = out.length; out.forEach((p, i) => { const a = out[(i - 1 + N) % N], b = out[(i + 1) % N]; p[2] = Math.atan2(b[1] - a[1], b[0] - a[0]); });
+      return out;
+    })();
+    const NC = CL.length;
+    const atIdx = (f, lat) => { const p = CL[((Math.floor(f) % NC) + NC) % NC]; return [p[0] - Math.sin(p[2]) * lat, p[1] + Math.cos(p[2]) * lat, p[2]]; };
+    const PADS = [[0.205, -12], [0.53, 14], [0.84, -12]].map(q => { const i = Math.floor(q[0] * NC), p = atIdx(i, q[1]); return { i, x: p[0], y: p[1], a: p[2] }; });
+
+    /* --- pixel sprites --- */
+    const kartSprite = (cr, th) => {
+      const cv = mkCv(40, 34), x = cv.getContext('2d'), cs = Math.cos(th), sn = Math.sin(th);
+      const P = (f, r, u) => [20 + (r * cs + f * sn) * 1.25, 27 - u * 1.15 - (f * cs - r * sn) * 0.42];
+      const dep = (f, r) => f * cs - r * sn;
+      const poly = (pts, col) => { x.fillStyle = col; x.beginPath(); pts.forEach((p, i) => { const q = P(p[0], p[1], p[2]); i ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]); }); x.closePath(); x.fill(); };
+      const wheel = w => { const q = P(w[0], w[1], 2.2), ww = 3 + Math.abs(sn) * 3, hh = w[0] < 0 ? 6 : 5; x.fillStyle = '#16161a'; x.fillRect(Math.round(q[0] - ww / 2), Math.round(q[1] - hh / 2), Math.round(ww), hh); x.fillStyle = '#6b6b75'; x.fillRect(Math.round(q[0] - 1), Math.round(q[1] - 1), 2, 2); };
+      const W4 = [[-6, -6.5], [-6, 6.5], [6.5, -6], [6.5, 6]].map(w => ({ w, d: dep(w[0], w[1]) }));
+      W4.filter(o => o.d > 0).sort((a, b) => b.d - a.d).forEach(o => wheel(o.w));
+      const shape = u => [[-9, -6, u], [-9, 6, u], [4, 6.5, u], [11, 3.5, u], [11, -3.5, u], [4, -6.5, u]];
+      poly(shape(1.6), shade(cr.body, -0.45)); poly(shape(3.4), cr.body);
+      poly([[4, -3, 3.6], [4, 3, 3.6], [10, 2, 3.6], [10, -2, 3.6]], shade(cr.body, 0.3));
+      poly([[-9.5, -6.5, 6.2], [-9.5, 6.5, 6.2], [-7.5, 6.5, 6.2], [-7.5, -6.5, 6.2]], '#2a2a30');
+      if (cs > 0.3) { x.fillStyle = '#9aa0aa'; [-2.5, 2.5].forEach(r => { const q = P(-10, r, 3.2); x.fillRect(Math.round(q[0] - 1), Math.round(q[1] - 1), 2, 2); }); }
+      const tb = P(-2, 0, 8.5); x.fillStyle = cr.hood; x.beginPath(); x.ellipse(tb[0], tb[1], 4.6, 3.6, 0, 0, TAU); x.fill();
+      const hd = P(-1.5, 0, 14), front = -cs, side = sn;
+      x.fillStyle = cr.hood; x.beginPath(); x.arc(hd[0], hd[1], 4, 0, TAU); x.fill();
+      if (front > -0.35) {
+        const fx = hd[0] + side * 1.6 * (1 - Math.max(0, front)), fy = hd[1] + 0.6, fr = front > 0.35 ? 2.9 : 2.3;
+        x.fillStyle = cr.skin; x.beginPath(); x.arc(fx, fy, fr, 0, TAU); x.fill();
+        x.fillStyle = '#141414';
+        if (front > 0.35) { x.fillRect(Math.round(fx - 1.6), Math.round(fy - 0.8), 1, 2); x.fillRect(Math.round(fx + 0.8), Math.round(fy - 0.8), 1, 2); }
+        else x.fillRect(Math.round(fx + side * 0.9), Math.round(fy - 0.8), 1, 2);
+      }
+      W4.filter(o => o.d <= 0).sort((a, b) => b.d - a.d).forEach(o => wheel(o.w));
+      return cv;
+    };
+    const treeSprite = () => {
+      const cv = mkCv(26, 40), x = cv.getContext('2d');
+      x.fillStyle = '#6b4224'; x.fillRect(11, 31, 4, 9);
+      const tiers = [[31, 13], [24, 11], [17, 8], [10, 5]];
+      tiers.forEach(([y, hw], i) => { for (let r = 0; r < 11; r++) { const ww = Math.round(hw * (r + 2) / 12); x.fillStyle = r < 3 ? '#2f8a3a' : '#1f6b2c'; x.fillRect(13 - ww, y - 11 + r, ww, 1); x.fillStyle = r < 3 ? '#1f6b2c' : '#145021'; x.fillRect(13, y - 11 + r, ww, 1); } });
+      x.fillStyle = '#5fc36a'; x.fillRect(12, 1, 1, 3);
+      return cv;
+    };
+    const bushSprite = () => {
+      const cv = mkCv(24, 16), x = cv.getContext('2d');
+      [[8, 9, 7, '#2a8a3a'], [16, 9, 7, '#237a33'], [12, 6, 6, '#36a548']].forEach(([cx, cy, r, c]) => { x.fillStyle = c; x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.fill(); });
+      x.fillStyle = '#ff6fa8'; x.fillRect(7, 6, 2, 2); x.fillRect(15, 4, 2, 2); x.fillRect(12, 10, 2, 2);
+      return cv;
+    };
+    const coinSprite = () => { const cv = mkCv(12, 12), x = cv.getContext('2d'); x.fillStyle = '#c47d00'; x.beginPath(); x.arc(6, 6, 6, 0, TAU); x.fill(); x.fillStyle = '#ffcf2e'; x.beginPath(); x.arc(6, 6, 4.6, 0, TAU); x.fill(); x.fillStyle = '#fff6b0'; x.fillRect(4, 3, 2, 5); return cv; };
+    const boxSprite = () => {
+      const cv = mkCv(16, 16), x = cv.getContext('2d'), g = x.createLinearGradient(0, 0, 16, 16);
+      ['#ff4f6d', '#ffb300', '#3ad16b', '#2f8bff', '#a45cf0'].forEach((c, i) => g.addColorStop(i / 4, c));
+      x.fillStyle = 'rgba(255,255,255,.9)'; x.fillRect(0, 0, 16, 16); x.fillStyle = g; x.fillRect(1, 1, 14, 14);
+      x.fillStyle = 'rgba(255,255,255,.55)'; x.fillRect(2, 2, 12, 3);
+      x.fillStyle = '#ffffff'; x.font = 'bold 11px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('?', 8, 9);
+      return cv;
+    };
+    const ballSprite = () => { const cv = mkCv(12, 12), x = cv.getContext('2d'); x.fillStyle = '#d9d9de'; x.beginPath(); x.arc(6, 6, 6, 0, TAU); x.fill(); x.fillStyle = '#f7f7fa'; x.beginPath(); x.arc(5, 5, 4.5, 0, TAU); x.fill(); x.strokeStyle = '#9a9aa6'; x.lineWidth = 1; x.beginPath(); x.moveTo(2, 7); x.lineTo(6, 4); x.lineTo(9, 8); x.moveTo(4, 9); x.lineTo(8, 6); x.stroke(); return cv; };
+
+    return Object.assign({
+      sk, hold: true, noVeil: true, title: 'Hoodie Kart', how: 'Steer and grab items. Hold a hard turn to charge a mini-turbo.',
+      state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], t: 0, keys: {}, touches: null, karts: [], boxes: [], coins: [], haz: [], trees: [],
+      ensure() {
+        if (this.tex) return;
+        /* colour texture */
+        const cv = mkCv(TS, TS), x = cv.getContext('2d');
+        for (let j = 0; j < TS; j += 16) for (let i = 0; i < TS; i += 16) { x.fillStyle = ((i ^ j) & 16) ? '#56b141' : '#61bd4b'; x.fillRect(i, j, 16, 16); }
+        const LAKES = [[300, 610, 82, 130], [690, 740, 100, 62]];
+        LAKES.forEach(([cx, cy, rx, ry]) => {
+          x.fillStyle = '#e6cf8e'; x.beginPath(); x.ellipse(cx, cy, rx + 12, ry + 12, 0, 0, TAU); x.fill();
+          x.fillStyle = '#2f7fe0'; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, TAU); x.fill();
+          x.fillStyle = '#4aa0ff'; x.beginPath(); x.ellipse(cx, cy, rx - 14, ry - 14, 0, 0, TAU); x.fill();
+          x.fillStyle = '#9fd2ff'; for (let k = 0; k < 14; k++) { const a = rand(0, TAU), d = Math.sqrt(Math.random()) * 0.75; x.fillRect(Math.round(cx + Math.cos(a) * rx * d), Math.round(cy + Math.sin(a) * ry * d), 8, 2); }
+        });
+        const path = c => { c.beginPath(); CL.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); };
+        x.lineJoin = 'round'; x.lineCap = 'round';
+        path(x); x.strokeStyle = '#d9b874'; x.lineWidth = RWD * 2 + 36; x.stroke();
+        path(x); x.strokeStyle = '#f6f6f6'; x.lineWidth = RWD * 2 + 10; x.stroke();
+        path(x); x.strokeStyle = '#e8343f'; x.setLineDash([12, 12]); x.stroke(); x.setLineDash([]);
+        path(x); x.strokeStyle = '#74747c'; x.lineWidth = RWD * 2; x.stroke();
+        /* start line */
+        { const p = CL[0]; x.save(); x.translate(p[0], p[1]); x.rotate(p[2]); for (let r = -RWD; r < RWD; r += 6) for (let k = 0; k < 2; k++) { x.fillStyle = ((r / 6 + k) & 1) ? '#111' : '#fff'; x.fillRect(-6 + k * 6, r, 6, 6); } x.restore(); }
+        /* grid boxes */
+        x.strokeStyle = 'rgba(255,255,255,.75)'; x.lineWidth = 2;
+        for (let g = 0; g < NK; g++) { const p = atIdx(NC - 4 - Math.floor(g / 2) * 5, (g % 2 ? 1 : -1) * 15); x.save(); x.translate(p[0], p[1]); x.rotate(p[2]); x.beginPath(); x.moveTo(10, -9); x.lineTo(14, -9); x.lineTo(14, 9); x.lineTo(10, 9); x.stroke(); x.restore(); }
+        /* boost pads */
+        PADS.forEach(p => { x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = '#ff7a1a'; x.fillRect(-16, -13, 32, 26); x.fillStyle = '#ffe14d'; for (let k = 0; k < 3; k++) { x.beginPath(); x.moveTo(-12 + k * 9, -10); x.lineTo(-5 + k * 9, 0); x.lineTo(-12 + k * 9, 10); x.lineTo(-8 + k * 9, 10); x.lineTo(-1 + k * 9, 0); x.lineTo(-8 + k * 9, -10); x.closePath(); x.fill(); } x.restore(); });
+        /* barrier round the edge */
+        for (let i = 0; i < TS; i += 16) { const c = (i / 16) & 1 ? '#e8343f' : '#f6f6f6'; x.fillStyle = c; x.fillRect(i, 0, 16, 7); x.fillRect(i, TS - 7, 16, 7); x.fillRect(0, i, 7, 16); x.fillRect(TS - 7, i, 7, 16); }
+        const id = x.getImageData(0, 0, TS, TS), d = id.data;
+        for (let i = 0; i < d.length; i += 4) { const n = ((i * 2654435761) >>> 27) - 16; if (d[i] === d[i + 1] && d[i] > 90 && d[i] < 140) { d[i] += n >> 1; d[i + 1] += n >> 1; d[i + 2] += n >> 1; } else { d[i] += n >> 2; d[i + 1] += n >> 2; d[i + 2] += n >> 2; } }
+        this.tex = new Uint32Array(d.buffer);
+        /* surface map: 0 grass, 1 sand, 2 road, 3 water, 4 boost */
+        const sv = mkCv(TS, TS), y = sv.getContext('2d'); y.fillStyle = '#000'; y.fillRect(0, 0, TS, TS);
+        LAKES.forEach(([cx, cy, rx, ry]) => { y.fillStyle = 'rgb(80,0,0)'; y.beginPath(); y.ellipse(cx, cy, rx + 12, ry + 12, 0, 0, TAU); y.fill(); y.fillStyle = 'rgb(250,0,0)'; y.beginPath(); y.ellipse(cx, cy, rx - 4, ry - 4, 0, 0, TAU); y.fill(); });
+        y.lineJoin = 'round'; path(y); y.strokeStyle = 'rgb(80,0,0)'; y.lineWidth = RWD * 2 + 36; y.stroke(); path(y); y.strokeStyle = 'rgb(160,0,0)'; y.lineWidth = RWD * 2 + 10; y.stroke();
+        PADS.forEach(p => { y.save(); y.translate(p.x, p.y); y.rotate(p.a); y.fillStyle = 'rgb(205,0,0)'; y.fillRect(-16, -13, 32, 26); y.restore(); });
+        const sd = y.getImageData(0, 0, TS, TS).data, surf = new Uint8Array(TS * TS);
+        for (let i = 0; i < surf.length; i++) { const r = sd[i * 4]; surf[i] = r < 40 ? 0 : r < 120 ? 1 : r < 182 ? 2 : r < 228 ? 4 : 3; }
+        this.surf = surf;
+        /* scenery */
+        this.trees = []; let tries = 0;
+        while (this.trees.length < 90 && tries++ < 4000) {
+          const tx = rand(24, TS - 24), ty = rand(24, TS - 24); if (surf[(ty | 0) * TS + (tx | 0)] !== 0) continue;
+          let near = 1e9; for (let i = 0; i < NC; i += 3) { const p = CL[i], dd = (p[0] - tx) ** 2 + (p[1] - ty) ** 2; if (dd < near) near = dd; }
+          if (near < (RWD + 34) ** 2) continue; if (this.trees.some(t => (t.x - tx) ** 2 + (t.y - ty) ** 2 < 30 * 30)) continue;
+          this.trees.push({ x: tx, y: ty, b: Math.random() < 0.3 });
+        }
+        this.SPR = { k: CREW.map(c => { const a = []; for (let i = 0; i < 16; i++) a.push(kartSprite(c, i / 16 * TAU)); return a; }), tree: treeSprite(), bush: bushSprite(), coin: coinSprite(), box: boxSprite(), ball: ballSprite() };
+        /* minimap */
+        const mm = mkCv(120, 120), m = mm.getContext('2d'); m.scale(120 / TS, 120 / TS); m.lineJoin = 'round'; path(m); m.strokeStyle = 'rgba(0,0,0,.55)'; m.lineWidth = RWD * 2 + 34; m.stroke(); path(m); m.strokeStyle = '#ffffff'; m.lineWidth = RWD * 2 - 10; m.stroke(); this.mini = mm;
+        this.layout();
+      },
+      layout() {
+        const W = this.W, H = this.H; if (!W || !H) return;
+        const ps = Math.max(2, Math.round(Math.min(W, H) / 190)); this.ps = ps;
+        this.RW = Math.ceil(W / ps); this.RH = Math.ceil(H / ps);
+        if (!this.buf || this.buf.width !== this.RW || this.buf.height !== this.RH) { this.buf = mkCv(this.RW, this.RH); this.bx = this.buf.getContext('2d'); this.img = this.bx.createImageData(this.RW, this.RH); this.d32 = new Uint32Array(this.img.data.buffer); }
+        const top = this.oy / ps, bot = (this.oy + this.h) / ps, ph = bot - top, pw = this.w / ps;
+        this.cxB = (this.ox + this.w / 2) / ps; this.hor = top + ph * (W > H ? 0.3 : 0.27); this.kY = top + ph * 0.86;
+        this.F = Math.max(pw * 0.8, ph * (W > H ? 0.75 : 1)); this.D = KW * this.F / ((W > H ? 0.16 : 0.24) * pw); this.Hc = (this.kY - this.hor) * this.D / this.F;
+        this.mkSky();
+      },
+      mkSky() {
+        const SW = 512, sh = Math.max(4, Math.floor(this.hor) + 1), cv = mkCv(SW, sh), x = cv.getContext('2d');
+        const g = x.createLinearGradient(0, 0, 0, sh); g.addColorStop(0, '#2f6fe0'); g.addColorStop(0.7, '#7cc4ff'); g.addColorStop(1, '#c9ecff'); x.fillStyle = g; x.fillRect(0, 0, SW, sh);
+        const r = mulberry(7);
+        x.fillStyle = '#ffffff'; for (let i = 0; i < 9; i++) { const cx = r() * SW, cy = sh * (0.15 + r() * 0.45), s = 4 + r() * 6; for (let k = 0; k < 4; k++) { x.fillRect(Math.round(cx + (k - 1.5) * s), Math.round(cy - s * (k === 1 || k === 2 ? 0.8 : 0.4)), Math.round(s * 1.4), Math.round(s * (k === 1 || k === 2 ? 1.2 : 0.8))); } }
+        const hill = (col, base, amp, f, seed) => { const rr = mulberry(seed); const ph = [rr() * 9, rr() * 9]; x.fillStyle = col; x.beginPath(); x.moveTo(0, sh); for (let i = 0; i <= SW; i += 2) { const t = i / SW * TAU; x.lineTo(i, Math.round(sh - base - amp * (0.6 * Math.sin(t * f + ph[0]) + 0.4 * Math.sin(t * f * 2.7 + ph[1])))); } x.lineTo(SW, sh); x.fill(); };
+        hill('#7d95c9', 10, 9, 3, 2); hill('#3f8f55', 3, 5, 5, 5);
+        x.fillStyle = '#2f7a44'; for (let i = 0; i < SW; i += 7) { const hh = 2 + ((i * 37) % 5); x.fillRect(i, sh - hh, 5, hh); }
+        this.sky = cv;
+      },
+      reset() {
+        this.t = 0; this.cd = 3.4; this.over = false; this.endT = 0; this.fin = []; this.haz = []; this.floats = []; this.keys = {}; this.roll = 0; this.lapT = []; this.lapStart = 0; this.charge = 0; this.sparkT = 0; this.score = 0; this.msgT = 0; this.t0r = 0; this.place = 0; this.order = null;
+        const slot = [3, 0, 1, 2, 4, 5];
+        this.karts = CREW.map((c, i) => {
+          const g = slot[i], p = atIdx(NC - 4 - Math.floor(g / 2) * 5, (g % 2 ? 1 : -1) * 15);
+          return { i, c, x: p[0], y: p[1], a: p[2], v: 0, vx: 0, vy: 0, ci: NC - 4 - Math.floor(g / 2) * 5, lap: 0, prog: -10, coins: 0, item: null, itT: 0, boost: 0, spin: 0, spinA: 0, fall: 0, tf: 1, skill: i ? 0.86 + (i % 5) * 0.022 : 1, lane: rand(-0.4, 0.4), laneT: rand(1, 3), done: false, time: 0, ai: i > 0 };
+        });
+        this.me = this.karts[0];
+        this.boxes = []; [0.12, 0.45, 0.72].forEach(f => [-27, -9, 9, 27].forEach(l => { const p = atIdx(f * NC, l); this.boxes.push({ x: p[0], y: p[1], t: 0 }); }));
+        this.coins = []; [0.07, 0.3, 0.62, 0.9].forEach((f, gi) => { for (let k = 0; k < 5; k++) { const p = atIdx(f * NC + k * 3, (gi & 1 ? 16 : -16)); this.coins.push({ x: p[0], y: p[1], t: 0 }); } });
+        this.ca = this.me.a; this.cam();
+        try { this.bestLap = +(localStorage.getItem('gregsnap_kart_v1') || 0); } catch (_) { this.bestLap = 0; }
+        this.state = 'ready';
+      },
+      enter() { this.reset(); },
+      cam() { this.camx = this.me.x - Math.cos(this.ca) * this.D; this.camy = this.me.y - Math.sin(this.ca) * this.D; },
+      itemRect() { const z = clamp(Math.min(this.w, this.h) * 0.11, 60, 104); return { x: this.w / 2 - z / 2, y: 10, w: z, h: z }; },
+      bind(cv) {
+        this.touches = new Map();
+        const at = ev => { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
+        cv.addEventListener('pointerdown', ev => {
+          const p = at(ev), r = this.itemRect();
+          if (this.state === 'run' && p.x > r.x - 14 && p.x < r.x + r.w + 14 && p.y > r.y - 10 && p.y < r.y + r.h + 14) { this.useItem(this.me); return; }
+          if (this.kick()) return;
+          this.touches.set(ev.pointerId, p); try { cv.setPointerCapture(ev.pointerId); } catch (_) {}
+        });
+        cv.addEventListener('pointermove', ev => { if (this.touches.has(ev.pointerId)) this.touches.set(ev.pointerId, at(ev)); });
+        ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => cv.addEventListener(t, ev => this.touches.delete(ev.pointerId)));
+      },
+      key(e) {
+        const down = e.type === 'keydown', k = e.key;
+        if (this.state !== 'run') { if (down && (k === ' ' || k === 'Enter')) { this.kick(); return true; } return false; }
+        if (k === 'ArrowLeft') this.keys.l = down; else if (k === 'ArrowRight') this.keys.r = down; else if (k === 'ArrowDown') this.keys.b = down; else if (k === 'ArrowUp') this.keys.u = down;
+        else if (k === ' ' || k === 'x' || k === 'X' || k === 'Enter') { if (down && !e.repeat) this.useItem(this.me); }
+        else return false;
+        return true;
+      },
+      placeOf(k) { return this.order ? this.order.indexOf(k) : 0; },
+      giveItem(k) {
+        const pl = this.placeOf(k), r = Math.random(), pb = 0.2 + pl / (NK - 1) * 0.45;
+        const it = r < pb ? 'boost' : r < pb + (1 - pb) * 0.55 ? 'ball' : 'puddle';
+        if (k === this.me) { this.roll = 1; this.rollItem = it; sfx(880, 0.05, 0.04, 'square'); } else { k.item = it; k.itT = rand(0.6, 3.5); }
+      },
+      useItem(k) {
+        if (!k.item || k.spin > 0 || k.fall > 0 || this.cd > 0) return;
+        const cs = Math.cos(k.a), sn = Math.sin(k.a), mine = k === this.me;
+        if (k.item === 'boost') { k.boost = 1.25; if (mine) { sfx(180, 0.45, 0.06, 'sawtooth'); sfx(360, 0.3, 0.04, 'square'); } }
+        else if (k.item === 'puddle') { this.haz.push({ k: 'puddle', x: k.x - cs * 18, y: k.y - sn * 18, life: 30 }); if (mine) sfx(240, 0.12, 0.05, 'triangle'); }
+        else if (k.item === 'ball') { const sp = Math.max(0, k.v) + 210; this.haz.push({ k: 'ball', x: k.x + cs * 14, y: k.y + sn * 14, vx: cs * sp, vy: sn * sp, life: 3.2, own: k, age: 0 }); if (mine) sfx(520, 0.1, 0.05, 'square'); }
+        k.item = null;
+      },
+      hit(k) {
+        if (k.spin > 0 || k.fall > 0) return;
+        k.spin = 1.15; k.coins = Math.max(0, k.coins - 2); k.boost = 0;
+        if (k === this.me) { this.shake = 0.6; this.charge = 0; sfx(320, 0.45, 0.06, 'triangle'); sfx(160, 0.5, 0.05, 'sawtooth'); buzz(60); }
+      },
+      track(k) {
+        let best = 1e18, bi = k.ci;
+        for (let o = -14; o <= 24; o++) { const i = (k.ci + o + NC) % NC, p = CL[i], d = (p[0] - k.x) ** 2 + (p[1] - k.y) ** 2; if (d < best) { best = d; bi = i; } }
+        if (best > 150 * 150) for (let i = 0; i < NC; i++) { const p = CL[i], d = (p[0] - k.x) ** 2 + (p[1] - k.y) ** 2; if (d < best) { best = d; bi = i; } }
+        if (k.ci > NC * 0.75 && bi < NC * 0.25) { k.lap++; this.onLap(k); } else if (k.ci < NC * 0.25 && bi > NC * 0.75) k.lap--;
+        k.ci = bi; k.prog = k.lap * NC + bi;
+      },
+      onLap(k) {
+        if (k.lap > LAPS && !k.done) { k.done = true; k.time = this.t; this.fin.push(k); if (k === this.me) this.finishRace(); return; }
+        if (k !== this.me || k.lap < 2) { if (k === this.me) this.lapStart = this.t; return; }
+        const lt = this.t - this.lapStart; this.lapStart = this.t; this.lapT.push(lt);
+        if (!this.bestLap || lt < this.bestLap) { this.bestLap = lt; try { localStorage.setItem('gregsnap_kart_v1', String(lt)); } catch (_) {} }
+        this.msg2 = k.lap === LAPS ? 'FINAL LAP' : 'LAP ' + k.lap; this.msgT = 1.6; sfx(660, 0.1, 0.05, 'square'); setTimeout(() => sfx(990, 0.18, 0.05, 'square'), 110);
+      },
+      finishRace() {
+        const lt = this.t - this.lapStart; this.lapT.push(lt); if (!this.bestLap || lt < this.bestLap) { this.bestLap = lt; try { localStorage.setItem('gregsnap_kart_v1', String(lt)); } catch (_) {} }
+        this.over = true; this.endT = 0; this.place = this.fin.indexOf(this.me); this.me.ai = true; this.me.skill = 0.9;
+        this.score = PTS[this.place]; this.best = Math.max(this.best, this.score);
+        this.msg2 = 'FINISH!'; this.msgT = 3; try { JING(this.place === 0 ? 'win' : this.place < 3 ? 'start' : 'over'); } catch (_) {}
+      },
+      drive(k, steer, thr, dt) {
+        if (k.fall > 0) { k.fall -= dt; k.v = 0; k.vx = k.vy = 0; if (k.fall <= 0) { const p = atIdx(k.ci, 0); k.x = p[0]; k.y = p[1]; k.a = p[2]; k.coins = Math.max(0, k.coins - 3); } return; }
+        const sf = this.surf[((k.y | 0) & M) * TS + ((k.x | 0) & M)];
+        let top = TOP * k.tf * (1 + 0.012 * k.coins);
+        if (sf === 0) top *= 0.42; else if (sf === 1) top *= 0.66;
+        if (sf === 4 && k.boost < 0.5) { k.boost = 0.85; if (k === this.me) sfx(220, 0.35, 0.05, 'sawtooth'); }
+        if (k.boost > 0) { k.boost -= dt; top = Math.max(top, TOP * 1.42); }
+        if (k.spin > 0) { k.spin -= dt; k.spinA += dt * 15; steer = 0; thr = 0; k.v *= Math.pow(0.08, dt); } else k.spinA = 0;
+        if (thr > 0) { if (k.v < top) k.v = Math.min(top, k.v + ACC * thr * dt * (k.boost > 0 ? 3 : 1) * (k.v < top * 0.3 ? 1.4 : 1)); else k.v = Math.max(top, k.v - 150 * dt); }
+        else if (thr < 0) k.v = Math.max(-45, k.v - 230 * dt);
+        else if (k.spin <= 0) k.v *= Math.pow(0.45, dt);
+        const sp = clamp(Math.abs(k.v) / 60, 0, 1);
+        k.a = wrapA(k.a + steer * 2.4 * sp * dt * (k.v < 0 ? -1 : 1));
+        const g = Math.min(1, dt * GRIP * (sf === 2 || sf === 4 ? 1 : 0.7));
+        k.vx += (Math.cos(k.a) * k.v - k.vx) * g; k.vy += (Math.sin(k.a) * k.v - k.vy) * g;
+        k.x += k.vx * dt; k.y += k.vy * dt;
+        if (k.x < 12 || k.x > TS - 12) { k.x = clamp(k.x, 12, TS - 12); k.vx *= -0.4; k.v *= 0.45; if (k === this.me) sfx(110, 0.1, 0.06); }
+        if (k.y < 12 || k.y > TS - 12) { k.y = clamp(k.y, 12, TS - 12); k.vy *= -0.4; k.v *= 0.45; if (k === this.me) sfx(110, 0.1, 0.06); }
+        for (const t of this.trees) { const dx = k.x - t.x, dy = k.y - t.y, dd = dx * dx + dy * dy, R = t.b ? 9 : 8; if (dd < R * R && dd > 0.01) { const d = Math.sqrt(dd); k.x = t.x + dx / d * R; k.y = t.y + dy / d * R; k.v *= 0.3; k.vx = dx / d * 40; k.vy = dy / d * 40; if (k === this.me) { sfx(100, 0.12, 0.07); this.shake = 0.3; } } }
+        const sf2 = this.surf[((k.y | 0) & M) * TS + ((k.x | 0) & M)];
+        if (sf2 === 3) { k.fall = 1.3; k.boost = 0; if (k === this.me) { sfx(300, 0.5, 0.05, 'sine'); sfx(150, 0.6, 0.04, 'sine'); this.charge = 0; } }
+        this.track(k);
+      },
+      ai(k, dt) {
+        const look = 7 + Math.floor(Math.max(0, k.v) / 28), t = CL[(k.ci + look) % NC];
+        k.laneT -= dt; if (k.laneT <= 0) { k.laneT = rand(1.5, 4); k.lane = rand(-0.55, 0.55); }
+        const tx = t[0] - Math.sin(t[2]) * k.lane * RWD, ty = t[1] + Math.cos(t[2]) * k.lane * RWD;
+        const da = wrapA(Math.atan2(ty - k.y, tx - k.x) - k.a), steer = clamp(da * 2.8, -1, 1);
+        const curv = Math.abs(wrapA(CL[(k.ci + 26) % NC][2] - CL[(k.ci + 4) % NC][2]));
+        k.tf = k.skill * (1 - clamp(curv - 0.55, 0, 0.7) * 0.32);
+        if (!this.over && k !== this.me) { const gap = this.me.prog - k.prog; if (gap > 50) k.tf *= 1.07; else if (gap < -80) k.tf *= 0.92; }
+        if (k.item) { k.itT -= dt; if (k.itT <= 0) { if (k.item !== 'ball' || this.karts.some(o => o !== k && Math.abs(wrapA(Math.atan2(o.y - k.y, o.x - k.x) - k.a)) < 0.25 && (o.x - k.x) ** 2 + (o.y - k.y) ** 2 < 160 * 160) || k.itT < -4) this.useItem(k); } }
+        this.drive(k, steer, 1, dt);
+      },
+      tick(dt) {
+        this.decay(dt); this.t += dt;
+        if (!this.tex) return;
+        if (this.state === 'ready') { this.ca = this.me.a + Math.sin(this.t * 0.6) * 0.5; this.cam(); return; }
+        if (this.state === 'dead') { this.dead += dt; this.ca += dt * 0.15; this.cam(); return; }
+        if (this.state !== 'run') return;
+        if (this.cd > 0) {
+          const before = Math.ceil(this.cd); this.cd -= dt; const after = Math.ceil(this.cd);
+          if (after !== before) { if (after > 0) sfx(440, 0.14, 0.06, 'square'); else { sfx(880, 0.35, 0.07, 'square'); this.lapStart = this.t; this.t0r = this.t; } }
+          this.cam(); return;
+        }
+        this.msgT = Math.max(0, this.msgT - dt);
+        if (this.roll > 0) { this.roll -= dt; if (this.roll <= 0) { this.me.item = this.rollItem; sfx(1046, 0.12, 0.05, 'square'); } }
+        /* player input */
+        const me = this.me;
+        if (!this.over) {
+          let steer = (this.keys.r ? 1 : 0) - (this.keys.l ? 1 : 0), thr = this.keys.b ? -1 : 1;
+          if (this.touches && this.touches.size) { const p = [...this.touches.values()].pop(); steer = clamp((p.x - this.w / 2) / (this.w * 0.24), -1, 1); if (Math.abs(steer) < 0.08) steer = 0; }
+          if (Math.abs(steer) > 0.75 && me.v > TOP * 0.55 && me.spin <= 0 && me.fall <= 0) { this.charge += dt; this.sparkT += dt; }
+          else { if (Math.abs(steer) < 0.35 && this.charge > 0.75 && me.spin <= 0) { me.boost = Math.max(me.boost, this.charge > 1.6 ? 0.75 : 0.42); sfx(260, 0.3, 0.05, 'sawtooth'); } if (Math.abs(steer) < 0.75) this.charge = 0; }
+          this.drive(me, steer, thr, dt);
+        } else { this.endT += dt; this.ai(me, dt); }
+        this.karts.forEach(k => { if (k !== me) this.ai(k, dt); });
+        /* kart bumps */
+        for (let i = 0; i < NK; i++) for (let j = i + 1; j < NK; j++) {
+          const a = this.karts[i], b = this.karts[j]; if (a.fall > 0 || b.fall > 0) continue; const dx = b.x - a.x, dy = b.y - a.y, dd = dx * dx + dy * dy;
+          if (dd < 13 * 13 && dd > 0.01) { const d = Math.sqrt(dd), push = (13 - d) / 2, nx = dx / d, ny = dy / d; a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push; const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny; if (rv < 0) { a.vx += nx * rv * 0.6; a.vy += ny * rv * 0.6; b.vx -= nx * rv * 0.6; b.vy -= ny * rv * 0.6; } if ((a === me || b === me) && rv < -30) sfx(140, 0.06, 0.05); }
+        }
+        /* pickups */
+        for (const bx of this.boxes) { if (bx.t > 0) { bx.t -= dt; continue; } for (const k of this.karts) { if (k.fall > 0) continue; if ((k.x - bx.x) ** 2 + (k.y - bx.y) ** 2 < 12 * 12) { bx.t = 3; if (!k.item && !(k === me && this.roll > 0)) this.giveItem(k); break; } } }
+        for (const cn of this.coins) { if (cn.t > 0) { cn.t -= dt; continue; } for (const k of this.karts) { if ((k.x - cn.x) ** 2 + (k.y - cn.y) ** 2 < 11 * 11) { cn.t = 9; k.coins = Math.min(10, k.coins + 1); if (k === me) { sfx(1320, 0.05, 0.04, 'square'); setTimeout(() => sfx(1760, 0.08, 0.035, 'square'), 50); } break; } } }
+        /* hazards */
+        for (let i = this.haz.length - 1; i >= 0; i--) {
+          const h = this.haz[i]; h.life -= dt; let gone = h.life <= 0;
+          if (h.k === 'ball') { h.age += dt; h.x += h.vx * dt; h.y += h.vy * dt; if (h.x < 8 || h.x > TS - 8) { h.vx *= -1; h.x = clamp(h.x, 8, TS - 8); } if (h.y < 8 || h.y > TS - 8) { h.vy *= -1; h.y = clamp(h.y, 8, TS - 8); } if (this.trees.some(t => (t.x - h.x) ** 2 + (t.y - h.y) ** 2 < 64)) gone = true; }
+          if (!gone) for (const k of this.karts) { if (k.fall > 0 || (h.k === 'ball' && k === h.own && h.age < 0.4)) continue; if ((k.x - h.x) ** 2 + (k.y - h.y) ** 2 < 11 * 11) { this.hit(k); gone = true; break; } }
+          if (gone) this.haz.splice(i, 1);
+        }
+        /* standings */
+        this.order = this.karts.slice().sort((a, b) => (a.done && b.done) ? a.time - b.time : a.done ? -1 : b.done ? 1 : b.prog - a.prog);
+        if (!this.over) { this.score = PTS[this.placeOf(me)]; }
+        this.ca += wrapA(me.a - this.ca) * Math.min(1, dt * (me.spin > 0 ? 3 : 7)); this.cam();
+        if (this.over && this.endT > 3.4) { this.state = 'dead'; this.dead = 0; }
+      },
+      proj(x, y) {
+        const dx = x - this.camx, dy = y - this.camy, cs = Math.cos(this.ca), sn = Math.sin(this.ca), z = dx * cs + dy * sn;
+        if (z < 8) return null; const xr = -dx * sn + dy * cs, s = this.F / z;
+        return { sx: this.cxB + xr * s, sy: this.hor + this.Hc * s, s, z };
+      },
+      draw() {
+        const c = this.ctx, w = this.w, h = this.h;
+        if (!this.tex) { if (games[cur] !== this) { c.fillStyle = '#7cc4ff'; c.fillRect(-this.ox, -this.oy, this.W, this.H); return; } this.ensure(); }
+        if (!this.buf) this.layout();
+        const RW = this.RW, RH = this.RH, bx = this.bx, d32 = this.d32, tex = this.tex, F = this.F, Hc = this.Hc, hor = this.hor, cxB = this.cxB;
+        const cs = Math.cos(this.ca), sn = Math.sin(this.ca), cx = this.camx, cy = this.camy, y0 = Math.max(0, Math.floor(hor) + 1);
+        const O0 = pack(74, 152, 58), O1 = pack(82, 162, 64);
+        for (let y = y0; y < RH; y++) {
+          const z = Hc * F / (y + 0.5 - hor), k = z / F, rx = -sn * k, ry = cs * k;
+          let wx = cx + cs * z - rx * cxB, wy = cy + sn * z - ry * cxB, o = y * RW;
+          for (let xx = 0; xx < RW; xx++, wx += rx, wy += ry) { const ix = wx | 0, iy = wy | 0; d32[o++] = ((ix | iy) & ~M) ? ((((ix >> 4) ^ (iy >> 4)) & 1) ? O0 : O1) : tex[(iy << 10) | ix]; }
+        }
+        bx.putImageData(this.img, 0, 0, 0, y0, RW, RH - y0);
+        if (y0 > 0) { const SW = this.sky.width, off = ((-this.ca / TAU) * SW * 2 % SW + SW) % SW; for (let xx = -off; xx < RW; xx += SW) bx.drawImage(this.sky, Math.floor(xx), 0); }
+        const hz = bx.createLinearGradient(0, y0, 0, y0 + RH * 0.07); hz.addColorStop(0, 'rgba(201,236,255,.85)'); hz.addColorStop(1, 'rgba(201,236,255,0)'); bx.fillStyle = hz; bx.fillRect(0, y0, RW, RH * 0.07);
+        /* sprites, far to near */
+        const L = [], S = this.SPR, me = this.me;
+        this.trees.forEach(t => { const p = this.proj(t.x, t.y); if (p && p.sx > -60 && p.sx < RW + 60) L.push({ p, f: 't', o: t }); });
+        this.coins.forEach(o => { if (o.t > 0) return; const p = this.proj(o.x, o.y); if (p && p.z < 700) L.push({ p, f: 'c', o }); });
+        this.boxes.forEach(o => { if (o.t > 0) return; const p = this.proj(o.x, o.y); if (p && p.z < 900) L.push({ p, f: 'b', o }); });
+        this.haz.forEach(o => { const p = this.proj(o.x, o.y); if (p) L.push({ p, f: o.k, o }); });
+        this.karts.forEach(o => { const p = this.proj(o.x, o.y); if (p) L.push({ p, f: 'k', o }); });
+        L.sort((a, b) => b.p.z - a.p.z);
+        bx.imageSmoothingEnabled = false;
+        for (const it of L) {
+          const p = it.p, s = p.s, o = it.o;
+          if (it.f === 't') { const im = o.b ? S.bush : S.tree, dw = (o.b ? 26 : 30) * s, dh = dw * im.height / im.width; bx.fillStyle = 'rgba(0,0,0,.18)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.4, dw * 0.12, 0, 0, TAU); bx.fill(); bx.drawImage(im, p.sx - dw / 2, p.sy - dh, dw, dh); }
+          else if (it.f === 'c') { const dw = 9 * s * Math.max(0.15, Math.abs(Math.cos(this.t * 4 + o.x))); bx.drawImage(S.coin, p.sx - dw / 2, p.sy - 13 * s, dw, 9 * s); }
+          else if (it.f === 'b') { const dw = 14 * s, bob = Math.sin(this.t * 3 + o.x) * 1.5 * s; bx.fillStyle = 'rgba(0,0,0,.2)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.45, dw * 0.15, 0, 0, TAU); bx.fill(); bx.drawImage(S.box, p.sx - dw / 2, p.sy - 20 * s + bob, dw, dw); }
+          else if (it.f === 'puddle') { bx.fillStyle = '#6b4a2b'; bx.beginPath(); bx.ellipse(p.sx, p.sy, 12 * s, 3.6 * s, 0, 0, TAU); bx.fill(); bx.fillStyle = '#8a6440'; bx.beginPath(); bx.ellipse(p.sx - 2 * s, p.sy - 0.6 * s, 6 * s, 1.6 * s, 0, 0, TAU); bx.fill(); }
+          else if (it.f === 'ball') { const dw = 9 * s; bx.drawImage(S.ball, p.sx - dw / 2, p.sy - dw - 2 * s, dw, dw); }
+          else if (it.f === 'k') {
+            const bear = Math.atan2(o.y - this.camy, o.x - this.camx), th = wrapA(o.a + o.spinA - bear), idx = ((Math.round(th / TAU * 16) % 16) + 16) % 16;
+            const im = S.k[o.i][idx], dw = KW * s, dh = dw * im.height / im.width; let yy = p.sy - dh * (31 / 34), al = 1;
+            if (o.fall > 0) { const f = o.fall / 1.3; al = f; yy += (1 - f) * dh * 0.6; }
+            bx.globalAlpha = al; bx.fillStyle = 'rgba(0,0,0,.28)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.36, dw * 0.1, 0, 0, TAU); bx.fill();
+            if (o.boost > 0 && idx <= 2 || o.boost > 0 && idx >= 14) { bx.fillStyle = (this.t * 20 | 0) & 1 ? '#ffb300' : '#ff4f1f'; bx.beginPath(); bx.ellipse(p.sx, p.sy - dh * 0.32, dw * 0.12, dh * 0.2, 0, 0, TAU); bx.fill(); }
+            bx.drawImage(im, p.sx - dw / 2, yy, dw, dh); bx.globalAlpha = 1;
+            if (o === me && this.charge > 0.75 && !this.over) { const col = this.charge > 1.6 ? ['#ff8a1e', '#ffd34d'] : ['#5ad1ff', '#e6f8ff']; for (let q = 0; q < 6; q++) { bx.fillStyle = col[q & 1]; bx.fillRect(p.sx + (q < 3 ? -1 : 1) * dw * 0.32 + rand(-2, 2) * s * 0.3, p.sy - rand(0, 5) * s * 0.4, Math.max(1, s * 0.9), Math.max(1, s * 0.9)); } }
+          }
+        }
+        /* blit + shake */
+        c.imageSmoothingEnabled = false;
+        const shx = this.shake > 0 ? rand(-1, 1) * this.shake * 6 : 0;
+        c.drawImage(this.buf, -this.ox + shx, -this.oy, RW * this.ps, RH * this.ps);
+        c.imageSmoothingEnabled = true;
+        this.hud(c, w, h);
+      },
+      ht(c, s, x, y, size, fill, al, stroke) {
+        c.font = '400 ' + size + 'px ' + sk.font; c.textAlign = al || 'left'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+        c.lineWidth = Math.max(3, size / 5); c.strokeStyle = stroke || '#14143a'; c.strokeText(s, x, y); c.fillStyle = fill; c.fillText(s, x, y);
+      },
+      icon(c, it, x, y, s) {
+        c.save(); c.translate(x, y); c.scale(s / 40, s / 40);
+        if (it === 'boost') { c.fillStyle = '#2b2b33'; rr(c, -11, -17, 22, 34, 5); c.fill(); c.fillStyle = '#39d0ff'; rr(c, -9, -12, 18, 24, 3); c.fill(); c.fillStyle = '#ffe14d'; c.beginPath(); c.moveTo(2, -10); c.lineTo(-6, 2); c.lineTo(0, 2); c.lineTo(-3, 11); c.lineTo(6, -2); c.lineTo(0, -2); c.closePath(); c.fill(); c.fillStyle = '#c9ced8'; c.fillRect(-8, -19, 16, 4); }
+        else if (it === 'puddle') { c.fillStyle = '#6b4a2b'; c.beginPath(); for (let i = 0; i < 12; i++) { const a = i / 12 * TAU, r = i & 1 ? 11 : 16; c.lineTo(Math.cos(a) * r, Math.sin(a) * r * 0.75); } c.closePath(); c.fill(); c.fillStyle = '#9a7048'; c.beginPath(); c.ellipse(-4, -3, 5, 3, 0, 0, TAU); c.fill(); }
+        else if (it === 'ball') { c.fillStyle = '#d9d9de'; c.beginPath(); c.arc(0, 0, 15, 0, TAU); c.fill(); c.fillStyle = '#f7f7fa'; c.beginPath(); c.arc(-2, -2, 12, 0, TAU); c.fill(); c.strokeStyle = '#8a8a96'; c.lineWidth = 2; c.beginPath(); c.moveTo(-10, 4); c.lineTo(-2, -6); c.lineTo(6, 2); c.lineTo(11, -4); c.moveTo(-6, 9); c.lineTo(3, 5); c.stroke(); }
+        c.restore();
+      },
+      hud(c, w, h) {
+        const me = this.me, big = clamp(Math.min(w, h) / 9, 30, 64), sm = clamp(big * 0.36, 12, 22), fmt = t => { t = Math.max(0, t); const m = Math.floor(t / 60), s = t - m * 60; return m + "'" + (s < 10 ? '0' : '') + s.toFixed(2).replace('.', '"'); };
+        if (this.state === 'run') {
+          this.ht(c, 'LAP ' + clamp(me.lap, 1, LAPS) + '/' + LAPS, 12, 26, sm, '#ffffff');
+          this.ht(c, fmt(this.cd > 0 ? 0 : (me.done ? me.time : this.t) - (this.t0r || 0)), w - 12, 26, sm, '#ffe14d', 'right');
+          /* item box */
+          const r = this.itemRect(); c.fillStyle = 'rgba(20,20,58,.55)'; rr(c, r.x, r.y, r.w, r.h, 10); c.fill(); c.lineWidth = 3; c.strokeStyle = '#ffffff'; rr(c, r.x, r.y, r.w, r.h, 10); c.stroke();
+          if (this.roll > 0) this.icon(c, ['boost', 'ball', 'puddle'][Math.floor(this.t * 14) % 3], r.x + r.w / 2, r.y + r.h / 2, r.w * 0.7);
+          else if (me.item) this.icon(c, me.item, r.x + r.w / 2, r.y + r.h / 2, r.w * 0.7);
+          /* coins + minimap */
+          c.fillStyle = '#c47d00'; c.beginPath(); c.arc(22, h - 22, 10, 0, TAU); c.fill(); c.fillStyle = '#ffcf2e'; c.beginPath(); c.arc(22, h - 22, 7.5, 0, TAU); c.fill();
+          this.ht(c, '×' + me.coins, 38, h - 22, sm, '#ffffff');
+          const ms = clamp(Math.min(w, h) * 0.2, 64, 120); c.globalAlpha = 0.85; c.drawImage(this.mini, w - ms - 8, 44, ms, ms); c.globalAlpha = 1;
+          this.karts.slice().reverse().forEach(k => { c.fillStyle = k.c.body; c.strokeStyle = '#fff'; c.lineWidth = k === me ? 2.5 : 1.5; c.beginPath(); c.arc(w - ms - 8 + k.x / TS * ms, 44 + k.y / TS * ms, k === me ? 5 : 3.5, 0, TAU); c.fill(); c.stroke(); });
+          /* place */
+          const pl = this.placeOf(me), pc = ['#ffd700', '#e0e6f0', '#e09a5a', '#ffffff', '#ffffff', '#ffffff'][pl];
+          this.ht(c, ORD[pl], w - 12, h - big * 0.6, big, pc, 'right');
+          if (this.charge > 0.75 && !this.over) this.ht(c, this.charge > 1.6 ? 'TURBO!' : 'turbo', w / 2, h - 30, sm, this.charge > 1.6 ? '#ffb300' : '#7fe0ff', 'center');
+        }
+        if (this.state === 'run' && this.cd > 0) { const n = Math.ceil(this.cd); const s = n > 3 ? '' : n > 0 ? String(n) : ''; if (s) this.ht(c, s, w / 2, h * 0.4, big * 1.8, '#ffe14d', 'center'); }
+        if (this.state === 'run' && this.cd <= 0 && this.t - (this.t0r || 0) < 1) this.ht(c, 'GO!', w / 2, h * 0.4, big * 1.6, '#3ad16b', 'center');
+        if (this.state === 'run' && this.msgT > 0 && this.cd <= 0) this.ht(c, this.msg2, w / 2, h * 0.32, big * 0.75, this.msg2 === 'FINISH!' ? '#ffe14d' : '#ffffff', 'center');
+        if (this.state === 'ready') {
+          c.fillStyle = 'rgba(14,16,52,.55)'; c.fillRect(-this.ox, -this.oy, this.W, this.H);
+          const ty = h * 0.3; this.ht(c, 'HOODIE', w / 2, ty, big * 1.05, '#ffe14d', 'center'); this.ht(c, 'KART', w / 2, ty + big * 1.05, big * 1.35, '#ff4f6d', 'center');
+          const touch = matchMedia('(pointer: coarse)').matches;
+          const lines = touch ? ['Hold left or right to steer', 'Tap the item box to use items', 'Hold a hard turn for a mini-turbo'] : ['← → steer   ↓ brake', 'Space uses your item', 'Hold a hard turn for a mini-turbo'];
+          lines.forEach((s, i) => this.ht(c, s, w / 2, ty + big * 2.3 + i * sm * 1.6, sm * 0.85, '#ffffff', 'center'));
+          if (this.bestLap) this.ht(c, 'Best lap ' + fmt(this.bestLap), w / 2, ty + big * 2.3 + 3 * sm * 1.6 + 6, sm * 0.75, '#7fe0ff', 'center');
+          if ((this.t * 2 | 0) & 1) this.ht(c, touch ? 'Tap to race' : 'Click or press Space to race', w / 2, h * 0.84, sm, '#ffe14d', 'center');
+        }
+        if (this.state === 'dead') {
+          c.fillStyle = 'rgba(14,16,52,.62)'; c.fillRect(-this.ox, -this.oy, this.W, this.H);
+          const pl = this.place || 0; this.ht(c, ORD[pl], w / 2, h * 0.17, big * 1.6, ['#ffd700', '#e0e6f0', '#e09a5a', '#ffffff', '#ffffff', '#ffffff'][pl], 'center');
+          this.ht(c, pl === 0 ? 'You win!' : pl < 3 ? 'On the podium!' : 'Better luck next time', w / 2, h * 0.17 + big * 1.1, sm, '#ffffff', 'center');
+          const rows = this.order || this.karts, ry = h * 0.17 + big * 1.1 + sm * 2.2, lh = Math.min(sm * 1.9, (h * 0.86 - ry) / 7);
+          rows.forEach((k, i) => { const y = ry + i * lh, x0 = w / 2 - Math.min(150, w * 0.4); c.fillStyle = k === this.me ? 'rgba(255,225,77,.25)' : 'rgba(255,255,255,.08)'; rr(c, x0, y - lh * 0.42, Math.min(300, w * 0.8), lh * 0.84, 8); c.fill(); this.ht(c, (i + 1) + '. ' + k.c.name, x0 + 10, y, sm * 0.85, '#ffffff', 'left', k.c.body); this.ht(c, k.done ? fmt(k.time - (this.t0r || 0)) : '--', x0 + Math.min(300, w * 0.8) - 10, y, sm * 0.8, '#ffe14d', 'right'); });
+          this.ht(c, '+' + this.score + ' pts' + (this.bestLap ? '   best lap ' + fmt(this.bestLap) : ''), w / 2, ry + 6.4 * lh, sm * 0.8, '#7fe0ff', 'center');
+          if (this.dead > 0.6) this.ht(c, 'Tap to race again', w / 2, h * 0.92, sm, '#ffe14d', 'center');
+        }
+      }
+    }, MIX);
+  }
+
+  skin('kart', {
+    bg: ['#7cc4ff', '#2f6fe0'], pat: 'none', fg: '#ffffff', dim: '#dbeeff', panel: '#14143a', pfg: '#ffffff', dark: true,
+    line: '#14143a', lw: 0, r: 12, pal: ['#e8343f', '#2f7bff', '#ffcf33', '#18b06a'], good: '#3ad16b', bad: '#ff4f6d',
+    font: '"Bungee","Arial Black",sans-serif', fw: 400, fs: 1, mono: '"Bungee","Arial Black",sans-serif', mw: 400, ms: 0.8,
+    veil: 'rgba(14,16,52,.6)', vfg: '#ffffff',
+    slide: '#1d2a7a', sbgc: '#1d2a7a', sfg: '#ffffff', sdim: '#c9d6ff', stag: '#ffe14d', tsize: 28, tfw: 400, tls: '.02em',
+    frame: 'border:4px solid #14143a;border-radius:14px;box-shadow:0 0 0 3px #ffe14d,0 10px 22px rgba(10,16,60,.45)'
+  });
+  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Hoodie Kart', SKINS.kart, 'Old-school kart racing. 3 laps around Greg Circuit against 5 rivals. Grab item boxes, throw paper balls, drop puddles and charge mini-turbos on the corners.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
   const PACKS = [
