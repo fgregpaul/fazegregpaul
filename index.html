@@ -13467,9 +13467,30 @@ function engine(){
     const pack = (r, g, b) => ((255 << 24) | (b << 16) | (g << 8) | r) >>> 0;
     const mkCv = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-    /* --- the circuit: a closed Catmull-Rom loop, resampled every STEP texels --- */
-    const CP = [[140, 760], [140, 430], [200, 220], [360, 130], [520, 170], [570, 300], [480, 420], [520, 540], [680, 560], [790, 440], [800, 250], [870, 140], [940, 330], [920, 570], [850, 800], [660, 900], [400, 880], [230, 900]];
-    const CL = (() => {
+    /* --- one circuit per season: closed Catmull-Rom loops, resampled every STEP texels --- */
+    const TRACKS = [
+      { id: 'spring', season: 'Spring', name: 'Greg Circuit',
+        CP: [[140, 760], [140, 430], [200, 220], [360, 130], [520, 170], [570, 300], [480, 420], [520, 540], [680, 560], [790, 440], [800, 250], [870, 140], [940, 330], [920, 570], [850, 800], [660, 900], [400, 880], [230, 900]],
+        LAKES: [[300, 610, 82, 130], [690, 740, 100, 62]], PADS: [[0.205, -12], [0.53, 14], [0.84, -12]],
+        th: { g: ['#56b141', '#61bd4b'], out: [[74, 152, 58], [82, 162, 64]], specks: ['#ffffff', '#ffe14d', '#ff9cc8', '#ffffff'], nSpeck: 1400, sand: '#d9b874', curb: ['#f6f6f6', '#e8343f'], road: '#74747c', bank: '#e6cf8e', water: ['#2f7fe0', '#4aa0ff', '#9fd2ff'], ice: false,
+          sky: ['#2f6fe0', '#7cc4ff', '#c9ecff'], cloud: '#ffffff', nCloud: 9, hills: [['#7d95c9', 10, 9, 3, 2], ['#3f8f55', 3, 5, 5, 5]], tl: '#2f7a44', haze: '201,236,255', tree: 'pine', bush: 'bush', fx: 'petal', grip: 1, off: 0.42 } },
+      { id: 'summer', season: 'Summer', name: 'Sunny Bay',
+        CP: [[120, 700], [120, 360], [220, 150], [420, 110], [560, 200], [700, 140], [790, 260], [760, 420], [640, 480], [700, 600], [780, 760], [640, 900], [420, 880], [330, 740], [220, 880]],
+        LAKES: [[1150, 512, 300, 700], [395, 470, 95, 110]], PADS: [[0.16, 12], [0.47, -12], [0.78, 0]],
+        th: { g: ['#eed9a0', '#f3e1ad'], out: [[40, 140, 210], [46, 150, 218]], specks: ['#ffffff', '#e0b878', '#f7a6a0', '#d9c08a'], nSpeck: 700, sand: '#fff3cf', curb: ['#ffffff', '#2f8bff'], road: '#85858f', bank: '#fff6da', water: ['#1f8fd6', '#38b7e8', '#c8f3ff'], ice: false,
+          sky: ['#1590f0', '#6fd2ff', '#e4fbff'], cloud: '#ffffff', nCloud: 4, hills: [['#2a8fd0', 3, 1, 2, 1], ['#4fae6a', 2, 7, 2, 9]], tl: null, haze: '228,250,255', tree: 'palm', bush: 'umbrella', fx: 'none', grip: 1, off: 0.5 } },
+      { id: 'autumn', season: 'Autumn', name: 'Maple Hollow',
+        CP: [[150, 850], [110, 560], [180, 330], [120, 160], [300, 90], [460, 200], [420, 380], [600, 420], [720, 260], [880, 170], [930, 380], [820, 560], [900, 760], [760, 920], [520, 820], [380, 930]],
+        LAKES: [[300, 600, 85, 100], [650, 650, 75, 62]], PADS: [[0.12, -12], [0.5, 12], [0.8, -12]],
+        th: { g: ['#8c9a3c', '#97a444'], out: [[112, 120, 46], [120, 128, 52]], specks: ['#e8541f', '#ffb02e', '#c8322a', '#9a5a1f', '#ffd24a'], nSpeck: 3200, sand: '#c9a066', curb: ['#f6f6f6', '#ff7a1a'], road: '#6a6670', bank: '#c9a066', water: ['#2a4f8a', '#3b6aa8', '#8fb0e0'], ice: false,
+          sky: ['#3b2a6b', '#c45a7a', '#ffb36b'], cloud: '#ffcfb0', nCloud: 6, hills: [['#5a3f7a', 10, 9, 3, 2], ['#7a4a3a', 3, 5, 5, 5]], tl: '#b8561f', haze: '255,196,150', tree: 'maple', bush: 'pumpkin', fx: 'leaf', grip: 1, off: 0.42 } },
+      { id: 'winter', season: 'Winter', name: 'Frost Peak',
+        CP: [[160, 800], [160, 500], [260, 300], [200, 140], [400, 100], [520, 260], [680, 140], [860, 180], [900, 380], [740, 460], [880, 640], [860, 860], [620, 900], [520, 700], [360, 880]],
+        LAKES: [[420, 510, 110, 85]], PADS: [[0.14, 12], [0.5, -12], [0.83, 12]],
+        th: { g: ['#e8f1fa', '#f4f8fd'], out: [[214, 226, 240], [226, 236, 248]], specks: ['#cfe0f2', '#ffffff', '#b8cde4'], nSpeck: 1200, sand: '#cfdcea', curb: ['#ffffff', '#2f6fe0'], road: '#7c8290', bank: '#ffffff', water: ['#8fcbe8', '#b4e2f6', '#ffffff'], ice: true,
+          sky: ['#5d8fd6', '#a9cdf2', '#eef6ff'], cloud: '#ffffff', nCloud: 7, hills: [['#c9d8ee', 14, 14, 3, 2], ['#f4f8ff', 5, 8, 4, 7]], tl: '#4f6e7e', haze: '238,246,255', tree: 'snowpine', bush: 'snowman', fx: 'snow', grip: 0.85, off: 0.45 } }
+    ];
+    const buildCL = CP => {
       const n = CP.length, dense = [];
       const cr = (a, b, c, d, t, k) => { const t2 = t * t, t3 = t2 * t; return 0.5 * (2 * b[k] + (-a[k] + c[k]) * t + (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t2 + (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * t3); };
       for (let i = 0; i < n; i++) { const a = CP[(i - 1 + n) % n], b = CP[i], c = CP[(i + 1) % n], d = CP[(i + 2) % n]; for (let k = 0; k < 30; k++) dense.push([cr(a, b, c, d, k / 30, 0), cr(a, b, c, d, k / 30, 1)]); }
@@ -13483,10 +13504,16 @@ function engine(){
       if (Math.hypot(out[out.length - 1][0] - out[0][0], out[out.length - 1][1] - out[0][1]) < STEP * 0.6) out.pop();
       const N = out.length; out.forEach((p, i) => { const a = out[(i - 1 + N) % N], b = out[(i + 1) % N]; p[2] = Math.atan2(b[1] - a[1], b[0] - a[0]); });
       return out;
-    })();
-    const NC = CL.length;
+    };
+    let TR = null, CL = null, NC = 0, PADS = [];
     const atIdx = (f, lat) => { const p = CL[((Math.floor(f) % NC) + NC) % NC]; return [p[0] - Math.sin(p[2]) * lat, p[1] + Math.cos(p[2]) * lat, p[2]]; };
-    const PADS = [[0.205, -12], [0.53, 14], [0.84, -12]].map(q => { const i = Math.floor(q[0] * NC), p = atIdx(i, q[1]); return { i, x: p[0], y: p[1], a: p[2] }; });
+    const loadTrack = ti => {
+      TR = TRACKS[ti]; if (!TR.CL) TR.CL = buildCL(TR.CP); CL = TR.CL; NC = CL.length;
+      if (!TR.pads) TR.pads = TR.PADS.map(q => { const i = Math.floor(q[0] * NC), p = atIdx(i, q[1]); return { i, x: p[0], y: p[1], a: p[2] }; });
+      PADS = TR.pads;
+    };
+    const SEASON = (() => { const m = new Date().getMonth(); return m === 11 || m < 2 ? 3 : m < 5 ? 0 : m < 8 ? 1 : 2; })();
+    loadTrack(SEASON);
 
     /* --- pixel sprites --- */
     const kartSprite = (cr, th) => {
@@ -13515,12 +13542,52 @@ function engine(){
       W4.filter(o => o.d <= 0).sort((a, b) => b.d - a.d).forEach(o => wheel(o.w));
       return cv;
     };
-    const treeSprite = () => {
+    const treeSprite = snow => {
       const cv = mkCv(26, 40), x = cv.getContext('2d');
       x.fillStyle = '#6b4224'; x.fillRect(11, 31, 4, 9);
       const tiers = [[31, 13], [24, 11], [17, 8], [10, 5]];
       tiers.forEach(([y, hw], i) => { for (let r = 0; r < 11; r++) { const ww = Math.round(hw * (r + 2) / 12); x.fillStyle = r < 3 ? '#2f8a3a' : '#1f6b2c'; x.fillRect(13 - ww, y - 11 + r, ww, 1); x.fillStyle = r < 3 ? '#1f6b2c' : '#145021'; x.fillRect(13, y - 11 + r, ww, 1); } });
       x.fillStyle = '#5fc36a'; x.fillRect(12, 1, 1, 3);
+      if (snow) { x.fillStyle = '#ffffff'; tiers.forEach(([y, hw]) => { for (let r = 0; r < 4; r++) { const ww = Math.round(hw * (r + 2) / 12); x.fillRect(13 - ww, y - 11 + r, ww * 2, 1); } x.fillRect(13 - hw + 1, y - 1, 3, 1); x.fillRect(13 + hw - 4, y - 1, 3, 1); }); x.fillStyle = '#dce9f7'; x.fillRect(13, 23, 6, 1); x.fillRect(13, 16, 5, 1); }
+      return cv;
+    };
+    const palmSprite = () => {
+      const cv = mkCv(34, 44), x = cv.getContext('2d');
+      for (let i = 0; i < 26; i++) { const tx = 15 + Math.round(Math.sin(i / 26 * 1.6) * 4); x.fillStyle = i % 4 < 2 ? '#9a6a3a' : '#7d5230'; x.fillRect(tx, 43 - i, 4, 1); }
+      const top = [20, 16]; x.fillStyle = '#5b3a1e'; x.fillRect(17, 15, 3, 3); x.fillRect(21, 16, 3, 3);
+      [[-1, -0.2], [-0.8, 0.5], [0.8, 0.5], [1, -0.2], [0.1, -1], [-0.45, 0.9], [0.45, 0.9]].forEach(([dx, dy], k) => {
+        for (let i = 0; i < 13; i++) { const px = top[0] + dx * i, py = top[1] + dy * i * 0.7 + i * i * 0.045; x.fillStyle = k % 2 ? '#2f9a3a' : '#3fbf4a'; x.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 2); x.fillStyle = '#1f7a2c'; if (i % 2) x.fillRect(Math.round(px + dy), Math.round(py + 1), 1, 2); }
+      });
+      return cv;
+    };
+    const umbrellaSprite = v => {
+      const cv = mkCv(24, 26), x = cv.getContext('2d'), cols = [['#ff4f6d', '#ffffff'], ['#2f8bff', '#ffe14d'], ['#18b06a', '#ffffff']][v % 3];
+      x.fillStyle = v % 2 ? '#ff9a3c' : '#5ad1ff'; x.fillRect(4, 22, 16, 4);
+      x.fillStyle = '#e8e8e8'; x.fillRect(11, 8, 2, 16);
+      for (let r = 0; r < 8; r++) { const ww = Math.round(Math.sqrt(1 - ((7 - r) / 8) ** 2) * 11); for (let i = -ww; i < ww; i++) { x.fillStyle = cols[(Math.floor((i + 12) / 3)) & 1]; x.fillRect(12 + i, 2 + r, 1, 1); } }
+      return cv;
+    };
+    const mapleSprite = v => {
+      const pal = [['#e8541f', '#c43a17', '#ff8a3c'], ['#ffb02e', '#e08a12', '#ffd25a'], ['#c8322a', '#9a2220', '#ef5a3a']][v % 3];
+      const cv = mkCv(32, 40), x = cv.getContext('2d'), r = mulberry(v * 13 + 5);
+      x.fillStyle = '#5a3820'; x.fillRect(14, 22, 4, 18); x.fillRect(10, 24, 4, 2); x.fillRect(18, 26, 4, 2);
+      for (let k = 0; k < 9; k++) { const cx = 16 + (r() - 0.5) * 16, cy = 14 + (r() - 0.5) * 14, rad = 6 + r() * 4; x.fillStyle = pal[k < 3 ? 1 : k < 7 ? 0 : 2]; x.beginPath(); x.arc(cx, cy, rad, 0, TAU); x.fill(); }
+      x.fillStyle = pal[2]; for (let k = 0; k < 10; k++) x.fillRect(Math.round(6 + r() * 20), Math.round(5 + r() * 18), 2, 2);
+      return cv;
+    };
+    const pumpkinSprite = v => {
+      const cv = mkCv(18, 15), x = cv.getContext('2d');
+      x.fillStyle = '#c95a0e'; x.beginPath(); x.ellipse(9, 9, 8.5, 6, 0, 0, TAU); x.fill();
+      x.fillStyle = '#ff8a1e'; [[5, 9, 3.5], [13, 9, 3.5], [9, 9, 3.6]].forEach(([cx, cy, rx]) => { x.beginPath(); x.ellipse(cx, cy, rx, 5.6, 0, 0, TAU); x.fill(); });
+      x.fillStyle = '#4a7a22'; x.fillRect(8, 1, 2, 3);
+      if (v % 2) { x.fillStyle = '#ffe14d'; x.fillRect(5, 7, 2, 2); x.fillRect(11, 7, 2, 2); x.fillRect(6, 11, 6, 1); x.fillRect(7, 12, 1, 1); x.fillRect(10, 12, 1, 1); }
+      return cv;
+    };
+    const snowmanSprite = () => {
+      const cv = mkCv(18, 28), x = cv.getContext('2d');
+      [[9, 21, 6.5], [9, 12, 5], [9, 5.5, 3.6]].forEach(([cx, cy, r]) => { x.fillStyle = '#c9d8ea'; x.beginPath(); x.arc(cx + 0.6, cy + 0.6, r, 0, TAU); x.fill(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.fill(); });
+      x.fillStyle = '#222'; x.fillRect(5, 1, 8, 2); x.fillRect(6, -2, 6, 3); x.fillRect(7, 5, 1, 1); x.fillRect(10, 5, 1, 1); x.fillRect(9, 11, 1, 1); x.fillRect(9, 14, 1, 1);
+      x.fillStyle = '#ff7a1a'; x.fillRect(9, 6, 3, 1); x.fillStyle = '#e8343f'; x.fillRect(5, 8, 8, 2); x.fillRect(11, 10, 2, 3);
       return cv;
     };
     const bushSprite = () => {
@@ -13544,23 +13611,31 @@ function engine(){
       sk, hold: true, noVeil: true, title: 'Hoodie Kart', how: 'Steer and grab items. Hold a hard turn to charge a mini-turbo.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], t: 0, keys: {}, touches: null, karts: [], boxes: [], coins: [], haz: [], trees: [],
       ensure() {
-        if (this.tex) return;
+        if (!this.KS) { this.KS = CREW.map(c => { const a = []; for (let i = 0; i < 16; i++) a.push(kartSprite(c, i / 16 * TAU)); return a; }); this.CB = { coin: coinSprite(), box: boxSprite(), ball: ballSprite() }; }
+        if (!TR.tex) this.buildTrack();
+        this.tex = TR.tex; this.surf = TR.surf; this.trees = TR.trees; this.mini = TR.mini;
+        this.SPR = { k: this.KS, coin: this.CB.coin, box: this.CB.box, ball: this.CB.ball, tree: TR.spr.tree, bush: TR.spr.bush, tw: TR.spr.tw, bw: TR.spr.bw };
+        this.fxp = null; this.layout();
+      },
+      buildTrack() {
+        const th = TR.th;
         /* colour texture */
         const cv = mkCv(TS, TS), x = cv.getContext('2d');
-        for (let j = 0; j < TS; j += 16) for (let i = 0; i < TS; i += 16) { x.fillStyle = ((i ^ j) & 16) ? '#56b141' : '#61bd4b'; x.fillRect(i, j, 16, 16); }
-        const LAKES = [[300, 610, 82, 130], [690, 740, 100, 62]];
+        for (let j = 0; j < TS; j += 16) for (let i = 0; i < TS; i += 16) { x.fillStyle = th.g[((i ^ j) & 16) ? 0 : 1]; x.fillRect(i, j, 16, 16); }
+        for (let k = 0; k < th.nSpeck; k++) { x.fillStyle = th.specks[k % th.specks.length]; x.fillRect(Math.floor(Math.random() * TS), Math.floor(Math.random() * TS), th.fx === 'leaf' ? 3 : 2, 2); }
+        const LAKES = TR.LAKES;
         LAKES.forEach(([cx, cy, rx, ry]) => {
-          x.fillStyle = '#e6cf8e'; x.beginPath(); x.ellipse(cx, cy, rx + 12, ry + 12, 0, 0, TAU); x.fill();
-          x.fillStyle = '#2f7fe0'; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, TAU); x.fill();
-          x.fillStyle = '#4aa0ff'; x.beginPath(); x.ellipse(cx, cy, rx - 14, ry - 14, 0, 0, TAU); x.fill();
-          x.fillStyle = '#9fd2ff'; for (let k = 0; k < 14; k++) { const a = rand(0, TAU), d = Math.sqrt(Math.random()) * 0.75; x.fillRect(Math.round(cx + Math.cos(a) * rx * d), Math.round(cy + Math.sin(a) * ry * d), 8, 2); }
+          x.fillStyle = th.bank; x.beginPath(); x.ellipse(cx, cy, rx + 12, ry + 12, 0, 0, TAU); x.fill();
+          x.fillStyle = th.water[0]; x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, TAU); x.fill();
+          x.fillStyle = th.water[1]; x.beginPath(); x.ellipse(cx, cy, rx - 14, ry - 14, 0, 0, TAU); x.fill();
+          x.fillStyle = th.water[2]; for (let k = 0; k < Math.min(60, rx * ry / 500); k++) { const a = rand(0, TAU), d = Math.sqrt(Math.random()) * 0.75; if (th.ice) { x.fillRect(Math.round(cx + Math.cos(a) * rx * d), Math.round(cy + Math.sin(a) * ry * d), Math.round(rand(6, 18)), 1); x.fillRect(Math.round(cx + Math.cos(a) * rx * d) + 4, Math.round(cy + Math.sin(a) * ry * d) + 1, 1, 4); } else x.fillRect(Math.round(cx + Math.cos(a) * rx * d), Math.round(cy + Math.sin(a) * ry * d), 8, 2); }
         });
         const path = c => { c.beginPath(); CL.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); };
         x.lineJoin = 'round'; x.lineCap = 'round';
-        path(x); x.strokeStyle = '#d9b874'; x.lineWidth = RWD * 2 + 36; x.stroke();
-        path(x); x.strokeStyle = '#f6f6f6'; x.lineWidth = RWD * 2 + 10; x.stroke();
-        path(x); x.strokeStyle = '#e8343f'; x.setLineDash([12, 12]); x.stroke(); x.setLineDash([]);
-        path(x); x.strokeStyle = '#74747c'; x.lineWidth = RWD * 2; x.stroke();
+        path(x); x.strokeStyle = th.sand; x.lineWidth = RWD * 2 + 36; x.stroke();
+        path(x); x.strokeStyle = th.curb[0]; x.lineWidth = RWD * 2 + 10; x.stroke();
+        path(x); x.strokeStyle = th.curb[1]; x.setLineDash([12, 12]); x.stroke(); x.setLineDash([]);
+        path(x); x.strokeStyle = th.road; x.lineWidth = RWD * 2; x.stroke();
         /* start line */
         { const p = CL[0]; x.save(); x.translate(p[0], p[1]); x.rotate(p[2]); for (let r = -RWD; r < RWD; r += 6) for (let k = 0; k < 2; k++) { x.fillStyle = ((r / 6 + k) & 1) ? '#111' : '#fff'; x.fillRect(-6 + k * 6, r, 6, 6); } x.restore(); }
         /* grid boxes */
@@ -13569,30 +13644,30 @@ function engine(){
         /* boost pads */
         PADS.forEach(p => { x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = '#ff7a1a'; x.fillRect(-16, -13, 32, 26); x.fillStyle = '#ffe14d'; for (let k = 0; k < 3; k++) { x.beginPath(); x.moveTo(-12 + k * 9, -10); x.lineTo(-5 + k * 9, 0); x.lineTo(-12 + k * 9, 10); x.lineTo(-8 + k * 9, 10); x.lineTo(-1 + k * 9, 0); x.lineTo(-8 + k * 9, -10); x.closePath(); x.fill(); } x.restore(); });
         /* barrier round the edge */
-        for (let i = 0; i < TS; i += 16) { const c = (i / 16) & 1 ? '#e8343f' : '#f6f6f6'; x.fillStyle = c; x.fillRect(i, 0, 16, 7); x.fillRect(i, TS - 7, 16, 7); x.fillRect(0, i, 7, 16); x.fillRect(TS - 7, i, 7, 16); }
+        for (let i = 0; i < TS; i += 16) { const c = (i / 16) & 1 ? th.curb[1] : th.curb[0]; x.fillStyle = c; x.fillRect(i, 0, 16, 7); x.fillRect(i, TS - 7, 16, 7); x.fillRect(0, i, 7, 16); x.fillRect(TS - 7, i, 7, 16); }
         const id = x.getImageData(0, 0, TS, TS), d = id.data;
         for (let i = 0; i < d.length; i += 4) { const n = ((i * 2654435761) >>> 27) - 16; if (d[i] === d[i + 1] && d[i] > 90 && d[i] < 140) { d[i] += n >> 1; d[i + 1] += n >> 1; d[i + 2] += n >> 1; } else { d[i] += n >> 2; d[i + 1] += n >> 2; d[i + 2] += n >> 2; } }
-        this.tex = new Uint32Array(d.buffer);
-        /* surface map: 0 grass, 1 sand, 2 road, 3 water, 4 boost */
+        TR.tex = new Uint32Array(d.buffer);
+        /* surface map: 0 grass, 1 sand, 2 road, 3 water, 4 boost, 5 ice */
         const sv = mkCv(TS, TS), y = sv.getContext('2d'); y.fillStyle = '#000'; y.fillRect(0, 0, TS, TS);
-        LAKES.forEach(([cx, cy, rx, ry]) => { y.fillStyle = 'rgb(80,0,0)'; y.beginPath(); y.ellipse(cx, cy, rx + 12, ry + 12, 0, 0, TAU); y.fill(); y.fillStyle = 'rgb(250,0,0)'; y.beginPath(); y.ellipse(cx, cy, rx - 4, ry - 4, 0, 0, TAU); y.fill(); });
+        LAKES.forEach(([cx, cy, rx, ry]) => { y.fillStyle = 'rgb(80,0,0)'; y.beginPath(); y.ellipse(cx, cy, rx + 12, ry + 12, 0, 0, TAU); y.fill(); y.fillStyle = th.ice ? 'rgb(120,0,0)' : 'rgb(250,0,0)'; y.beginPath(); y.ellipse(cx, cy, rx - 4, ry - 4, 0, 0, TAU); y.fill(); });
         y.lineJoin = 'round'; path(y); y.strokeStyle = 'rgb(80,0,0)'; y.lineWidth = RWD * 2 + 36; y.stroke(); path(y); y.strokeStyle = 'rgb(160,0,0)'; y.lineWidth = RWD * 2 + 10; y.stroke();
         PADS.forEach(p => { y.save(); y.translate(p.x, p.y); y.rotate(p.a); y.fillStyle = 'rgb(205,0,0)'; y.fillRect(-16, -13, 32, 26); y.restore(); });
         const sd = y.getImageData(0, 0, TS, TS).data, surf = new Uint8Array(TS * TS);
-        for (let i = 0; i < surf.length; i++) { const r = sd[i * 4]; surf[i] = r < 40 ? 0 : r < 120 ? 1 : r < 182 ? 2 : r < 228 ? 4 : 3; }
-        this.surf = surf;
+        for (let i = 0; i < surf.length; i++) { const r = sd[i * 4]; surf[i] = r < 40 ? 0 : r < 100 ? 1 : r < 136 ? (th.ice ? 5 : 1) : r < 182 ? 2 : r < 228 ? 4 : 3; }
+        TR.surf = surf;
         /* scenery */
-        this.trees = []; let tries = 0;
-        while (this.trees.length < 90 && tries++ < 4000) {
+        const trees = []; let tries = 0;
+        while (trees.length < 90 && tries++ < 4000) {
           const tx = rand(24, TS - 24), ty = rand(24, TS - 24); if (surf[(ty | 0) * TS + (tx | 0)] !== 0) continue;
           let near = 1e9; for (let i = 0; i < NC; i += 3) { const p = CL[i], dd = (p[0] - tx) ** 2 + (p[1] - ty) ** 2; if (dd < near) near = dd; }
-          if (near < (RWD + 34) ** 2) continue; if (this.trees.some(t => (t.x - tx) ** 2 + (t.y - ty) ** 2 < 30 * 30)) continue;
-          this.trees.push({ x: tx, y: ty, b: Math.random() < 0.3 });
+          if (near < (RWD + 34) ** 2) continue; if (trees.some(t => (t.x - tx) ** 2 + (t.y - ty) ** 2 < 30 * 30)) continue;
+          trees.push({ x: tx, y: ty, b: Math.random() < (th.bush === 'pumpkin' ? 0.4 : 0.3), v: Math.floor(Math.random() * 6) });
         }
-        this.SPR = { k: CREW.map(c => { const a = []; for (let i = 0; i < 16; i++) a.push(kartSprite(c, i / 16 * TAU)); return a; }), tree: treeSprite(), bush: bushSprite(), coin: coinSprite(), box: boxSprite(), ball: ballSprite() };
-        /* minimap */
-        const mm = mkCv(120, 120), m = mm.getContext('2d'); m.scale(120 / TS, 120 / TS); m.lineJoin = 'round'; path(m); m.strokeStyle = 'rgba(0,0,0,.55)'; m.lineWidth = RWD * 2 + 34; m.stroke(); path(m); m.strokeStyle = '#ffffff'; m.lineWidth = RWD * 2 - 10; m.stroke(); this.mini = mm;
-        this.layout();
+        TR.trees = trees;
+        const mm = mkCv(120, 120), m = mm.getContext('2d'); m.scale(120 / TS, 120 / TS); m.lineJoin = 'round'; path(m); m.strokeStyle = 'rgba(0,0,0,.55)'; m.lineWidth = RWD * 2 + 34; m.stroke(); path(m); m.strokeStyle = '#ffffff'; m.lineWidth = RWD * 2 - 10; m.stroke(); TR.mini = mm;
+        const T = th.tree, B = th.bush;
+        TR.spr = { tree: T === 'palm' ? [palmSprite()] : T === 'maple' ? [0, 1, 2].map(mapleSprite) : [treeSprite(T === 'snowpine')], bush: B === 'umbrella' ? [0, 1, 2].map(umbrellaSprite) : B === 'pumpkin' ? [0, 1].map(pumpkinSprite) : B === 'snowman' ? [snowmanSprite()] : [bushSprite()], tw: T === 'palm' ? 36 : T === 'maple' ? 34 : 30, bw: B === 'umbrella' ? 24 : B === 'pumpkin' ? 14 : B === 'snowman' ? 17 : 26 };
       },
       layout() {
         const W = this.W, H = this.H; if (!W || !H) return;
@@ -13606,15 +13681,18 @@ function engine(){
       },
       mkSky() {
         const SW = 512, sh = Math.max(4, Math.floor(this.hor) + 1), cv = mkCv(SW, sh), x = cv.getContext('2d');
-        const g = x.createLinearGradient(0, 0, 0, sh); g.addColorStop(0, '#2f6fe0'); g.addColorStop(0.7, '#7cc4ff'); g.addColorStop(1, '#c9ecff'); x.fillStyle = g; x.fillRect(0, 0, SW, sh);
+        const g = x.createLinearGradient(0, 0, 0, sh); const th = TR.th; g.addColorStop(0, th.sky[0]); g.addColorStop(0.7, th.sky[1]); g.addColorStop(1, th.sky[2]); x.fillStyle = g; x.fillRect(0, 0, SW, sh);
         const r = mulberry(7);
-        x.fillStyle = '#ffffff'; for (let i = 0; i < 9; i++) { const cx = r() * SW, cy = sh * (0.15 + r() * 0.45), s = 4 + r() * 6; for (let k = 0; k < 4; k++) { x.fillRect(Math.round(cx + (k - 1.5) * s), Math.round(cy - s * (k === 1 || k === 2 ? 0.8 : 0.4)), Math.round(s * 1.4), Math.round(s * (k === 1 || k === 2 ? 1.2 : 0.8))); } }
+        x.fillStyle = th.cloud; for (let i = 0; i < th.nCloud; i++) { const cx = r() * SW, cy = sh * (0.15 + r() * 0.45), s = 4 + r() * 6; for (let k = 0; k < 4; k++) { x.fillRect(Math.round(cx + (k - 1.5) * s), Math.round(cy - s * (k === 1 || k === 2 ? 0.8 : 0.4)), Math.round(s * 1.4), Math.round(s * (k === 1 || k === 2 ? 1.2 : 0.8))); } }
         const hill = (col, base, amp, f, seed) => { const rr = mulberry(seed); const ph = [rr() * 9, rr() * 9]; x.fillStyle = col; x.beginPath(); x.moveTo(0, sh); for (let i = 0; i <= SW; i += 2) { const t = i / SW * TAU; x.lineTo(i, Math.round(sh - base - amp * (0.6 * Math.sin(t * f + ph[0]) + 0.4 * Math.sin(t * f * 2.7 + ph[1])))); } x.lineTo(SW, sh); x.fill(); };
-        hill('#7d95c9', 10, 9, 3, 2); hill('#3f8f55', 3, 5, 5, 5);
-        x.fillStyle = '#2f7a44'; for (let i = 0; i < SW; i += 7) { const hh = 2 + ((i * 37) % 5); x.fillRect(i, sh - hh, 5, hh); }
+        th.hills.forEach(q => hill(...q));
+        if (TR.id === 'autumn') { x.fillStyle = '#fff3d6'; x.beginPath(); x.arc(SW * 0.3, sh * 0.32, Math.max(3, sh * 0.07), 0, TAU); x.fill(); }
+        if (TR.id === 'summer') { x.fillStyle = '#fffbe0'; x.beginPath(); x.arc(SW * 0.62, sh * 0.25, Math.max(3, sh * 0.08), 0, TAU); x.fill(); }
+        if (th.tl) { x.fillStyle = th.tl; for (let i = 0; i < SW; i += 7) { const hh = 2 + ((i * 37) % 5); x.fillRect(i, sh - hh, 5, hh); } }
         this.sky = cv;
       },
       reset() {
+        if (this.ti == null) this.ti = SEASON; loadTrack(this.ti); if (this.tex !== TR.tex) { this.tex = TR.tex || null; this.surf = TR.surf; this.trees = TR.trees || []; this.mini = TR.mini; if (TR.tex) this.ensure(); }
         this.t = 0; this.cd = 3.4; this.over = false; this.endT = 0; this.fin = []; this.haz = []; this.floats = []; this.keys = {}; this.roll = 0; this.lapT = []; this.lapStart = 0; this.charge = 0; this.sparkT = 0; this.score = 0; this.msgT = 0; this.t0r = 0; this.place = 0; this.order = null;
         const slot = [3, 0, 1, 2, 4, 5];
         this.karts = CREW.map((c, i) => {
@@ -13625,10 +13703,13 @@ function engine(){
         this.boxes = []; [0.12, 0.45, 0.72].forEach(f => [-27, -9, 9, 27].forEach(l => { const p = atIdx(f * NC, l); this.boxes.push({ x: p[0], y: p[1], t: 0 }); }));
         this.coins = []; [0.07, 0.3, 0.62, 0.9].forEach((f, gi) => { for (let k = 0; k < 5; k++) { const p = atIdx(f * NC + k * 3, (gi & 1 ? 16 : -16)); this.coins.push({ x: p[0], y: p[1], t: 0 }); } });
         this.ca = this.me.a; this.cam();
-        try { this.bestLap = +(localStorage.getItem('gregsnap_kart_v1') || 0); } catch (_) { this.bestLap = 0; }
+        this.bestLap = this.bests()[TR.id] || 0;
         this.state = 'ready';
       },
       enter() { this.reset(); },
+      bests() { try { const r = localStorage.getItem('gregsnap_kart_v1'); if (!r) return {}; const v = JSON.parse(r); return typeof v === 'number' ? { spring: v } : v || {}; } catch (_) { return {}; } },
+      saveBest(t) { this.bestLap = t; try { const b = this.bests(); b[TR.id] = t; localStorage.setItem('gregsnap_kart_v1', JSON.stringify(b)); } catch (_) {} },
+      pickTrack(d) { this.ti = (this.ti + d + TRACKS.length) % TRACKS.length; sfx(d > 0 ? 660 : 520, 0.06, 0.05, 'square'); this.reset(); },
       cam() { this.camx = this.me.x - Math.cos(this.ca) * this.D; this.camy = this.me.y - Math.sin(this.ca) * this.D; },
       itemRect() { const z = clamp(Math.min(this.w, this.h) * 0.11, 60, 104); return { x: this.w / 2 - z / 2, y: 10, w: z, h: z }; },
       bind(cv) {
@@ -13637,6 +13718,7 @@ function engine(){
         cv.addEventListener('pointerdown', ev => {
           const p = at(ev), r = this.itemRect();
           if (this.state === 'run' && p.x > r.x - 14 && p.x < r.x + r.w + 14 && p.y > r.y - 10 && p.y < r.y + r.h + 14) { this.useItem(this.me); return; }
+          if (this.state === 'ready' && (p.x < this.w * 0.22 || p.x > this.w * 0.78) && p.y > this.h * 0.25) { this.pickTrack(p.x < this.w / 2 ? -1 : 1); return; }
           if (this.kick()) return;
           this.touches.set(ev.pointerId, p); try { cv.setPointerCapture(ev.pointerId); } catch (_) {}
         });
@@ -13645,7 +13727,7 @@ function engine(){
       },
       key(e) {
         const down = e.type === 'keydown', k = e.key;
-        if (this.state !== 'run') { if (down && (k === ' ' || k === 'Enter')) { this.kick(); return true; } return false; }
+        if (this.state !== 'run') { if (down && (k === ' ' || k === 'Enter')) { this.kick(); return true; } if (down && this.state === 'ready' && (k === 'ArrowLeft' || k === 'ArrowRight')) { this.pickTrack(k === 'ArrowLeft' ? -1 : 1); return true; } return false; }
         if (k === 'ArrowLeft') this.keys.l = down; else if (k === 'ArrowRight') this.keys.r = down; else if (k === 'ArrowDown') this.keys.b = down; else if (k === 'ArrowUp') this.keys.u = down;
         else if (k === ' ' || k === 'x' || k === 'X' || k === 'Enter') { if (down && !e.repeat) this.useItem(this.me); }
         else return false;
@@ -13681,11 +13763,11 @@ function engine(){
         if (k.lap > LAPS && !k.done) { k.done = true; k.time = this.t; this.fin.push(k); if (k === this.me) this.finishRace(); return; }
         if (k !== this.me || k.lap < 2) { if (k === this.me) this.lapStart = this.t; return; }
         const lt = this.t - this.lapStart; this.lapStart = this.t; this.lapT.push(lt);
-        if (!this.bestLap || lt < this.bestLap) { this.bestLap = lt; try { localStorage.setItem('gregsnap_kart_v1', String(lt)); } catch (_) {} }
+        if (!this.bestLap || lt < this.bestLap) this.saveBest(lt);
         this.msg2 = k.lap === LAPS ? 'FINAL LAP' : 'LAP ' + k.lap; this.msgT = 1.6; sfx(660, 0.1, 0.05, 'square'); setTimeout(() => sfx(990, 0.18, 0.05, 'square'), 110);
       },
       finishRace() {
-        const lt = this.t - this.lapStart; this.lapT.push(lt); if (!this.bestLap || lt < this.bestLap) { this.bestLap = lt; try { localStorage.setItem('gregsnap_kart_v1', String(lt)); } catch (_) {} }
+        const lt = this.t - this.lapStart; this.lapT.push(lt); if (!this.bestLap || lt < this.bestLap) this.saveBest(lt);
         this.over = true; this.endT = 0; this.place = this.fin.indexOf(this.me); this.me.ai = true; this.me.skill = 0.9;
         this.score = PTS[this.place]; this.best = Math.max(this.best, this.score);
         this.msg2 = 'FINISH!'; this.msgT = 3; try { JING(this.place === 0 ? 'win' : this.place < 3 ? 'start' : 'over'); } catch (_) {}
@@ -13694,7 +13776,7 @@ function engine(){
         if (k.fall > 0) { k.fall -= dt; k.v = 0; k.vx = k.vy = 0; if (k.fall <= 0) { const p = atIdx(k.ci, 0); k.x = p[0]; k.y = p[1]; k.a = p[2]; k.coins = Math.max(0, k.coins - 3); } return; }
         const sf = this.surf[((k.y | 0) & M) * TS + ((k.x | 0) & M)];
         let top = TOP * k.tf * (1 + 0.012 * k.coins);
-        if (sf === 0) top *= 0.42; else if (sf === 1) top *= 0.66;
+        if (sf === 0) top *= TR.th.off; else if (sf === 1) top *= 0.66;
         if (sf === 4 && k.boost < 0.5) { k.boost = 0.85; if (k === this.me) sfx(220, 0.35, 0.05, 'sawtooth'); }
         if (k.boost > 0) { k.boost -= dt; top = Math.max(top, TOP * 1.42); }
         if (k.spin > 0) { k.spin -= dt; k.spinA += dt * 15; steer = 0; thr = 0; k.v *= Math.pow(0.08, dt); } else k.spinA = 0;
@@ -13703,7 +13785,7 @@ function engine(){
         else if (k.spin <= 0) k.v *= Math.pow(0.45, dt);
         const sp = clamp(Math.abs(k.v) / 60, 0, 1);
         k.a = wrapA(k.a + steer * 2.4 * sp * dt * (k.v < 0 ? -1 : 1));
-        const g = Math.min(1, dt * GRIP * (sf === 2 || sf === 4 ? 1 : 0.7));
+        const g = Math.min(1, dt * GRIP * TR.th.grip * (sf === 2 || sf === 4 ? 1 : sf === 5 ? 0.12 : 0.7));
         k.vx += (Math.cos(k.a) * k.v - k.vx) * g; k.vy += (Math.sin(k.a) * k.v - k.vy) * g;
         k.x += k.vx * dt; k.y += k.vy * dt;
         if (k.x < 12 || k.x > TS - 12) { k.x = clamp(k.x, 12, TS - 12); k.vx *= -0.4; k.v *= 0.45; if (k === this.me) sfx(110, 0.1, 0.06); }
@@ -13779,7 +13861,7 @@ function engine(){
         if (!this.buf) this.layout();
         const RW = this.RW, RH = this.RH, bx = this.bx, d32 = this.d32, tex = this.tex, F = this.F, Hc = this.Hc, hor = this.hor, cxB = this.cxB;
         const cs = Math.cos(this.ca), sn = Math.sin(this.ca), cx = this.camx, cy = this.camy, y0 = Math.max(0, Math.floor(hor) + 1);
-        const O0 = pack(74, 152, 58), O1 = pack(82, 162, 64);
+        const th = TR.th, O0 = pack(...th.out[0]), O1 = pack(...th.out[1]);
         for (let y = y0; y < RH; y++) {
           const z = Hc * F / (y + 0.5 - hor), k = z / F, rx = -sn * k, ry = cs * k;
           let wx = cx + cs * z - rx * cxB, wy = cy + sn * z - ry * cxB, o = y * RW;
@@ -13787,7 +13869,7 @@ function engine(){
         }
         bx.putImageData(this.img, 0, 0, 0, y0, RW, RH - y0);
         if (y0 > 0) { const SW = this.sky.width, off = ((-this.ca / TAU) * SW * 2 % SW + SW) % SW; for (let xx = -off; xx < RW; xx += SW) bx.drawImage(this.sky, Math.floor(xx), 0); }
-        const hz = bx.createLinearGradient(0, y0, 0, y0 + RH * 0.07); hz.addColorStop(0, 'rgba(201,236,255,.85)'); hz.addColorStop(1, 'rgba(201,236,255,0)'); bx.fillStyle = hz; bx.fillRect(0, y0, RW, RH * 0.07);
+        const hz = bx.createLinearGradient(0, y0, 0, y0 + RH * 0.07); hz.addColorStop(0, 'rgba(' + th.haze + ',.85)'); hz.addColorStop(1, 'rgba(' + th.haze + ',0)'); bx.fillStyle = hz; bx.fillRect(0, y0, RW, RH * 0.07);
         /* sprites, far to near */
         const L = [], S = this.SPR, me = this.me;
         this.trees.forEach(t => { const p = this.proj(t.x, t.y); if (p && p.sx > -60 && p.sx < RW + 60) L.push({ p, f: 't', o: t }); });
@@ -13799,7 +13881,7 @@ function engine(){
         bx.imageSmoothingEnabled = false;
         for (const it of L) {
           const p = it.p, s = p.s, o = it.o;
-          if (it.f === 't') { const im = o.b ? S.bush : S.tree, dw = (o.b ? 26 : 30) * s, dh = dw * im.height / im.width; bx.fillStyle = 'rgba(0,0,0,.18)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.4, dw * 0.12, 0, 0, TAU); bx.fill(); bx.drawImage(im, p.sx - dw / 2, p.sy - dh, dw, dh); }
+          if (it.f === 't') { const arr = o.b ? S.bush : S.tree, im = arr[o.v % arr.length], dw = (o.b ? S.bw : S.tw) * s, dh = dw * im.height / im.width; bx.fillStyle = 'rgba(0,0,0,.18)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.4, dw * 0.12, 0, 0, TAU); bx.fill(); bx.drawImage(im, p.sx - dw / 2, p.sy - dh, dw, dh); }
           else if (it.f === 'c') { const dw = 9 * s * Math.max(0.15, Math.abs(Math.cos(this.t * 4 + o.x))); bx.drawImage(S.coin, p.sx - dw / 2, p.sy - 13 * s, dw, 9 * s); }
           else if (it.f === 'b') { const dw = 14 * s, bob = Math.sin(this.t * 3 + o.x) * 1.5 * s; bx.fillStyle = 'rgba(0,0,0,.2)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.45, dw * 0.15, 0, 0, TAU); bx.fill(); bx.drawImage(S.box, p.sx - dw / 2, p.sy - 20 * s + bob, dw, dw); }
           else if (it.f === 'puddle') { bx.fillStyle = '#6b4a2b'; bx.beginPath(); bx.ellipse(p.sx, p.sy, 12 * s, 3.6 * s, 0, 0, TAU); bx.fill(); bx.fillStyle = '#8a6440'; bx.beginPath(); bx.ellipse(p.sx - 2 * s, p.sy - 0.6 * s, 6 * s, 1.6 * s, 0, 0, TAU); bx.fill(); }
@@ -13812,6 +13894,17 @@ function engine(){
             if (o.boost > 0 && idx <= 2 || o.boost > 0 && idx >= 14) { bx.fillStyle = (this.t * 20 | 0) & 1 ? '#ffb300' : '#ff4f1f'; bx.beginPath(); bx.ellipse(p.sx, p.sy - dh * 0.32, dw * 0.12, dh * 0.2, 0, 0, TAU); bx.fill(); }
             bx.drawImage(im, p.sx - dw / 2, yy, dw, dh); bx.globalAlpha = 1;
             if (o === me && this.charge > 0.75 && !this.over) { const col = this.charge > 1.6 ? ['#ff8a1e', '#ffd34d'] : ['#5ad1ff', '#e6f8ff']; for (let q = 0; q < 6; q++) { bx.fillStyle = col[q & 1]; bx.fillRect(p.sx + (q < 3 ? -1 : 1) * dw * 0.32 + rand(-2, 2) * s * 0.3, p.sy - rand(0, 5) * s * 0.4, Math.max(1, s * 0.9), Math.max(1, s * 0.9)); } }
+          }
+        }
+        /* seasonal weather */
+        if (th.fx !== 'none') {
+          const n = th.fx === 'snow' ? 110 : 45, dt = Math.min(0.05, Math.max(0, this.t - (this.fxT || this.t))), dca = wrapA(this.ca - (this.fxA == null ? this.ca : this.fxA)); this.fxT = this.t; this.fxA = this.ca;
+          if (!this.fxp || this.fxp.length !== n) { this.fxp = []; for (let q = 0; q < n; q++) this.fxp.push({ x: Math.random() * RW, y: Math.random() * RH, ph: rand(0, TAU), sp: rand(0.6, 1.4), c: q % 3 }); }
+          const cols = th.fx === 'snow' ? ['#ffffff', '#ffffff', '#dfeeff'] : th.fx === 'leaf' ? ['#e8541f', '#ffb02e', '#c8322a'] : ['#ffc2dc', '#ffffff', '#ff9cc8'];
+          for (const q of this.fxp) {
+            q.y += (th.fx === 'snow' ? 22 : 16) * q.sp * dt * (RH / 180); q.x += (Math.sin(this.t * 1.7 + q.ph) * 10 - dca / dt * F * 0.9 * (dt > 0 ? 1 : 0)) * dt + (th.fx === 'leaf' ? 6 * dt : 0);
+            if (q.y > RH) { q.y -= RH; q.x = Math.random() * RW; } if (q.x < 0) q.x += RW; if (q.x > RW) q.x -= RW;
+            bx.fillStyle = cols[q.c]; const sz = q.sp > 1.1 ? 2 : 1; if (th.fx === 'leaf') bx.fillRect(q.x | 0, q.y | 0, 2, (Math.sin(this.t * 6 + q.ph) > 0) ? 1 : 2); else bx.fillRect(q.x | 0, q.y | 0, sz, sz);
           }
         }
         /* blit + shake */
@@ -13856,17 +13949,21 @@ function engine(){
         if (this.state === 'run' && this.msgT > 0 && this.cd <= 0) this.ht(c, this.msg2, w / 2, h * 0.32, big * 0.75, this.msg2 === 'FINISH!' ? '#ffe14d' : '#ffffff', 'center');
         if (this.state === 'ready') {
           c.fillStyle = 'rgba(14,16,52,.55)'; c.fillRect(-this.ox, -this.oy, this.W, this.H);
-          const ty = h * 0.3; this.ht(c, 'HOODIE', w / 2, ty, big * 1.05, '#ffe14d', 'center'); this.ht(c, 'KART', w / 2, ty + big * 1.05, big * 1.35, '#ff4f6d', 'center');
+          const ty = h * 0.22; this.ht(c, 'HOODIE', w / 2, ty, big * 1.05, '#ffe14d', 'center'); this.ht(c, 'KART', w / 2, ty + big * 1.05, big * 1.35, '#ff4f6d', 'center');
+          const sy = ty + big * 2.2, scol = { spring: '#ff9cc8', summer: '#5ad1ff', autumn: '#ff8a3c', winter: '#dff1ff' }[TR.id];
+          this.ht(c, TR.season.toUpperCase(), w / 2, sy, sm * 0.9, scol, 'center'); this.ht(c, TR.name, w / 2, sy + sm * 1.5, sm * 1.25, '#ffffff', 'center');
+          const ay = sy + sm * 0.8, ax = Math.min(w * 0.11, 60); [-1, 1].forEach(d => { const x0 = w / 2 + d * (w / 2 - ax); c.fillStyle = 'rgba(20,20,58,.6)'; c.beginPath(); c.arc(x0, ay, sm * 1.5, 0, TAU); c.fill(); c.fillStyle = '#ffe14d'; c.beginPath(); c.moveTo(x0 + d * sm * 0.7, ay); c.lineTo(x0 - d * sm * 0.45, ay - sm * 0.75); c.lineTo(x0 - d * sm * 0.45, ay + sm * 0.75); c.closePath(); c.fill(); });
+          for (let q = 0; q < TRACKS.length; q++) { c.fillStyle = q === this.ti ? '#ffe14d' : 'rgba(255,255,255,.35)'; c.beginPath(); c.arc(w / 2 + (q - (TRACKS.length - 1) / 2) * 14, sy + sm * 2.7, 4, 0, TAU); c.fill(); }
           const touch = matchMedia('(pointer: coarse)').matches;
-          const lines = touch ? ['Hold left or right to steer', 'Tap the item box to use items', 'Hold a hard turn for a mini-turbo'] : ['← → steer   ↓ brake', 'Space uses your item', 'Hold a hard turn for a mini-turbo'];
-          lines.forEach((s, i) => this.ht(c, s, w / 2, ty + big * 2.3 + i * sm * 1.6, sm * 0.85, '#ffffff', 'center'));
-          if (this.bestLap) this.ht(c, 'Best lap ' + fmt(this.bestLap), w / 2, ty + big * 2.3 + 3 * sm * 1.6 + 6, sm * 0.75, '#7fe0ff', 'center');
+          const lines = touch ? ['Tap the arrows to pick a track', 'Hold left or right to steer', 'Tap the item box to use items'] : ['← → pick a track, then steer', '↓ brake   Space uses your item', 'Hold a hard turn for a mini-turbo'];
+          const ly = sy + sm * 4.4; lines.forEach((s, i) => this.ht(c, s, w / 2, ly + i * sm * 1.5, sm * 0.8, '#ffffff', 'center'));
+          if (this.bestLap) this.ht(c, 'Best lap ' + fmt(this.bestLap), w / 2, ly + 3 * sm * 1.5 + 4, sm * 0.75, '#7fe0ff', 'center');
           if ((this.t * 2 | 0) & 1) this.ht(c, touch ? 'Tap to race' : 'Click or press Space to race', w / 2, h * 0.84, sm, '#ffe14d', 'center');
         }
         if (this.state === 'dead') {
           c.fillStyle = 'rgba(14,16,52,.62)'; c.fillRect(-this.ox, -this.oy, this.W, this.H);
           const pl = this.place || 0; this.ht(c, ORD[pl], w / 2, h * 0.17, big * 1.6, ['#ffd700', '#e0e6f0', '#e09a5a', '#ffffff', '#ffffff', '#ffffff'][pl], 'center');
-          this.ht(c, pl === 0 ? 'You win!' : pl < 3 ? 'On the podium!' : 'Better luck next time', w / 2, h * 0.17 + big * 1.1, sm, '#ffffff', 'center');
+          this.ht(c, (pl === 0 ? 'You win ' : pl < 3 ? 'Podium at ' : 'Finished ') + TR.name + '!', w / 2, h * 0.17 + big * 1.1, sm, '#ffffff', 'center');
           const rows = this.order || this.karts, ry = h * 0.17 + big * 1.1 + sm * 2.2, lh = Math.min(sm * 1.9, (h * 0.86 - ry) / 7);
           rows.forEach((k, i) => { const y = ry + i * lh, x0 = w / 2 - Math.min(150, w * 0.4); c.fillStyle = k === this.me ? 'rgba(255,225,77,.25)' : 'rgba(255,255,255,.08)'; rr(c, x0, y - lh * 0.42, Math.min(300, w * 0.8), lh * 0.84, 8); c.fill(); this.ht(c, (i + 1) + '. ' + k.c.name, x0 + 10, y, sm * 0.85, '#ffffff', 'left', k.c.body); this.ht(c, k.done ? fmt(k.time - (this.t0r || 0)) : '--', x0 + Math.min(300, w * 0.8) - 10, y, sm * 0.8, '#ffe14d', 'right'); });
           this.ht(c, '+' + this.score + ' pts' + (this.bestLap ? '   best lap ' + fmt(this.bestLap) : ''), w / 2, ry + 6.4 * lh, sm * 0.8, '#7fe0ff', 'center');
@@ -13884,7 +13981,7 @@ function engine(){
     slide: '#1d2a7a', sbgc: '#1d2a7a', sfg: '#ffffff', sdim: '#c9d6ff', stag: '#ffe14d', tsize: 28, tfw: 400, tls: '.02em',
     frame: 'border:4px solid #14143a;border-radius:14px;box-shadow:0 0 0 3px #ffe14d,0 10px 22px rgba(10,16,60,.45)'
   });
-  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Hoodie Kart', SKINS.kart, 'Old-school kart racing. 3 laps around Greg Circuit against 5 rivals. Grab item boxes, throw paper balls, drop puddles and charge mini-turbos on the corners.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
+  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Hoodie Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop puddles and charge mini-turbos.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
 
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
   const PACKS = [
