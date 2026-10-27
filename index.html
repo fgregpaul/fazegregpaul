@@ -138,7 +138,9 @@ body{
 .who2 small{display:block;font:500 11px var(--mono);color:var(--muted)}
 .urlrow{display:flex;gap:8px}
 .urlrow input{flex:1;min-width:0;border:0;border-radius:10px;padding:12px;background:rgba(242,246,241,.08);color:var(--paper);font:500 13px var(--mono)}
-.urlrow button{border:0;border-radius:10px;padding:0 14px;background:var(--paper);color:var(--ink);font:700 13px var(--body);cursor:pointer;min-width:96px}
+.smsg{width:100%;box-sizing:border-box;resize:none;border:0;border-radius:10px;padding:12px;background:rgba(242,246,241,.08);color:var(--paper);font:500 14px/1.4 var(--body)}
+.smsg:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+.urlrow button{flex:1;min-height:44px;border:0;border-radius:10px;padding:0 14px;background:var(--paper);color:var(--ink);font:700 13px var(--body);cursor:pointer;min-width:96px}
 .urlrow button:focus-visible,.linkbtn:focus-visible,.urlrow input:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
 .linka{text-decoration:none}
 .linkbtn{border:0;background:none;color:var(--yellow);font:600 13px var(--body);cursor:pointer;padding:6px;text-align:center}
@@ -313,7 +315,8 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     <header><span>Share</span><button type="button" data-closeall>Close</button></header>
     <div class="cbody">
       <p class="sdesc" id="sTitle"></p>
-      <div class="urlrow"><input id="shareUrl" type="text" readonly value="https://fazegregpaul.com" aria-label="Link to share"><button type="button" id="copyBtn">Copy link</button></div>
+      <textarea id="shareUrl" class="smsg" rows="3" readonly aria-label="Message to share">fazegregpaul.com</textarea>
+      <div class="urlrow"><button type="button" id="copyBtn">Copy</button><button type="button" id="nativeShare" hidden>Share…</button></div>
       <a class="spinbtn linka" id="openSite" href="https://fazegregpaul.com" target="_blank" rel="noopener">Open fazegregpaul.com</a>
     </div>
   </section>
@@ -14823,10 +14826,10 @@ function engine(){
     const n = pick(pool); recentSk.push(n); if (recentSk.length > 6) recentSk.shift();
     return SKINS[n];
   };
-  function genSlide(T) {
-    const sk = nextSkin(), pk = pick(PACKS); T = T || pick(TEMPLATES);
+  function genSlide(T, pk, title) {
+    const sk = nextSkin(); pk = pk || pick(PACKS); T = T || pick(TEMPLATES);
     const goods = shuf(pk.goods).slice(0, 2), bads = shuf(pk.bads).slice(0, 2);
-    const title = pick(pk.adj) + ' ' + pick(T.suffix), handle = rname();
+    title = title || pick(pk.adj) + ' ' + pick(T.suffix); const handle = rname();
     const game = T.make(sk, goods.concat(pk.goods.filter(x => goods.indexOf(x) < 0)).slice(0, 3), bads, pk); game.title = title;
     return {
       game, sk, title, handle, desc: T.blurb(goods, bads), tags: pick(pk.tags) + ' ' + pick(MORE),
@@ -14892,6 +14895,49 @@ function engine(){
   TEMPLATES.forEach(T => SLIDES.push(genSlide(T)));
   { const rnd = Math.random; for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
 
+  /* game links: fazegregpaul.com/chess opens Chess first. GitHub Pages has no /chess file, so 404.html
+     sends the browser to /?g=chess and we put the nice path back in the address bar. */
+  const slugOf = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const squash = t => slugOf(t).replace(/-/g, '');
+  const sufKinds = {};
+  TEMPLATES.forEach(T => T.suffix.forEach(x => { (sufKinds[x.toLowerCase()] = sufKinds[x.toLowerCase()] || []).push(T.kind); }));
+  /* generated titles like "Sprint Drop" can be more than one game type, so their link adds the type: /sprint-drop-four */
+  const linkOf = s => {
+    let sl = slugOf(s.title);
+    if (s.gen) { const suf = s.title.split(' ').pop().toLowerCase(); const ks = sufKinds[suf] || []; if (ks.length > 1 && ks[0] !== s.kind) sl += '-' + s.kind; }
+    return sl;
+  };
+  const findLink = want => {
+    const w = squash(want); if (!w) return null;
+    let i = SLIDES.findIndex(s => !s.gen && squash(s.title) === w);
+    if (i >= 0) return SLIDES.splice(i, 1)[0];
+    /* a generated game: adjective from a pack + suffix from a template (+ optional kind) */
+    for (const pk of PACKS) for (const adj of pk.adj) for (const T of TEMPLATES) for (const suf of T.suffix) {
+      const base = squash(adj + ' ' + suf);
+      if (w !== base && w !== base + squash(T.kind)) continue;
+      if (w === base && sufKinds[suf.toLowerCase()].length > 1 && sufKinds[suf.toLowerCase()][0] !== T.kind) continue;
+      i = SLIDES.findIndex(s => s.gen && s.kind === T.kind && s.title === adj + ' ' + suf);
+      return i >= 0 ? SLIDES.splice(i, 1)[0] : genSlide(T, pk, adj + ' ' + suf);
+    }
+    return null;
+  };
+  const webby = /^https?:$/.test(location.protocol);
+  const setPath = s => {
+    if (!webby) return;
+    try {
+      const q = new URLSearchParams(location.search); q.delete('g');
+      const want = '/' + (s ? linkOf(s) : '') + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '');
+      if (location.pathname + location.search !== want) history.replaceState(null, '', want + location.hash);
+    } catch (_) {}
+  };
+  {
+    let want = '';
+    try { want = new URLSearchParams(location.search).get('g') || ''; } catch (_) {}
+    if (!want && webby) want = decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g, '').replace(/\.html$/, '')).replace(/^index$/, '');
+    const s = want ? findLink(want) : null;
+    if (s) SLIDES.unshift(s); else setPath(null);
+  }
+
   const fixH = () => { try { const r = document.documentElement, pwa = navigator.standalone === true; r.classList.toggle('pwa', pwa); if (pwa) { const port = innerHeight >= innerWidth, sh = port ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height); r.style.setProperty('--apph', sh + 'px'); } } catch (_) {} };
   fixH(); window.addEventListener('resize', fixH); window.addEventListener('orientationchange', () => setTimeout(fixH, 250));
   const feed = document.getElementById('feed'), phone = document.getElementById('phone');
@@ -14913,6 +14959,7 @@ function engine(){
         const i = +e.target.dataset.i;
         if (i !== cur || !games[i].entered) { cur = i; games[i].entered = true; if (games[i].enter) games[i].enter(); }
         theme(SLIDES[i].sk);
+        setPath(SLIDES[i]);
         feed.querySelectorAll('.is-cur').forEach(x => x.classList.remove('is-cur')); e.target.classList.add('is-cur');
         try { musicSwitch(i); } catch (_) {}
         ensureAhead(i + 3);
@@ -15188,11 +15235,24 @@ function engine(){
   $('getMore').addEventListener('click', () => showSheet(crate));
 
   /* share */
-  function openShare(i) { $('sTitle').textContent = 'Send ' + SLIDES[i].title + ' to a friend'; $('copyBtn').textContent = 'Copy link'; showSheet(ssheet); }
+  let shareLink = 'https://fazegregpaul.com';
+  function openShare(i) {
+    const s = SLIDES[i], path = 'fazegregpaul.com/' + linkOf(s);
+    shareLink = 'https://' + path;
+    $('sTitle').textContent = 'Send ' + s.title + ' to a friend';
+    $('shareUrl').value = 'i just played ' + s.title + ' and got a lot of Dopamine you should try it at ' + path;
+    $('openSite').href = shareLink; $('openSite').textContent = 'Open ' + path;
+    $('nativeShare').hidden = !navigator.share;
+    $('copyBtn').textContent = 'Copy'; showSheet(ssheet);
+  }
+  $('nativeShare').addEventListener('click', () => {
+    const msg = $('shareUrl').value;
+    try { navigator.share({ text: msg }).catch(() => {}); } catch (_) {}
+  });
   $('copyBtn').addEventListener('click', () => {
     const url = $('shareUrl'), btn = $('copyBtn');
-    const done = ok => { btn.textContent = ok ? 'Copied' : 'Link selected'; setTimeout(() => { btn.textContent = 'Copy link'; }, 1800); };
-    const fallback = () => { url.focus(); url.select(); url.setSelectionRange(0, 99); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} done(ok); };
+    const done = ok => { btn.textContent = ok ? 'Copied' : 'Text selected'; setTimeout(() => { btn.textContent = 'Copy'; }, 1800); };
+    const fallback = () => { url.focus(); url.select(); url.setSelectionRange(0, 999); let ok = false; try { ok = document.execCommand('copy'); } catch (_) {} done(ok); };
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url.value).then(() => done(true), fallback); else fallback();
   });
   setGal();

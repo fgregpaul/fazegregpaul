@@ -8,7 +8,7 @@ Read this first. It is the memory for this project, so a fresh chat can pick up 
 - A prop for the owner's parody movie of *The Social Network*. In the movie, Greg Paul builds **GregSnap**, "TikTok for games": a vertical feed where every post is a playable mini-game.
 - Live at **https://fazegregpaul.com** (GitHub Pages from `main`, custom domain in `CNAME`). Merging to `main` is deploying.
 - Almost everything is in **one file: `index.html`** (~1.7 MB, ~12.5k lines, vanilla JS + canvas, no build step, no libraries except Google Fonts).
-- Other files: `cpu.html` (CPU Platformer Quiz), `emt.html` (Morpheme Works), `404.html`, `style.css` (404 page only), `cranberry.mp3`. Leave them alone unless asked.
+- Other files: `cpu.html` (CPU Platformer Quiz), `emt.html` (Morpheme Works), `404.html` (redirects game links like `/chess` into the app, see `game links:`), `style.css` (404 page only), `cranberry.mp3`. Leave them alone unless asked.
 - `stockfish/`: Stockfish 11 compiled to WebAssembly (GPL, from nmrugg/stockfish.js branch `Stockfish11`). Chess loads it as a Web Worker (`SFISH` in index.html). It only works over http(s): from `file://` the game falls back to its built-in engine, so test Stockfish with a local server (`python3 -m http.server`).
 
 ## House rules (from the owner)
@@ -51,6 +51,7 @@ The file is too big to read whole. **Find things with grep on these markers**, n
 | `stage 2` … `stage 5l`, then one `/* ===== <Name>: ... ===== */` block per big game | Game code, grouped by when it was added. Big games are a `function makeX(sk) { ... return Object.assign({...}, MIX) }` closure. |
 | `endless generator` | `PACKS` + `genSlide()`: re-skinned simple games appended forever after the hand-made ones. **New big games are inserted just before this marker.** |
 | `const SLIDES = [` | The original 8, then `SLIDES.push(...NEW_SLIDES)`, comments attached, then one generated game per `TEMPLATES` entry (`genSlide(T)`, marked `gen: true`) is added, then **the feed is shuffled** on every load, so re-skinned games show up near the top as often as hand-made ones. |
+| `game links:` | `fazegregpaul.com/<slug>` opens that game first (slug = title lowercased, non-letters → `-`, e.g. `/glow-worm`, `/galaxy-hunt-64`; hyphens optional). GitHub Pages has no such file, so `404.html` redirects to `/?g=<slug>` and the app puts `/<slug>` back with `replaceState`; the address bar follows the current slide. Generated titles work too (`/cosmic-slither`); when a suffix belongs to more than one template the non-first ones get `-<kind>` (`/sprint-drop-four`). `linkOf(s)` makes a slide's link. The share sheet copies "i just played X and got a lot of Dopamine you should try it at fazegregpaul.com/x" (plus a native Share button on phones). Renaming a game changes its link. |
 | `buildSlide` | Builds each post's DOM (canvas, like/comment/share/donate rail, caption). |
 | `?debug` → `window.__gs` | Test hook: `{ games, SLIDES, SKINS, ensureAhead, cur }`, plus `casino: { inst, setGal(n) }` once the casino loads (`inst.cluck` etc. after a tab is opened). Only exists with `?debug` in the URL. |
 | `MUS = {` | Per-slide generated chiptune music. |
