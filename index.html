@@ -14823,14 +14823,14 @@ function engine(){
     const n = pick(pool); recentSk.push(n); if (recentSk.length > 6) recentSk.shift();
     return SKINS[n];
   };
-  function genSlide() {
-    const sk = nextSkin(), pk = pick(PACKS), T = pick(TEMPLATES);
+  function genSlide(T) {
+    const sk = nextSkin(), pk = pick(PACKS); T = T || pick(TEMPLATES);
     const goods = shuf(pk.goods).slice(0, 2), bads = shuf(pk.bads).slice(0, 2);
     const title = pick(pk.adj) + ' ' + pick(T.suffix), handle = rname();
     const game = T.make(sk, goods.concat(pk.goods.filter(x => goods.indexOf(x) < 0)).slice(0, 3), bads, pk); game.title = title;
     return {
       game, sk, title, handle, desc: T.blurb(goods, bads), tags: pick(pk.tags) + ' ' + pick(MORE),
-      music: 'original sound - ' + handle, likes: rand(2e8, 9e9), comments: rand(1e7, 4e9), shares: rand(1e6, 9e8), cm: genComments(T.kind)
+      music: 'original sound - ' + handle, likes: rand(2e8, 9e9), comments: rand(1e7, 4e9), shares: rand(1e6, 9e8), cm: genComments(T.kind), kind: T.kind, gen: true
     };
   }
   function ensureAhead(k) {
@@ -14887,6 +14887,9 @@ function engine(){
   SLIDES.push(...NEW_SLIDES);
   const BASEK = ['wire', 'orbit', 'raise', 'swipe', 'servers', 'stack', 'popup', 'dash', 'snake', 'break', 'simon', 'hl', 'beat', 'sling'];
   SLIDES.forEach((s, i) => { s.cm = genComments(s.kind || BASEK[i]); });
+  /* one re-skinned game of every generated type joins the hand-made ones before the shuffle,
+     so e.g. a "Cosmic Slither" is as likely to show up near the top as Glow Worm */
+  TEMPLATES.forEach(T => SLIDES.push(genSlide(T)));
   { const rnd = Math.random; for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
 
   const fixH = () => { try { const r = document.documentElement, pwa = navigator.standalone === true; r.classList.toggle('pwa', pwa); if (pwa) { const port = innerHeight >= innerWidth, sh = port ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height); r.style.setProperty('--apph', sh + 'px'); } } catch (_) {} };
