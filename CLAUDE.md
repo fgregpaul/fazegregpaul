@@ -9,6 +9,7 @@ Read this first. It is the memory for this project, so a fresh chat can pick up 
 - Live at **https://fazegregpaul.com** (GitHub Pages from `main`, custom domain in `CNAME`). Merging to `main` is deploying.
 - Almost everything is in **one file: `index.html`** (~1.7 MB, ~12.5k lines, vanilla JS + canvas, no build step, no libraries except Google Fonts).
 - Other files: `cpu.html` (CPU Platformer Quiz), `emt.html` (Morpheme Works), `404.html`, `style.css` (404 page only), `cranberry.mp3`. Leave them alone unless asked.
+- `stockfish/`: Stockfish 11 compiled to WebAssembly (GPL, from nmrugg/stockfish.js branch `Stockfish11`). Chess loads it as a Web Worker (`SFISH` in index.html). It only works over http(s): from `file://` the game falls back to its built-in engine, so test Stockfish with a local server (`python3 -m http.server`).
 
 ## House rules (from the owner)
 
@@ -105,7 +106,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (84 hand-made games, shuffled into the feed on each load)
+## Game list (83 hand-made games, shuffled into the feed on each load)
 
 Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
@@ -124,12 +125,11 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Bowling | bowling | `bowling` |
 | Brick Breaker | Breakout | `break` |
 | Checkers | checkers | `checkers` |
-| Chess | chess | `chess` |
+| Chess | chess vs Stockfish 11 (Easy / Medium / Hard / full Stockfish, hints + eval bar). One game with 6 switchable arenas in `ARENAS` (arrows up top, saved in localStorage, defaults by season): Walnut Club (flat classic), Doodle (the old Doodle Chess notebook), Pixel Dungeon, Haunted Hollow, Frostbite Village (Christmas pixel art), Neon Grid. Pixel arenas draw the board at 1/3 res and pixelate the piece silhouettes | `chess` |
 | Circle Beat | osu! | `circles` |
 | Content Creator | creator sim | `creator` |
 | Crush | Candy Crush | `crush` |
 | Dark Pattern | GregSnap original (movie joke) | (one of the original 8) |
-| Doodle Chess | chess on hand-drawn notebook paper, tilted 3D view with standing doodle pieces | `doodlechess` |
 | Darts | darts | `darts` |
 | Deepland | Terraria | `deep` |
 | Drop Four | Connect Four | `four` |
