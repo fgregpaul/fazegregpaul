@@ -154,7 +154,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Hole Hunter | Hole.io | `hole` |
 | Hollow Path | Hollow Knight | `hollow` |
 | Hoodie Dash | GregSnap original (movie joke) | (one of the original 8) |
-| Hoodie Kart | 16-bit kart racers (Mode 7 style faux 3D: floor texture projected per scanline into a low-res buffer, billboard sprites) | `kart` |
+| Hoodie Kart | 16-bit kart racers (Mode 7 style faux 3D: floor texture projected per scanline into a low-res buffer, billboard sprites). 4 seasonal tracks in `TRACKS` (Greg Circuit / Sunny Bay / Maple Hollow / Frost Peak with ice), defaults to the real season | `kart` |
 | Hop | Doodle Jump | `hop` |
 | Hot Time | SUPERHOT | `hot` |
 | Lanes | Crossy Road | `cross` |
