@@ -50,7 +50,7 @@ The file is too big to read whole. **Find things with grep on these markers**, n
 | `const mk = (` / `const NEW_SLIDES = [` | `mk(game, title, skin, desc, tags, likes, comments, shares, kind)` makes a feed post. |
 | `stage 2` … `stage 5l`, then one `/* ===== <Name>: ... ===== */` block per big game | Game code, grouped by when it was added. Big games are a `function makeX(sk) { ... return Object.assign({...}, MIX) }` closure. |
 | `endless generator` | `PACKS` + `genSlide()`: re-skinned simple games appended forever after the hand-made ones. **New big games are inserted just before this marker.** |
-| `const SLIDES = [` | The original 8, then `SLIDES.push(...NEW_SLIDES)`, comments attached, then **the feed is shuffled** on every load. |
+| `const SLIDES = [` | The original 8, then `SLIDES.push(...NEW_SLIDES)`, comments attached, then one generated game per `TEMPLATES` entry (`genSlide(T)`, marked `gen: true`) is added, then **the feed is shuffled** on every load, so re-skinned games show up near the top as often as hand-made ones. |
 | `buildSlide` | Builds each post's DOM (canvas, like/comment/share/donate rail, caption). |
 | `?debug` → `window.__gs` | Test hook: `{ games, SLIDES, SKINS, ensureAhead, cur }`, plus `casino: { inst, setGal(n) }` once the casino loads (`inst.cluck` etc. after a tab is opened). Only exists with `?debug` in the URL. |
 | `MUS = {` | Per-slide generated chiptune music. |
