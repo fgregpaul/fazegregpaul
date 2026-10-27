@@ -155,7 +155,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Hollow Path | Hollow Knight | `hollow` |
 | Hoodie Dash | GregSnap original (movie joke) | (one of the original 8) |
 | Hoodie Kart | 16-bit kart racers (Mode 7 style faux 3D: floor texture projected per scanline into a low-res buffer, billboard sprites). 4 seasonal tracks in `TRACKS` (Greg Circuit / Sunny Bay / Maple Hollow / Frost Peak with ice), defaults to the real season | `kart` |
-| Hop | Doodle Jump | `hop` |
+| Hop | Doodle Jump (breakable/moving/vanishing platforms, springs, trampolines, propeller hat, jetpack, monsters you stomp or shoot, black holes, wrap-around; `makeHop` is also used by the endless generator) | `hop` |
 | Hot Time | SUPERHOT | `hot` |
 | Lanes | Crossy Road | `cross` |
 | Lawn Lords | Paper.io-style territory grab, done with lawn mowers | `lawn` |
