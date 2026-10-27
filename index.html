@@ -4401,13 +4401,14 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     const fail = () => {
       state = 'dead'; clearTimeout(loadTo);
       const all = (cur ? [cur] : []).concat(q); cur = null; q = [];
-      all.forEach(r => { clearTimeout(r.timer); clearTimeout(r.timer2); if (!r.dead) try { r.cb(null, null); } catch (_) {} });
+      all.forEach(r => { clearTimeout(r.timer); clearTimeout(r.timer2); if (!r.dead) try { r.cb(null, null, []); } catch (_) {} });
       try { if (w) w.terminate(); } catch (_) {} w = null;
     };
     const pump = () => {
       while (state === 'ready' && !cur && q.length) {
-        const r = q.shift(); if (r.dead) continue; cur = r; r.info = null;
-        w.postMessage('setoption name Skill Level value ' + r.skill); w.postMessage('position fen ' + r.fen); w.postMessage('go movetime ' + r.ms);
+        const r = q.shift(); if (r.dead) continue; cur = r; r.info = null; r.lines = [];
+        w.postMessage('setoption name Skill Level value 20'); w.postMessage('setoption name MultiPV value ' + (r.multipv || 1)); w.postMessage('position fen ' + r.fen);
+        w.postMessage('go ' + (r.depth ? 'depth ' + r.depth + ' ' : '') + 'movetime ' + r.ms);
         r.timer = setTimeout(() => { try { w.postMessage('stop'); } catch (_) {} r.timer2 = setTimeout(() => { if (cur === r) fail(); }, 4000); }, r.ms + 3000);
       }
     };
@@ -4421,15 +4422,16 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
         const l = String(e.data);
         if (l === 'readyok' && state === 'loading') { clearTimeout(loadTo); state = 'ready'; pump(); return; }
         if (!cur) return;
-        if (l.indexOf('info') === 0 && l.indexOf(' score ') > 0) { const m = l.match(/score (cp|mate) (-?\d+)/); if (m && !/ (upper|lower)bound/.test(l)) cur.info = { t: m[1], v: +m[2] }; }
-        else if (l.indexOf('bestmove') === 0) { const r = cur; cur = null; clearTimeout(r.timer); clearTimeout(r.timer2); if (!r.dead) try { r.cb(l.split(' ')[1], r.info); } catch (err) { console.error(err); } pump(); }
+        if (l.indexOf('info') === 0 && l.indexOf(' score ') > 0) { const m = l.match(/score (cp|mate) (-?\d+)/), k = +((l.match(/ multipv (\d+)/) || [0, 1])[1]), pv = l.match(/ pv (\S+)/); if (m && pv && !/ (upper|lower)bound/.test(l)) { const ln = { t: m[1], v: +m[2], u: pv[1] }; cur.lines[k - 1] = ln; if (k === 1) cur.info = ln; } }
+        else if (l.indexOf('bestmove') === 0) { const r = cur; cur = null; clearTimeout(r.timer); clearTimeout(r.timer2); if (!r.dead) try { r.cb(l.split(' ')[1], r.info, r.lines.filter(Boolean)); } catch (err) { console.error(err); } pump(); }
       };
       w.onerror = () => fail();
       w.postMessage('uci'); w.postMessage('setoption name Hash value 16'); w.postMessage('isready');
     };
     return {
       init, get state() { return state; },
-      ask(fen, skill, ms, cb) { init(); if (state === 'dead') { cb(null, null); return null; } const r = { fen, skill, ms, cb }; q.push(r); pump(); return r; },
+      // o: { ms, depth, multipv }. cb(bestmove, mainLine, allLines) — each line is { u: first move, t: 'cp'|'mate', v } from the side to move
+      ask(fen, o, cb) { init(); if (state === 'dead') { cb(null, null, []); return null; } const r = Object.assign({ fen, cb, ms: 1000 }, o); q.push(r); pump(); return r; },
       cancel(r) { if (!r) return; r.dead = true; if (cur === r) try { w.postMessage('stop'); } catch (_) {} }
     };
   })();
@@ -4538,12 +4540,26 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       return best;
     };
     // levels: Stockfish skill + think time, and what the built-in engine does if Stockfish is unavailable
-    const LEVELS = [
-      { n: 'easy', skill: 0, ms: 150, rnd: 0.2, depth: 1, jsRnd: 0.5, win: 200 },
-      { n: 'medium', skill: 6, ms: 350, rnd: 0, depth: 2, jsRnd: 0.12, win: 400 },
-      { n: 'hard', skill: 13, ms: 700, rnd: 0, depth: 3, jsRnd: 0, win: 700 },
-      { n: 'stockfish', skill: 20, ms: 1500, rnd: 0, depth: 3, jsRnd: 0, win: 2500 }
-    ];
+    // Bot strength is an Elo slider (like chess.com bots). Every move still comes from Stockfish:
+    // it searches to a depth that grows with Elo and reports its top N moves (MultiPV); the bot then picks
+    // among them, favouring better moves more strongly the higher the Elo. At MAX it just plays Stockfish's best move.
+    const ELO_MIN = 250, ELO_MAX = 3200, ELO_K = 'gregsnap_chess_elo';
+    const curveAt = (e, pts) => { if (e <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (e <= pts[i][0]) { const a = pts[i - 1], b = pts[i], k = (e - a[0]) / (b[0] - a[0]); return a[1] + (b[1] - a[1]) * k; } return pts[pts.length - 1][1]; };
+    const eloPlan = e => e >= ELO_MAX ? { ms: 1500, multipv: 1, best: true } : {
+      depth: Math.round(curveAt(e, [[250, 1], [800, 2], [1200, 4], [1600, 6], [2000, 8], [2400, 11], [2800, 14], [3150, 18]])),
+      multipv: Math.round(curveAt(e, [[250, 12], [1200, 8], [2000, 5], [2600, 3], [3150, 2]])),
+      ms: Math.round(curveAt(e, [[250, 300], [1600, 600], [3150, 1200]])),
+      temp: curveAt(e, [[250, 380], [600, 240], [1000, 140], [1400, 85], [1800, 45], [2200, 18], [2600, 8], [3150, 2]]),
+      slip: curveAt(e, [[250, 0.33], [800, 0.14], [1200, 0.06], [1600, 0.02], [2000, 0]])
+    };
+    const lineCp = l => l.t === 'mate' ? (l.v > 0 ? 1 : -1) * (20000 - Math.abs(l.v) * 100) : l.v;
+    const choose = (lines, plan) => {
+      if (!lines.length) return null; if (plan.best || lines.length === 1) return lines[0].u;
+      if (Math.random() < plan.slip) return pick(lines.slice(1)).u; // the occasional human-style miss
+      const top = lineCp(lines[0]), wts = lines.map(l => Math.exp(Math.max(-30, (lineCp(l) - top) / plan.temp))), tot = wts.reduce((a, b) => a + b, 0);
+      let x = Math.random() * tot; for (let i = 0; i < lines.length; i++) { x -= wts[i]; if (x <= 0) return lines[i].u; } return lines[0].u;
+    };
+    const eloTier = e => e >= ELO_MAX ? 'max stockfish' : e < 600 ? 'beginner' : e < 1000 ? 'novice' : e < 1400 ? 'intermediate' : e < 1800 ? 'club player' : e < 2200 ? 'expert' : e < 2600 ? 'master' : 'grandmaster';
 
     /* ---------- drawing helpers ---------- */
     const curve = (c, pts, closed) => {
@@ -5034,7 +5050,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       sk, hold: true, noVeil: true, fsAspect: 0.72, title: 'Chess', how: 'You are white. Tap a piece, then tap where it should go. The arrows up top switch arenas.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], pos: null, sel: null, moves: [], last: null, think: 0, over: false, keep: false, ply: 0, status: '', lvl: 1, hist: [], hint: null,
       t: 0, anim: null, poofs: [], bubble: null, sprites: null, spriteKey: '', boardC: null, boardKey: '', msg: '',
-      ai: ai0, A: ARENAS[ai0], st: 'turn', req: null, hreq: null, gen: 0, ev: null, evShow: 0.5, reps: {}, thinking: false,
+      ai: ai0, A: ARENAS[ai0], st: 'turn', elo: 1000, drag: false, req: null, hreq: null, gen: 0, ev: null, evShow: 0.5, reps: {}, thinking: false,
       /* ---------- geometry: flat board, or a sheet seen at an angle with pieces standing on it ---------- */
       geom() {
         const A = this.A, w = this.w, h = this.h, L = A.L, k = L ? 0.9 : 1, head = L ? 0.12 : 0.03, top = 96, foot = 166;
@@ -5076,7 +5092,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       },
       /* ---------- game flow ---------- */
       reset() {
-        this.geom(); try { this.best = +localStorage.getItem(SAVE_K) || 0; } catch (_) {}
+        this.geom(); try { this.best = +localStorage.getItem(SAVE_K) || 0; const se = +localStorage.getItem(ELO_K); if (se) this.elo = clamp(se, ELO_MIN, ELO_MAX); } catch (_) {}
         this.gen++; SFISH.cancel(this.req); SFISH.cancel(this.hreq); this.req = null; this.hreq = null; this.thinking = false;
         this.pos = start(); this.hist = []; this.reps = {}; this.reps[keyOf(this.pos)] = 1; this.hint = null; this.sel = null; this.moves = []; this.last = null; this.think = 0; this.over = false; this.ply = 0; this.ev = null; this.evShow = 0.5;
         this.st = 'turn'; this.floats = []; this.poofs = []; this.anim = null; this.bubble = null; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready';
@@ -5085,15 +5101,15 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       saveBest() { this.best = Math.max(this.best, this.score); try { localStorage.setItem(SAVE_K, String(this.best)); } catch (_) {} },
       statusText() { return this.A.say[this.st] || ''; },
       engineLabel() { const s = SFISH.state; return s === 'ready' ? 'stockfish 11' : s === 'dead' ? 'built-in bot' : 'loading stockfish...'; },
-      jsMove() { const ms = legal(this.pos, this.pos.turn); if (!ms.length) return null; const L = LEVELS[this.lvl]; if (L.jsRnd && Math.random() < L.jsRnd) return pick(ms); return pickMove(this.pos, this.pos.turn, L.depth); },
+      jsMove() { const ms = legal(this.pos, this.pos.turn); if (!ms.length) return null; const e = this.elo, rnd = curveAt(e, [[250, 0.6], [800, 0.3], [1200, 0.12], [1600, 0]]); if (Math.random() < rnd) return pick(ms); return pickMove(this.pos, this.pos.turn, e < 1000 ? 1 : e < 1800 ? 2 : 3); },
+      setElo(e) { e = clamp(Math.round(e / 50) * 50, ELO_MIN, ELO_MAX); if (e !== this.elo) { this.elo = e; if (e % 250 === 0) sfx(400 + e / 8, 0.03, 0.03, 'sine'); } try { localStorage.setItem(ELO_K, String(e)); } catch (_) {} },
       setEval(info, sign) { if (info) this.ev = { t: info.t, v: info.v * sign }; },
       startAI() {
-        const g = this.gen, L = LEVELS[this.lvl], ms = legal(this.pos, 'b'); if (!ms.length) return;
+        const g = this.gen, plan = eloPlan(this.elo), ms = legal(this.pos, 'b'); if (!ms.length) return;
         this.thinking = true; this.st = 'think';
         const done = m => { if (g !== this.gen || this.over || this.pos.turn !== 'b') return; this.thinking = false; this.req = null; if (!m) m = this.jsMove(); if (m) this.doMove(m, 'b'); };
         if (SFISH.state === 'dead') { done(this.jsMove()); return; }
-        if (L.rnd && Math.random() < L.rnd) { setTimeout(() => done(pick(legal(this.pos, 'b'))), 250); return; }
-        const r = SFISH.ask(fenOf(this.pos, this.ply), L.skill, L.ms, (uci, info) => { if (g === this.gen) this.setEval(info, -1); done(uci && uci !== '(none)' ? fromUci(this.pos, uci) : null); });
+        const r = SFISH.ask(fenOf(this.pos, this.ply), plan, (uci, info, lines) => { if (g === this.gen) this.setEval(info, -1); const u = choose(lines, plan) || uci; done(u && u !== '(none)' ? fromUci(this.pos, u) || fromUci(this.pos, uci) : null); });
         this.req = r;
         // still downloading the engine? don't keep the player waiting: the built-in bot covers this move
         if (r) setTimeout(() => { if (this.req === r && SFISH.state !== 'ready') { SFISH.cancel(r); done(this.jsMove()); } }, 6000);
@@ -5109,12 +5125,11 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
         if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.anim || this.hreq) return;
         const g = this.gen; this.score = Math.max(0, this.score - 5); sfx(660, 0.12, 0.04, 'sine');
         const use = m => { if (g !== this.gen || this.over || this.pos.turn !== 'w') return; if (!m) m = pickMove(this.pos, 'w', 2); if (m) { this.hint = m; this.sel = null; this.moves = []; } };
-        if (SFISH.state === 'ready') this.hreq = SFISH.ask(fenOf(this.pos, this.ply), 20, 500, (uci, info) => { this.hreq = null; if (g === this.gen) this.setEval(info, 1); use(uci && uci !== '(none)' ? fromUci(this.pos, uci) : null); });
+        if (SFISH.state === 'ready') this.hreq = SFISH.ask(fenOf(this.pos, this.ply), { ms: 600 }, (uci, info) => { this.hreq = null; if (g === this.gen) this.setEval(info, 1); use(uci && uci !== '(none)' ? fromUci(this.pos, uci) : null); });
         else use(null);
       },
       btnRects() {
-        const g = this.yb + 96, w = this.w, r = [], n = LEVELS.length, bw = (w - 32) / n;
-        LEVELS.forEach((L, i) => r.push({ k: 'l' + i, t: i === 3 && SFISH.state === 'dead' ? 'max' : L.n, x: 16 + i * bw + 3, y: g, w: bw - 6, h: 30 }));
+        const g = this.yb + 96, w = this.w, r = [];
         r.push({ k: 'hint', t: 'hint (-5)', x: 19, y: g + 38, w: (w - 32) / 2 - 6, h: 30 });
         r.push({ k: 'undo', t: (this.A.wobble ? 'erase' : 'undo') + ' (-10)', x: w / 2 + 3, y: g + 38, w: (w - 32) / 2 - 6, h: 30 });
         return r;
@@ -5126,7 +5141,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
         if (!ms.length) {
           this.over = true; this.st = 'over';
           if (chk) {
-            if (who === 'w') { this.score += LEVELS[this.lvl].win; this.saveBest(); this.keep = true; this.msg = S.win; this.state = 'dead'; this.dead = 0; try { JING('win'); } catch (_) {} }
+            if (who === 'w') { this.score += Math.max(50, Math.round(this.elo / 40) * 10); this.saveBest(); this.keep = true; this.msg = S.win; this.state = 'dead'; this.dead = 0; try { JING('win'); } catch (_) {} }
             else { this.shake = 0.5; this.flash = 0.3; this.finish(); this.saveBest(); this.msg = S.lose; }
           } else draw(S.stale);
           return;
@@ -5167,8 +5182,9 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
         cv.addEventListener('pointerdown', e => {
           const p = ptrPos(cv, e);
           if (p[1] < 62 && (p[0] < 56 || p[0] > this.w - 56)) { this.setArena(this.ai + (p[0] < 56 ? -1 : 1)); return; }
+          const sl = this.slider(); if (this.state !== 'dead' && p[1] >= sl.y - 18 && p[1] <= sl.y + 18 && p[0] >= sl.x0 - 16 && p[0] <= sl.x1 + 16) { this.drag = true; this.setElo(sl.at(p[0])); try { cv.setPointerCapture(e.pointerId); } catch (_) {} return; }
           const bt = this.btnRects().find(b => p[0] >= b.x && p[0] <= b.x + b.w && p[1] >= b.y && p[1] <= b.y + b.h);
-          if (bt && this.state !== 'dead') { if (bt.k[0] === 'l') { this.lvl = +bt.k[1]; sfx(500, 0.05, 0.04, 'sine'); } else if (bt.k === 'hint') this.giveHint(); else this.undo(); return; }
+          if (bt && this.state !== 'dead') { if (bt.k === 'hint') this.giveHint(); else this.undo(); return; }
           if (this.kick()) return; if (this.state !== 'run' || this.over || this.pos.turn !== 'w' || this.anim) return;
           const uv = this.unproj(p[0], p[1]); let r = -1, c = -1;
           if (uv) { c = Math.floor(uv[0]); r = Math.floor(uv[1]); }
@@ -5179,12 +5195,39 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
           if (hit) { this.sel = hit; this.moves = legal(this.pos, 'w').filter(m => m.fr === hit[0] && m.fc === hit[1]); sfx(420, 0.03, 0.03); }
           else { this.sel = null; this.moves = []; }
         });
+        cv.addEventListener('pointermove', e => { if (this.drag) this.setElo(this.slider().at(ptrPos(cv, e)[0])); });
+        const up = () => { if (this.drag) { this.drag = false; sfx(620, 0.05, 0.04, 'sine'); } };
+        cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      },
+      slider() { const x0 = 30, x1 = this.w - 30, y = this.yb + 114; return { x0, x1, y, at: x => ELO_MIN + clamp((x - x0) / (x1 - x0), 0, 1) * (ELO_MAX - ELO_MIN), xOf: e => x0 + (e - ELO_MIN) / (ELO_MAX - ELO_MIN) * (x1 - x0) }; },
+      drawSlider(c) {
+        const A = this.A, s = this.slider(), x = s.xOf(this.elo), e = this.elo, lab = e >= ELO_MAX ? 'MAX' : String(e);
+        const head = (e >= ELO_MAX ? 'bot' : 'bot ' + lab + ' elo') + '  ·  ' + eloTier(e), y = s.y;
+        if (A.wobble) {
+          const R = mulberry(61); c.strokeStyle = INK; c.lineWidth = 2; c.lineCap = 'round'; pline(c, R, s.x0, y, s.x1, y, 1.4, 2);
+          c.strokeStyle = '#e2362b'; c.lineWidth = 4; pline(c, mulberry(62), s.x0, y, x, y, 1.2, 1);
+          for (let k = 500; k < ELO_MAX; k += 500) { const tx = s.xOf(k); c.strokeStyle = PENCIL; c.lineWidth = 1.5; c.beginPath(); c.moveTo(tx, y + 6); c.lineTo(tx, y + 11); c.stroke(); }
+          c.fillStyle = '#fff3a0'; c.strokeStyle = INK; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 10, 0, TAU); c.fill(); c.stroke();
+          hand(c, head, s.x0 - 8, y - 15, 19, INK, 'left');
+          return;
+        }
+        const th = 6;
+        c.fillStyle = A.panel || 'rgba(255,255,255,.15)'; if (A.labelBg) c.fillStyle = A.labelBg; rr(c, s.x0, y - th / 2, s.x1 - s.x0, th, A.pixel ? 0 : 3); c.fill();
+        if (A.btnLine) { c.strokeStyle = A.btnLine; c.lineWidth = 1; c.stroke(); }
+        c.fillStyle = A.acc; rr(c, s.x0, y - th / 2, Math.max(th, x - s.x0), th, A.pixel ? 0 : 3); c.fill();
+        c.fillStyle = A.dim; for (let k = 500; k < ELO_MAX; k += 500) c.fillRect(Math.round(s.xOf(k)) - 0.5, y + 6, 1, 4);
+        if (A.pixel) { c.fillStyle = A.acc; c.fillRect(Math.round(x) - 8, y - 8, 16, 16); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(Math.round(x) - 8, y - 8, 16, 3); c.strokeStyle = A.btnLine || '#000'; c.lineWidth = 2; c.strokeRect(Math.round(x) - 8, y - 8, 16, 16); }
+        else { c.save(); c.shadowColor = A.acc; c.shadowBlur = this.drag ? 14 : 6; c.fillStyle = A.acc; c.beginPath(); c.arc(x, y, this.drag ? 12 : 10, 0, TAU); c.fill(); c.restore(); c.strokeStyle = A.onFg || '#000'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, this.drag ? 12 : 10, 0, TAU); c.stroke(); }
+        if (A.labelBg) { c.fillStyle = A.labelBg; rr(c, s.x0 - 14, y - 30, Math.min(s.x1 - s.x0 + 28, 250), 18, 4); c.fill(); }
+        say(c, A.say.turn === A.say.turn.toUpperCase() ? head.toUpperCase() : head, s.x0 - 10, y - 16, A.ui(11), A.ink, 'left');
       },
       key(e) {
         if (e.key === 'u' || e.key === 'U') { this.undo(); return true; }
         if (e.key === 'h' || e.key === 'H') { this.giveHint(); return true; }
         if (e.key === '[' || e.key === 'ArrowLeft') { this.setArena(this.ai - 1); return true; }
         if (e.key === ']' || e.key === 'ArrowRight') { this.setArena(this.ai + 1); return true; }
+        if (e.key === '-' || e.key === '_') { this.setElo(this.elo - 100); return true; }
+        if (e.key === '=' || e.key === '+') { this.setElo(this.elo + 100); return true; }
         if (e.key === ' ' || e.key === 'Enter') { this.kick(); return true; }
         return false;
       },
@@ -5320,15 +5363,16 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
           c.fill(); c.stroke(); c.beginPath(); c.moveTo(-6, 13); c.lineTo(X - bx, Y - by); c.lineTo(6, 14); c.fill(); c.stroke(); c.fillRect(-7, 9, 14, 5);
           say(c, b.t, 0, A.wobble ? 6 : 4, fnt, A.wobble ? INK : A.ink, 'center'); c.restore();
         }
-        this.btnRects().forEach((b, i) => { const on = b.k[0] === 'l' && +b.k[1] === this.lvl; if (A.button) A.button(c, this, A, b, on, i); else stdBtn(c, this, A, b, on); });
+        this.drawSlider(c);
+        this.btnRects().forEach((b, i) => { const on = false; if (A.button) A.button(c, this, A, b, on, i); else stdBtn(c, this, A, b, on); });
         this.floats.forEach(f => { if (A.wobble) hand(c, f.t, f.x, f.y - f.age * 30, 22, '#2b9a4a', 'center'); else say(c, f.t, f.x, f.y - f.age * 30, A.font(18), A.good, 'center'); });
         if (A.fxFront) A.fxFront(c, this, t);
         c.restore();
         if (this.flash) { c.fillStyle = 'rgba(226,54,43,' + this.flash * 0.35 + ')'; c.fillRect(0, 0, w, h); }
         if (this.state !== 'run') {
-          const S = A.say, L = LEVELS[this.lvl], lines = this.state === 'ready'
+          const S = A.say, lines = this.state === 'ready'
             ? [{ t: A.wobble ? 'Doodle Chess' : A.name, y: 44, s: 26 }, { t: S.t1, y: 78, s: 13, c: A.wobble ? '#4152b8' : A.acc }, { t: S.t2, y: 104, s: 11, c: A.dim }, { t: S.tap, y: 146, s: 15, c: A.wobble ? '#e2362b' : A.acc }]
-            : [{ t: this.msg, y: 52, s: 24, c: this.msg === S.win ? A.good : A.ink }, { t: 'score ' + this.score + '   best ' + this.best, y: 90, s: 12, c: A.dim }, { t: 'vs ' + (SFISH.state === 'ready' ? 'stockfish' : 'bot') + ' · ' + L.n, y: 112, s: 10, c: A.dim }, this.dead > 0.6 ? { t: S.again, y: 146, s: 15, c: A.wobble ? '#e2362b' : A.acc } : null];
+            : [{ t: this.msg, y: 52, s: 24, c: this.msg === S.win ? A.good : A.ink }, { t: 'score ' + this.score + '   best ' + this.best, y: 90, s: 12, c: A.dim }, { t: 'vs ' + (SFISH.state === 'ready' ? 'stockfish' : 'bot') + ' · ' + (this.elo >= ELO_MAX ? 'max' : this.elo + ' elo'), y: 112, s: 10, c: A.dim }, this.dead > 0.6 ? { t: S.again, y: 146, s: 15, c: A.wobble ? '#e2362b' : A.acc } : null];
           (A.note || stdNote)(c, this, A, lines);
         }
       }

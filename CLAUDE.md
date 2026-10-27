@@ -125,7 +125,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Bowling | bowling | `bowling` |
 | Brick Breaker | Breakout | `break` |
 | Checkers | checkers | `checkers` |
-| Chess | chess vs Stockfish 11 (Easy / Medium / Hard / full Stockfish, hints + eval bar). One game with 6 switchable arenas in `ARENAS` (arrows up top, saved in localStorage, defaults by season): Walnut Club (flat classic), Doodle (the old Doodle Chess notebook), Pixel Dungeon, Haunted Hollow, Frostbite Village (Christmas pixel art), Neon Grid. Pixel arenas draw the board at 1/3 res and pixelate the piece silhouettes | `chess` |
+| Chess | chess vs Stockfish 11 with a chess.com-style bot Elo slider (250 to MAX, saved in localStorage). This Stockfish build has no UCI_Elo, so `eloPlan()` sets search depth + MultiPV by Elo and `choose()` picks among Stockfish's candidate moves (softmax by score, plus occasional slips at low Elo); MAX = plain best move. Hints are full-strength Stockfish; eval bar. One game with 6 switchable arenas in `ARENAS` (arrows up top, saved in localStorage, defaults by season): Walnut Club (flat classic), Doodle (the old Doodle Chess notebook), Pixel Dungeon, Haunted Hollow, Frostbite Village (Christmas pixel art), Neon Grid. Pixel arenas draw the board at 1/3 res and pixelate the piece silhouettes | `chess` |
 | Circle Beat | osu! | `circles` |
 | Content Creator | creator sim | `creator` |
 | Crush | Candy Crush | `crush` |
