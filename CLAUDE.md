@@ -154,7 +154,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Gregle | Wordle | `gregle` |
 | High Card | Balatro | `cards` |
 | Hole Hunter | Hole.io | `hole` |
-| Hollow Path | Hollow Knight | `hollow` |
+| Hollow Path | Hollow Knight. One interconnected map of 21 hand-drawn ASCII rooms in `ROOMDEF` (6 areas: Fallen Crossing, Mossgrave, Sunken Cistern, Amber Halls, Glimmer Deep, Guardian's Rest). Swift Cloak (dash) and Thorn Claws (wall jump) gate areas; breakable walls, ambush rooms, a lever shortcut, 4 mask shards, map overlay (M / MAP button), bench saves in localStorage `gregsnap_hollow_v2` | `hollow` |
 | Hoodie Dash | GregSnap original (movie joke) | (one of the original 8) |
 | Hoodie Kart | 16-bit kart racers (Mode 7 style faux 3D: floor texture projected per scanline into a low-res buffer, billboard sprites). 4 seasonal tracks in `TRACKS` (Greg Circuit / Sunny Bay / Maple Hollow / Frost Peak with ice), defaults to the real season | `kart` |
 | Hop | Doodle Jump (breakable/moving/vanishing platforms, springs, trampolines, propeller hat, jetpack, monsters you stomp or shoot, black holes, wrap-around; `makeHop` is also used by the endless generator) | `hop` |
