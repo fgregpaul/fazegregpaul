@@ -8,6 +8,7 @@ Read this first. It is the memory for this project, so a fresh chat can pick up 
 - A prop for the owner's parody movie of *The Social Network*. In the movie, Greg Paul builds **GregSnap**, "TikTok for games": a vertical feed where every post is a playable mini-game.
 - Live at **https://fazegregpaul.com** (GitHub Pages from `main`, custom domain in `CNAME`). Merging to `main` is deploying.
 - Almost everything is in **one file: `index.html`** (~1.7 MB, ~12.5k lines, vanilla JS + canvas, no build step, no libraries except Google Fonts).
+- `dev/sigserver.js` is a tiny local signaling server for testing multiplayer offline (see `GregNet`).
 - Other files: `cpu.html` (CPU Platformer Quiz), `emt.html` (Morpheme Works), `404.html` (redirects game links like `/chess` into the app, see `game links:`), `style.css` (404 page only), `cranberry.mp3`. Leave them alone unless asked.
 - `stockfish/`: Stockfish 11 compiled to WebAssembly (GPL, from nmrugg/stockfish.js branch `Stockfish11`). Chess loads it as a Web Worker (`SFISH` in index.html). It only works over http(s): from `file://` the game falls back to its built-in engine, so test Stockfish with a local server (`python3 -m http.server`).
 
@@ -19,7 +20,8 @@ Read this first. It is the memory for this project, so a fresh chat can pick up 
 4. **No real game IP.** Games are original takes "inspired by" famous games, with their own names, characters and art (Bloons TD → *Pop Defense*, Stardew Valley → *Petal Isles*). Never use the real game's name, characters or logos in the game.
 5. **Galaxies are fake money.** The Galaxy Crate / Galaxy Casino uses play currency only. No real payments, and no borrowing/loans in casino mode (out of galaxies → "open a crate").
 6. **Make it good.** The owner wants games that are actually fun and pretty, not stubs. Big requests (a "Stardew", a "Factorio") deserve a real, full game.
-7. Works on phones first (touch, full-screen), and on desktop (keyboard + mouse).
+7. Works on phones first (touch, full-screen), and on desktop (keyboard + mouse). **Every game must be fully playable on a phone with touch only**, including big desktop-style games (Storm Isle uses on-screen twin sticks + buttons). Test with real touch events before merging.
+8. **Multiplayer:** the owner wants anyone to be able to make a lobby in any game that suits it (chess, a shooter, karts...). Use the shared lobby system (`GregNet`, below) instead of building a new one per game.
 
 ## Ship workflow
 
@@ -56,6 +58,8 @@ The file is too big to read whole. **Find things with grep on these markers**, n
 | `?debug` → `window.__gs` | Test hook: `{ games, SLIDES, SKINS, ensureAhead, cur }`, plus `casino: { inst, setGal(n) }` once the casino loads (`inst.cluck` etc. after a tab is opened). Only exists with `?debug` in the URL. |
 | `MUS = {` | Per-slide generated chiptune music. |
 | `desktop fullscreen` | Fullscreen button (desktop only, under the up/down arrows). In fullscreen `html.fs` is set, the top bar/caption/rail hide, and every game's play area becomes the whole monitor (e.g. 1920x1080), so `layout()` must cope with wide screens: size things by `Math.min(w..., h...)` and centre them. |
+| `GregNet` | Shared multiplayer for any game. `NET` = WebRTC peer-to-peer data channels; signaling (the handshake) goes through the free PeerJS cloud server `wss://0.peerjs.com` using its protocol directly (no library). Star topology: the host relays. `LOBBY.open(game)` shows the Create / Join-with-code / waiting-room sheet (`#glob`). Invite links `fazegregpaul.com/<game>?lobby=CODE` auto-join (404.html keeps the query). A game opts in with `mp: true`, `mpKind`, and hooks `mpHostStart(players) -> data`, `mpClientStart(data, me, players)`, `mpMsg(from, d)`, `mpLeft(id)`, `mpLobby()`, `mpEnd(reason)`; it sends with `NET.send(d, fast)` (client to host), `NET.bcast(d, fast)` / `NET.to(id, d, fast)` (host). `fast` = unreliable channel for snapshots. `window.__mpGame` keeps ticking while its player scrolls away or opens a sheet. Up to 8 players. Test offline: `node dev/sigserver.js` + `?peerhost=ws://localhost:9123`. |
+| `Storm Isle:` | Top-down battle royale (30 players, bots fill the rest). The island is generated from a seed with deterministic maths only (integer hashing, `Math.sqrt`, hand-rasterised roads; no `Math.pow/hypot/sin` or canvas reads in anything that decides layout) so every phone builds the same map; `worldSum` is compared on join. The host simulates bots, storm, loot and damage; clients move themselves, send actions (`f` fire, `w` swing, `c` chest, `p` pick, `b` build...) and get 15 Hz snapshots plus reliable event batches (`E`). `_dbg` on the game object is a test hook. |
 | `Galaxy Casino` | The crate sheet's tabs: Crate, Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross. Games built with `g.casino = true`; chips are bound to the galaxy balance. |
 
 ### The game object contract
@@ -108,7 +112,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (83 hand-made games, shuffled into the feed on each load)
+## Game list (84 hand-made games, shuffled into the feed on each load)
 
 Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
@@ -186,6 +190,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Steady Greg | GregSnap original (movie joke) | (one of the original 8) |
 | Sudoku | Sudoku | `sudoku` |
 | Summit | Celeste | `summit` |
+| Storm Isle | Fortnite (top-down 2D battle royale: Sky Barge drop, 9 named towns, chests, 5 guns in 5 rarities, wall building, shrinking storm, 29 bots; phone twin sticks; online lobbies with friends via GregNet) | `royale` |
 | Survive the Night | Vampire Survivors | `survive` |
 | Suspects | Among Us | `sus` |
 | Sweeper | Minesweeper | `sweeper` |
