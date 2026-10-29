@@ -3712,7 +3712,79 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
   }
 
   /* --- Drop Four (connect 4 vs the computer) --- */
-  function makeFour(sk) {
+  /* ===== turnMP: online 1v1 for turn-based games (Drop Four, Checkers, Fleet) on top of GregNet =====
+     Host + first friend play (data.p[0] moves first; random the first match, swapped every rematch), anyone else watches.
+     A game adds: mpTurnSide() -> 0/1 whose turn it is, mpDo(payload, side) -> true if that move was legal and applied,
+     optional mpSetup() -> extra start data (host only) and mpInit() after reset(). Local moves go through mpLocal(payload).
+     Each phone detects the end itself and calls mpOver(winnerSide | -1, why). */
+  function turnMP(kind, label) {
+    return {
+      mp: true, mpKind: kind, mpMin: 2, mpSub: '1 vs 1, everyone else can watch', mpNote: label + ' is 1 vs 1: the first friend to join plays, anyone after that watches.', net: null, why: '',
+      fbtn() { const bw = Math.min(220, this.w - 60), bh = 44; return { x: this.w / 2 - bw / 2, y: Math.min(this.h - bh - 20, this.h / 2 + 96), w: bw, h: bh }; },
+      inFbtn(x, y) { if (this.net || (this.state !== 'ready' && this.state !== 'dead')) return false; const b = this.fbtn(); return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h; },
+      drawFbtn(c) {
+        if (this.net || (this.state !== 'ready' && this.state !== 'dead')) return;
+        const b = this.fbtn(), sk = SK, inL = NET.s && NET.s.kind === kind;
+        box(c, b.x, b.y, b.w, b.h, { fill: sk.pal[0], r: Math.min(sk.r, 12), hard: Math.min(sk.hard, 3), soft: 0 });
+        txt(c, inL ? 'LOBBY ' + NET.s.code + ' (' + NET.s.players.length + ')' : 'PLAY A FRIEND', this.w / 2, b.y + b.h / 2 + 5, 15, lum(sk.pal[0]) > 0.55 ? '#111' : '#fff', 'center');
+        if (this.why && this.state === 'ready') txt(c, this.why, this.w / 2, b.y + 66, 12, sk.bad, 'center', MONO);
+      },
+      /* call first in pointerdown; true = the tap was used here */
+      mpTap(cv, e) {
+        const p = ptrPos(cv, e);
+        if (this.inFbtn(p[0], p[1])) { LOBBY.open(this); return true; }
+        if (this.net && this.state === 'dead') { if (this.dead > 0.6) this.mpRematch(); return true; }
+        if (!this.net && this.state === 'ready') this.why = '';
+        return false;
+      },
+      mpBegin(data, me) {
+        this.net = { role: me === 'h' ? 'host' : 'client', me, data, side: data.p.indexOf(me), names: data.names, n: data.n, seq: 0, over: false, why: '' };
+        window.__mpGame = this; this.keep = false; this.reset(); if (this.mpInit) this.mpInit(data); this.state = 'run';
+        try { JING('start'); } catch (_) {}
+      },
+      mpHostStart(players) {
+        if (players.length < 2) return null;
+        const n = ((this.net && this.net.n) || 0) + 1, a = players[0], b = players[1];
+        const aFirst = n === 1 ? Math.random() < 0.5 : !(this.net && this.net.data.p[0] === a.id);
+        const P = aFirst ? [a, b] : [b, a];
+        const data = { p: [P[0].id, P[1].id], names: [P[0].name, P[1].name], n, x: this.mpSetup ? this.mpSetup() : null };
+        this.mpBegin(JSON.parse(JSON.stringify(data)), 'h'); return data;
+      },
+      mpClientStart(data, me) { this.mpBegin(data, me); },
+      mpRematch() { if (this.net && this.net.role === 'host' && NET.s) { const d = this.mpHostStart(NET.s.players); if (d) NET.start(d); } },
+      oppName() { const N = this.net; return N ? N.names[N.side === 0 ? 1 : 0] || 'friend' : ''; },
+      turnName() { const N = this.net, s = this.mpTurnSide(); return !N ? '' : s === N.side ? 'Your move' : (N.names[s] || 'friend') + '\'s move'; },
+      mpLocal(m) {
+        const N = this.net; if (!N || N.side < 0 || N.over || this.state !== 'run' || this.mpTurnSide() !== N.side) return false;
+        const s = N.seq; if (!this.mpDo(m, N.side)) return false; N.seq++;
+        const d = { t: 'mv', n: N.n, s, m }; if (N.role === 'host') NET.bcast(d); else NET.send(d); return true;
+      },
+      mpOver(side, why) {
+        const N = this.net; if (!N || N.over) return; N.over = true; N.why = why || '';
+        this.over = true; this.state = 'dead'; this.dead = 0;
+        this.msg = side < 0 ? (why || 'Draw.') : N.side < 0 ? (N.names[side] || 'someone') + ' wins!' : side === N.side ? 'You win!' : 'You lose.';
+        if (side < 0) N.why = '';
+        try { JING(side === N.side ? 'win' : 'over'); } catch (_) {}
+      },
+      mpVeil() { const N = this.net; if (this.state === 'dead') veil(this.ctx, this.w, this.h, this.msg || 'Game over.', (N.why ? N.why + '. ' : '') + (this.dead < 0.6 ? '' : N.role === 'host' ? 'Tap for a rematch.' : 'Waiting for the host...')); },
+      mpMsg(from, d) {
+        const N = this.net; if (!N || !d || typeof d !== 'object' || d.n !== N.n) return;
+        if (d.t === 'mv') {
+          if (d.s !== N.seq || N.over) return; const side = this.mpTurnSide();
+          if (N.role === 'host' && from !== N.data.p[side]) return;
+          if (this.mpDo(d.m, side)) { N.seq++; if (N.role === 'host') NET.bcast(d); }
+        } else if (d.t === 'gone' && N.role !== 'host') this.mpOver(d.w, d.why);
+      },
+      mpLeft(id) {
+        const N = this.net; if (!N || N.role !== 'host' || N.over) return; const i = N.data.p.indexOf(id); if (i < 0) return;
+        const why = (N.names[i] || 'they') + ' left'; NET.bcast({ t: 'gone', w: 1 - i, why, n: N.n }); this.mpOver(1 - i, why);
+      },
+      mpLobby() { if (this.net && !this.net.over) this.mpOver(-1, 'Back to the lobby.'); },
+      mpEnd(reason) { const was = !!this.net; this.net = null; if (window.__mpGame === this) window.__mpGame = null; if (was) this.reset(); this.why = reason || ''; },
+    };
+  }
+
+  function makeFour(sk, opt) {
     const NC = 7, NR = 6;
     const lines = []; for (let y = 0; y < NR; y++) for (let x = 0; x < NC; x++) [[1, 0], [0, 1], [1, 1], [1, -1]].forEach(d => { const ex = x + d[0] * 3, ey = y + d[1] * 3; if (ex >= 0 && ex < NC && ey >= 0 && ey < NR) lines.push([0, 1, 2, 3].map(i => [x + d[0] * i, y + d[1] * i])); });
     const winner = b => { for (const L of lines) { const v = b[L[0][1]][L[0][0]]; if (v && v === b[L[1][1]][L[1][0]] && v === b[L[2][1]][L[2][0]] && v === b[L[3][1]][L[3][0]]) return { p: v, L }; } return null; };
@@ -3737,13 +3809,15 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       geom() { this.cs = Math.floor(Math.min((this.w - 26) / NC, (this.h - 200) / NR)); this.bx = Math.floor((this.w - this.cs * NC) / 2); this.by = 104; },
       layout() { this.geom(); },
       reset() { this.geom(); this.b = []; for (let y = 0; y < NR; y++) this.b.push(new Array(NC).fill(0)); this.turn = 1; this.anim = null; this.wait = 0; this.win = null; this.over = false; this.floats = []; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready'; },
-      enter() { this.reset(); },
+      enter() { if (this.net) return; this.reset(); },
       play(c, who) {
         const r = dropRow(this.b, c); if (r < 0) return false; this.anim = { c, r, y: -1, v: 0, who }; return true;
       },
       land() {
         const a = this.anim; this.b[a.r][a.c] = a.who; this.anim = null; sfx(180, 0.07, 0.06, 'triangle'); buzz(8);
         const w = winner(this.b);
+        if (w && this.net) { this.win = w.L; this.over = true; this.mpWin = w.p - 1; this.wait = 0.9; sfx(w.p - 1 === this.net.side ? 740 : 140, 0.35, 0.06, w.p - 1 === this.net.side ? 'sine' : 'sawtooth'); return; }
+        if (!w && this.net && this.b[0].every(v => v)) { this.over = true; this.mpWin = -1; this.wait = 0.5; return; }
         if (w) { this.win = w.L; this.over = true; if (w.p === 1) { this.wins++; this.score += 100; this.best = Math.max(this.best, this.score); this.keep = true; this.msg = 'You win!'; sfx(740, 0.4, 0.07); } else { this.msg = 'Computer wins.'; this.flash = 0.3; sfx(140, 0.3, 0.06, 'sawtooth'); } this.wait = 0.9; return; }
         if (this.b[0].every(v => v)) { this.over = true; this.msg = 'Draw.'; this.keep = true; this.wait = 0.5; return; }
         this.turn = a.who === 1 ? 2 : 1; if (this.turn === 2) this.wait = 0.45;
@@ -3756,24 +3830,33 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       colAt(p) { return clamp(Math.floor((p[0] - this.bx) / this.cs), 0, NC - 1); },
       bind(cv) {
         cv.addEventListener('pointermove', e => { this.hover = this.colAt(ptrPos(cv, e)); });
-        cv.addEventListener('pointerdown', e => { if (this.kick()) return; const p = ptrPos(cv, e); this.hover = this.colAt(p); if (this.state === 'run' && this.turn === 1 && !this.anim && !this.over) this.play(this.hover, 1); });
+        cv.addEventListener('pointerdown', e => { if (this.mp && this.mpTap(cv, e)) return; if (!this.net && this.kick()) return; const p = ptrPos(cv, e); this.hover = this.colAt(p); if (this.net) { this.mpLocal({ c: this.hover }); return; } if (this.state === 'run' && this.turn === 1 && !this.anim && !this.over) this.play(this.hover, 1); });
       },
       key(e) {
         if (this.state !== 'run' || e.type !== 'keydown') return false;
-        if (e.code === 'ArrowLeft') this.hover = Math.max(0, this.hover - 1); else if (e.code === 'ArrowRight') this.hover = Math.min(NC - 1, this.hover + 1); else if (e.code === 'Space' || e.code === 'ArrowDown') { if (this.turn === 1 && !this.anim && !this.over) this.play(this.hover, 1); } else return false;
+        if (e.code === 'ArrowLeft') this.hover = Math.max(0, this.hover - 1); else if (e.code === 'ArrowRight') this.hover = Math.min(NC - 1, this.hover + 1); else if (e.code === 'Space' || e.code === 'ArrowDown') { if (this.net) this.mpLocal({ c: this.hover }); else if (this.turn === 1 && !this.anim && !this.over) this.play(this.hover, 1); } else return false;
         return true;
       },
       tick(dt) {
         this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return;
         if (this.anim) { const a = this.anim; a.v += 2600 * dt / this.cs; a.y += a.v * dt; if (a.y >= a.r) { a.y = a.r; this.land(); } return; }
-        if (this.wait > 0) { this.wait -= dt; if (this.wait <= 0) { if (this.over) { if (this.msg === 'You win!' || this.msg === 'Draw.') { this.state = 'dead'; this.dead = 0; } else { const m = this.msg; this.finish(); this.msg = m; } } else if (this.turn === 2) this.cpu(); } }
+        if (this.wait > 0) { this.wait -= dt; if (this.wait <= 0) { if (this.over && this.net) this.mpOver(this.mpWin, this.mpWin < 0 ? 'Draw.' : ''); else if (this.net) {} else if (this.over) { if (this.msg === 'You win!' || this.msg === 'Draw.') { this.state = 'dead'; this.dead = 0; } else { const m = this.msg; this.finish(); this.msg = m; } } else if (this.turn === 2) this.cpu(); } }
+      },
+      mpTurnSide() { return (this.anim ? (this.anim.who === 1 ? 2 : 1) : this.turn) - 1; },
+      mpDo(m, side) {
+        if (this.over || !m) return false; const col = m.c | 0; if (col < 0 || col >= NC) return false;
+        if (this.anim) { if (this.anim.who === side + 1) return false; this.anim.y = this.anim.r; this.land(); if (this.over) return false; }
+        if (this.turn !== side + 1) return false;
+        return this.play(col, side + 1);
       },
       draw() {
-        const c = this.ctx, w = this.w, sk = SK, cs = this.cs, bx = this.bx, by = this.by;
+        const c = this.ctx, w = this.w, sk = SK, cs = this.cs, bx = this.bx, by = this.by, N = this.net, mine = N && N.side >= 0 ? N.side + 1 : 1;
         drawBg(c, w, this.h);
-        txt(c, 'DROP FOUR', w / 2, 30, 24, sk.fg, 'center'); txt(c, 'WINS ' + this.wins + '    SCORE ' + this.score, w / 2, 56, 12, sk.dim, 'center', MONO);
-        const yourTurn = this.turn === 1 && !this.over; dot(c, w / 2 - 70, 82, 8, sk.pal[0], { lw: sk.lw ? 1.5 : 0 }); txt(c, 'you', w / 2 - 56, 82, 12, yourTurn ? sk.fg : sk.dim, 'left', MONO); dot(c, w / 2 + 20, 82, 8, sk.pal[1], { lw: sk.lw ? 1.5 : 0 }); txt(c, 'computer', w / 2 + 34, 82, 12, !yourTurn && !this.over ? sk.fg : sk.dim, 'left', MONO);
-        if (yourTurn && !this.anim && this.state === 'run') { const hx = bx + this.hover * cs + cs / 2; c.globalAlpha = 0.55; dot(c, hx, by - cs * 0.5, cs * 0.38, sk.pal[0], { lw: 0 }); c.globalAlpha = 1; }
+        txt(c, 'DROP FOUR', w / 2, 30, 24, sk.fg, 'center'); txt(c, N ? 'ONLINE  ·  LOBBY ' + (NET.s ? NET.s.code : '-') : 'WINS ' + this.wins + '    SCORE ' + this.score, w / 2, 56, 12, sk.dim, 'center', MONO);
+        const yourTurn = N ? this.turn === mine && N.side >= 0 && !this.over : this.turn === 1 && !this.over;
+        const nm = k => !N ? (k === 1 ? 'you' : 'computer') : N.side === k - 1 ? 'you' : String(N.names[k - 1] || '?').slice(0, 12);
+        dot(c, w / 2 - 80, 82, 8, sk.pal[0], { lw: sk.lw ? 1.5 : 0 }); txt(c, nm(1), w / 2 - 66, 82, 12, this.turn === 1 && !this.over ? sk.fg : sk.dim, 'left', MONO); dot(c, w / 2 + 14, 82, 8, sk.pal[1], { lw: sk.lw ? 1.5 : 0 }); txt(c, nm(2), w / 2 + 28, 82, 12, this.turn === 2 && !this.over ? sk.fg : sk.dim, 'left', MONO);
+        if (yourTurn && !this.anim && this.state === 'run') { const hx = bx + this.hover * cs + cs / 2; c.globalAlpha = 0.55; dot(c, hx, by - cs * 0.5, cs * 0.38, sk.pal[mine - 1], { lw: 0 }); c.globalAlpha = 1; }
         const pcs = [null, sk.pal[0], sk.pal[1]];
         if (this.anim) dot(c, bx + this.anim.c * cs + cs / 2, by + this.anim.y * cs + cs / 2, cs * 0.38, pcs[this.anim.who], { lw: sk.lw ? 1.5 : 0 });
         box(c, bx - 6, by - 6, cs * NC + 12, cs * NR + 12, { fill: sk.panel, r: Math.min(sk.r + 4, 16) });
@@ -3782,10 +3865,10 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
           if (v) dot(c, X, Y, cs * 0.38, pcs[v], { lw: sk.lw ? 1.5 : 0 }); else { c.globalAlpha = 0.22; dot(c, X, Y, cs * 0.38, sk.pfg, { lw: 0 }); c.globalAlpha = 1; }
         }
         if (this.win) { const pu = 0.5 + 0.5 * Math.sin(performance.now() / 120); this.win.forEach(q => { c.beginPath(); c.arc(bx + q[0] * cs + cs / 2, by + q[1] * cs + cs / 2, cs * 0.44, 0, TAU); c.lineWidth = 3 + pu * 2; c.strokeStyle = sk.fg; c.stroke(); }); }
-        txt(c, yourTurn ? 'Your move' : this.over ? '' : 'Thinking...', w / 2, by + cs * NR + 34, 14, sk.dim, 'center', MONO);
-        drawFloats(c, this); flashFx(c, this); endVeil(this);
+        txt(c, N ? (this.over ? '' : this.turnName()) : yourTurn ? 'Your move' : this.over ? '' : 'Thinking...', w / 2, by + cs * NR + 34, 14, sk.dim, 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); if (N) this.mpVeil(); else endVeil(this); if (this.mp) this.drawFbtn(c);
       }
-    }, MIX);
+    }, MIX, opt && opt.mp ? turnMP('four', 'Drop Four') : {});
   }
 
   /* --- Void Run (space shooter) --- */
@@ -4247,7 +4330,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     mk(makeGregle(SKINS.typewriter), 'Gregle', SKINS.typewriter, 'Guess the five-letter word in six tries. Green means right spot, yellow means wrong spot.', '#wordle #word #brain', 11.2e9, 4.4e9, 2.1e9, 'gregle'),
     mk(makeBlocks(SKINS.lcd), 'Blockfall', SKINS.lcd, 'Drag the falling blocks, tap to turn them, clear the lines.', '#blocks #retro #puzzle', 9.1e9, 2.8e9, 940e6, 'blocks'),
     mk(makeSweeper(SKINS.arctic), 'Sweeper', SKINS.arctic, 'Dig up the safe squares. The numbers tell you how many mines are next to them.', '#minesweeper #logic #classic', 5.3e9, 1.5e9, 380e6, 'sweeper'),
-    mk(makeFour(SKINS.grape), 'Drop Four', SKINS.grape, 'Drop discs and connect four before the computer does.', '#connect4 #strategy #versus', 6.4e9, 1.8e9, 520e6, 'four'),
+    mk(makeFour(SKINS.grape, { mp: true }), 'Drop Four', SKINS.grape, 'Drop discs and connect four before the computer does, or tap PLAY A FRIEND for 1v1 online.', '#connect4 #strategy #versus #1v1', 6.4e9, 1.8e9, 520e6, 'four'),
     mk(makeShooter(SKINS.ember), 'Void Run', SKINS.ember, 'Fly through the void. Shoot everything. Grab the gun upgrades.', '#shooter #space #arcade', 8.4e9, 2.5e9, 790e6, 'shooter'),
     mk(makePutt(SKINS.lawn), 'Putt', SKINS.lawn, 'Six holes of mini golf. Pull back, let go, sink it.', '#minigolf #golf #chill', 4.1e9, 960e6, 210e6, 'putt'),
     mk(makeClicker(SKINS.bubblegum), 'Greg Clicker', SKINS.bubblegum, 'Tap Greg to earn galaxies. Buy interns, servers and satellites to earn while you sleep.', '#clicker #idle #addicting', 13.7e9, 5.3e9, 2.4e9, 'clicker'),
@@ -5606,7 +5689,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
   /* ===== stage 5a: checkers, fleet, pinball, darts, bowling ===== */
 
   /* --- Checkers --- */
-  function makeCheckers(sk) {
+  function makeCheckers(sk, opt) {
     const inb = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
     const start = () => { const b = []; for (let r = 0; r < 8; r++) { b.push([]); for (let c = 0; c < 8; c++) b[r].push(r < 3 && (r + c) % 2 ? 'b' : r > 4 && (r + c) % 2 ? 'r' : null); } return b; };
     const side = p => p && p.toLowerCase();
@@ -5645,57 +5728,74 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], b: null, turn: 'r', sel: null, opts: [], last: null, think: 0, over: false, ply: 0, status: '', keep: false,
       geom() { this.cs = Math.floor(Math.min((this.w - 14) / 8, (this.h - 170) / 8)); this.gx = Math.floor((this.w - this.cs * 8) / 2); this.gy = 80; },
       layout() { this.geom(); },
-      reset() { this.geom(); this.b = start(); this.turn = 'r'; this.sel = null; this.opts = []; this.last = null; this.think = 0; this.over = false; this.ply = 0; this.status = 'Your move'; this.floats = []; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready'; },
-      enter() { this.reset(); },
+      reset() { this.geom(); this.flip = false; this.b = start(); this.turn = 'r'; this.sel = null; this.opts = []; this.last = null; this.think = 0; this.over = false; this.ply = 0; this.status = 'Your move'; this.floats = []; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready'; },
+      enter() { if (this.net) return; this.reset(); },
+      flip: false, vr(r) { return this.flip ? 7 - r : r; },
+      myCol() { return this.net ? (this.net.side === 1 ? 'b' : 'r') : 'r'; },
+      mpInit() { this.flip = this.net.side === 1; this.status = this.turnName(); },
+      mpTurnSide() { return this.turn === 'r' ? 0 : 1; },
+      mpDo(m, side) {
+        const col = side ? 'b' : 'r'; if (this.over || this.turn !== col || !m || !m.path) return false;
+        const key = JSON.stringify(m.path), mv = gen(this.b, col).find(x => JSON.stringify(x.path) === key); if (!mv) return false;
+        this.play(mv, col); return true;
+      },
       endCheck() {
         this.ply++; const ms = gen(this.b, this.turn);
+        if (this.net) {
+          if (!ms.length) { this.mpOver(this.turn === 'r' ? 1 : 0, ''); return; }
+          if (this.ply > 140) { this.mpOver(-1, 'Draw.'); return; }
+          this.status = this.turnName() + (this.mpTurnSide() === this.net.side && ms[0].caps.length ? ' (must jump)' : ''); return;
+        }
         if (!ms.length) { this.over = true; if (this.turn === 'b') { this.score += 100; this.best = Math.max(this.best, this.score); this.keep = true; this.msg = 'You win!'; this.state = 'dead'; this.dead = 0; JING('win'); } else { this.msg = 'The computer wins.'; this.finish(); this.msg = 'The computer wins.'; } return; }
         if (this.ply > 140) { this.over = true; this.keep = true; this.msg = 'Draw.'; this.state = 'dead'; this.dead = 0; return; }
         this.status = this.turn === 'r' ? 'Your move' + (ms[0].caps.length ? ' (you must jump)' : '') : 'Computer is thinking...'; if (this.turn === 'b') this.think = 0.45;
       },
       play(m, who) {
         apply(this.b, m); this.last = [m.path[0], m.path[m.path.length - 1]]; this.sel = null; this.opts = []; sfx(m.caps.length ? 230 : 340, 0.07, 0.06, m.caps.length ? 'square' : 'triangle'); if (m.caps.length) buzz(10);
-        if (who === 'r' && m.caps.length) { const pts = m.caps.length * 10; this.score += pts; this.best = Math.max(this.best, this.score); const t = m.path[m.path.length - 1]; this.floats.push({ t: '+' + pts, x: this.gx + t[1] * this.cs + this.cs / 2, y: this.gy + t[0] * this.cs, age: 0, c: 'good' }); }
+        if (who === this.myCol() && m.caps.length) { const pts = m.caps.length * 10; this.score += pts; this.best = Math.max(this.best, this.score); const t = m.path[m.path.length - 1]; this.floats.push({ t: '+' + pts, x: this.gx + (this.flip ? 7 - t[1] : t[1]) * this.cs + this.cs / 2, y: this.gy + this.vr(t[0]) * this.cs, age: 0, c: 'good' }); }
         this.turn = who === 'r' ? 'b' : 'r'; this.endCheck();
       },
       bind(cv) {
         cv.addEventListener('pointerdown', e => {
-          if (this.kick()) return; if (this.state !== 'run' || this.over || this.turn !== 'r') return;
-          const p = ptrPos(cv, e), c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs); if (!inb(r, c)) { this.sel = null; this.opts = []; return; }
-          const mv = this.opts.find(m => { const t = m.path[m.path.length - 1]; return t[0] === r && t[1] === c; }); if (mv) { this.play(mv, 'r'); return; }
-          const pc = this.b[r][c]; if (pc && side(pc) === 'r') { this.sel = [r, c]; this.opts = gen(this.b, 'r').filter(m => m.path[0][0] === r && m.path[0][1] === c); sfx(420, 0.03, 0.03); if (!this.opts.length) this.floats.push({ t: gen(this.b, 'r')[0] && gen(this.b, 'r')[0].caps.length ? 'must jump' : 'blocked', x: this.gx + c * this.cs + this.cs / 2, y: this.gy + r * this.cs, age: 0, c: 'bad' }); } else { this.sel = null; this.opts = []; }
+          if (this.mp && this.mpTap(cv, e)) return; if (!this.net && this.kick()) return;
+          const me = this.myCol(); if (this.state !== 'run' || this.over || this.turn !== me || (this.net && this.net.side < 0)) return;
+          const p = ptrPos(cv, e), sc = Math.floor((p[0] - this.gx) / this.cs), sr = Math.floor((p[1] - this.gy) / this.cs); if (!inb(sr, sc)) { this.sel = null; this.opts = []; return; }
+          const r = this.vr(sr), c = this.flip ? 7 - sc : sc;
+          const mv = this.opts.find(m => { const t = m.path[m.path.length - 1]; return t[0] === r && t[1] === c; }); if (mv) { if (this.net) this.mpLocal({ path: mv.path }); else this.play(mv, 'r'); return; }
+          const pc = this.b[r][c]; if (pc && side(pc) === me) { this.sel = [r, c]; this.opts = gen(this.b, me).filter(m => m.path[0][0] === r && m.path[0][1] === c); sfx(420, 0.03, 0.03); if (!this.opts.length) this.floats.push({ t: gen(this.b, me)[0] && gen(this.b, me)[0].caps.length ? 'must jump' : 'blocked', x: this.gx + sc * this.cs + this.cs / 2, y: this.gy + sr * this.cs, age: 0, c: 'bad' }); } else { this.sel = null; this.opts = []; }
         });
       },
       tick(dt) {
         this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return;
-        if (this.think > 0) { this.think -= dt; if (this.think <= 0 && !this.over) { const ms = gen(this.b, 'b'); let best = null, bs = -1e9; ms.forEach(m => { const nb = copy(this.b); apply(nb, m); const v = search(nb, 5, -1e9, 1e9, 'r', 1) + rand(0, 6); if (v > bs) { bs = v; best = m; } }); if (best) this.play(best, 'b'); } }
+        if (this.think > 0 && !this.net) { this.think -= dt; if (this.think <= 0 && !this.over) { const ms = gen(this.b, 'b'); let best = null, bs = -1e9; ms.forEach(m => { const nb = copy(this.b); apply(nb, m); const v = search(nb, 5, -1e9, 1e9, 'r', 1) + rand(0, 6); if (v > bs) { bs = v; best = m; } }); if (best) this.play(best, 'b'); } }
       },
       draw() {
         const c = this.ctx, w = this.w, sk = SK, cs = this.cs, gx = this.gx, gy = this.gy;
         drawBg(c, w, this.h);
-        txt(c, 'CHECKERS', w / 2, 30, 24, sk.fg, 'center'); txt(c, 'SCORE ' + this.score, 16, 58, 11, sk.dim, 'left', MONO); txt(c, this.status, w - 14, 58, 11, sk.fg, 'right', MONO);
+        const V = r => this.flip ? 7 - r : r;
+        txt(c, 'CHECKERS', w / 2, 30, 24, sk.fg, 'center'); txt(c, this.net ? 'vs ' + String(this.oppName()).slice(0, 12) : 'SCORE ' + this.score, 16, 58, 11, sk.dim, 'left', MONO); txt(c, this.status, w - 14, 58, 11, sk.fg, 'right', MONO);
         box(c, gx - 6, gy - 6, cs * 8 + 12, cs * 8 + 12, { fill: sk.dim, r: Math.min(sk.r, 6), hard: Math.min(sk.hard, 3), soft: 0, lw: sk.lw });
         for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
-          const X = gx + q * cs, Y = gy + r * cs, dark = (r + q) % 2; c.fillStyle = dark ? sk.pal[2] : sk.panel; c.fillRect(X, Y, cs, cs);
+          const X = gx + V(q) * cs, Y = gy + V(r) * cs, dark = (r + q) % 2; c.fillStyle = dark ? sk.pal[2] : sk.panel; c.fillRect(X, Y, cs, cs);
           if (this.last && ((this.last[0][0] === r && this.last[0][1] === q) || (this.last[1][0] === r && this.last[1][1] === q))) { c.fillStyle = 'rgba(255,230,90,.4)'; c.fillRect(X, Y, cs, cs); }
           if (this.sel && this.sel[0] === r && this.sel[1] === q) { c.fillStyle = 'rgba(120,255,160,.5)'; c.fillRect(X, Y, cs, cs); }
         }
         for (let r = 0; r < 8; r++) for (let q = 0; q < 8; q++) {
-          const p = this.b[r][q]; if (!p) continue; const X = gx + q * cs + cs / 2, Y = gy + r * cs + cs / 2, red = side(p) === 'r', f = red ? sk.pal[0] : sk.fg === '#ffffff' ? '#333333' : '#242424', king = p === 'R' || p === 'B';
+          const p = this.b[r][q]; if (!p) continue; const X = gx + V(q) * cs + cs / 2, Y = gy + V(r) * cs + cs / 2, red = side(p) === 'r', f = red ? sk.pal[0] : sk.fg === '#ffffff' ? '#333333' : '#242424', king = p === 'R' || p === 'B';
           c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.arc(X + 1.5, Y + 3, cs * 0.38, 0, TAU); c.fill(); dot(c, X, Y, cs * 0.38, f, { lw: sk.lw ? Math.min(2, sk.lw) : 0 });
           c.beginPath(); c.arc(X, Y, cs * 0.26, 0, TAU); c.lineWidth = 2; c.strokeStyle = 'rgba(255,255,255,.35)'; c.stroke();
           if (king) { c.fillStyle = '#ffd23f'; c.beginPath(); c.moveTo(X - cs * 0.16, Y + cs * 0.08); c.lineTo(X - cs * 0.18, Y - cs * 0.1); c.lineTo(X - cs * 0.07, Y - 0.02 * cs); c.lineTo(X, Y - cs * 0.14); c.lineTo(X + cs * 0.07, Y - 0.02 * cs); c.lineTo(X + cs * 0.18, Y - cs * 0.1); c.lineTo(X + cs * 0.16, Y + cs * 0.08); c.closePath(); c.fill(); }
         }
-        this.opts.forEach(m => { const t = m.path[m.path.length - 1]; dot(c, gx + t[1] * cs + cs / 2, gy + t[0] * cs + cs / 2, cs * 0.14, m.caps.length ? 'rgba(220,50,50,.85)' : 'rgba(40,200,110,.8)', { lw: 0 }); });
-        txt(c, 'You are red. Captures are forced.', w / 2, gy + cs * 8 + 28, 11, sk.dim, 'center', MONO);
-        drawFloats(c, this); flashFx(c, this); endVeil(this);
+        this.opts.forEach(m => { const t = m.path[m.path.length - 1]; dot(c, gx + V(t[1]) * cs + cs / 2, gy + V(t[0]) * cs + cs / 2, cs * 0.14, m.caps.length ? 'rgba(220,50,50,.85)' : 'rgba(40,200,110,.8)', { lw: 0 }); });
+        txt(c, this.net ? (this.net.side < 0 ? 'Watching ' + this.net.names[0] + ' (red) vs ' + this.net.names[1] + ' (black)' : 'You are ' + (this.myCol() === 'r' ? 'red' : 'black') + '. Captures are forced.') : 'You are red. Captures are forced.', w / 2, gy + cs * 8 + 28, 11, sk.dim, 'center', MONO);
+        drawFloats(c, this); flashFx(c, this); if (this.net) this.mpVeil(); else endVeil(this); if (this.mp) this.drawFbtn(c);
       }
-    }, MIX);
+    }, MIX, opt && opt.mp ? turnMP('checkers', 'Checkers') : {});
   }
 
   /* --- Fleet (battleship-style) --- */
-  function makeFleet(sk) {
-    const N = 8, LENS = [4, 3, 3, 2, 2];
+  function makeFleet(sk, opt) {
+    const N = 8, N_ = N, LENS = [4, 3, 3, 2, 2];
     const place = () => { const grid = []; for (let r = 0; r < N; r++) grid.push(new Array(N).fill(-1)); const ships = []; LENS.forEach((L, id) => { for (let t = 0; t < 200; t++) { const h = Math.random() < 0.5, r = Math.floor(rand(0, h ? N : N - L + 1)), c = Math.floor(rand(0, h ? N - L + 1 : N)); const cells = []; for (let i = 0; i < L; i++) cells.push([h ? r : r + i, h ? c + i : c]); if (cells.every(q => grid[q[0]][q[1]] < 0)) { cells.forEach(q => { grid[q[0]][q[1]] = id; }); ships.push({ id, cells, hits: 0 }); break; } } }); return { grid, ships, shots: grid.map(r => r.map(() => 0)) }; };
     return Object.assign({
       sk, hold: true, title: 'Fleet', fsAspect: 0.5, how: 'Tap the water to fire. Sink all 5 enemy ships before they sink yours.',
@@ -5703,12 +5803,23 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       geom() { this.cs = Math.floor(Math.min((this.w - 20) / N, (this.h - 270) / N)); this.gx = Math.floor((this.w - this.cs * N) / 2); this.gy = 76; this.ms = Math.max(14, Math.floor(this.cs * 0.5)); this.mx = Math.floor((this.w - this.ms * N) / 2); this.my = this.gy + this.cs * N + 54; },
       layout() { this.geom(); },
       reset() { this.geom(); this.me = place(); this.en = place(); this.think = 0; this.turn = 'p'; this.status = 'Your shot'; this.queue = []; this.over = false; this.floats = []; this.hits = 0; if (!this.keep) this.score = 0; this.keep = false; this.state = 'ready'; },
-      enter() { this.reset(); },
+      enter() { if (this.net) return; this.reset(); },
+      mpSetup() { return { boards: [place(), place()] }; },
+      mpInit(data) { const N = this.net, v = Math.max(0, N.side); this.me = data.x.boards[v]; this.en = data.x.boards[1 - v]; N.ts = 0; this.turn = N.ts === v ? 'p' : 'c'; this.status = this.turnName(); },
+      mpTurnSide() { return this.net ? this.net.ts : 0; },
+      mpDo(m, side) {
+        const N = this.net, v = Math.max(0, N.side); if (this.over || side !== N.ts || !m) return false;
+        const r = m.r | 0, c = m.c | 0; if (r < 0 || c < 0 || r >= N_ || c >= N_) return false;
+        this._shooter = side; const res = this.shoot(side === v ? this.en : this.me, r, c, side === v ? 'p' : 'c'); if (!res) return false;
+        if (!this.over) { N.ts = 1 - side; this.turn = N.ts === v ? 'p' : 'c'; this.status = this.turnName(); }
+        return true;
+      },
       shoot(B, r, c, who) {
         if (B.shots[r][c]) return false; const id = B.grid[r][c]; B.shots[r][c] = id >= 0 ? 2 : 1; const px = who === 'p' ? this.gx + c * this.cs + this.cs / 2 : this.mx + c * this.ms + this.ms / 2, py = who === 'p' ? this.gy + r * this.cs : this.my + r * this.ms;
         if (id >= 0) { const sh = B.ships.find(s => s.id === id); sh.hits++; const sunk = sh.hits >= sh.cells.length; sfx(sunk ? 150 : 210, sunk ? 0.4 : 0.15, 0.07, 'sawtooth'); buzz(sunk ? 60 : 20);
           if (who === 'p') { this.score += sunk ? 40 : 10; this.best = Math.max(this.best, this.score); this.floats.push({ t: sunk ? 'SUNK!' : 'HIT', x: px, y: py, age: 0, c: 'good' }); } else this.floats.push({ t: sunk ? 'They sank one' : 'Hit!', x: px, y: py, age: 0, c: 'bad' });
           if (who === 'c') { if (sunk) this.queue = []; else [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(d => { const nr = r + d[0], nc = c + d[1]; if (nr >= 0 && nc >= 0 && nr < N && nc < N && !B.shots[nr][nc]) this.queue.push([nr, nc]); }); }
+          if (B.ships.every(s => s.hits >= s.cells.length) && this.net) { this.mpOver(this._shooter, ''); return 'hit'; }
           if (B.ships.every(s => s.hits >= s.cells.length)) { this.over = true; if (who === 'p') { this.score += 100; this.best = Math.max(this.best, this.score); this.keep = true; this.msg = 'You sank the whole fleet!'; this.state = 'dead'; this.dead = 0; JING('win'); } else { this.msg = 'Your fleet is gone.'; this.finish(); this.msg = 'Your fleet is gone.'; } }
           return 'hit';
         }
@@ -5721,15 +5832,16 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       },
       bind(cv) {
         cv.addEventListener('pointerdown', e => {
-          if (this.kick()) return; if (this.state !== 'run' || this.over || this.turn !== 'p') return; const p = ptrPos(cv, e), c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs); if (c < 0 || r < 0 || c >= N || r >= N) return;
+          if (this.mp && this.mpTap(cv, e)) return; if (!this.net && this.kick()) return; if (this.state !== 'run' || this.over || this.turn !== 'p') return; const p = ptrPos(cv, e), c = Math.floor((p[0] - this.gx) / this.cs), r = Math.floor((p[1] - this.gy) / this.cs); if (c < 0 || r < 0 || c >= N || r >= N) return;
+          if (this.net) { this.mpLocal({ r, c }); return; }
           const res = this.shoot(this.en, r, c, 'p'); if (!res) return; if (!this.over) { this.turn = 'c'; this.status = 'Enemy is aiming...'; this.think = 0.8; }
         });
       },
-      tick(dt) { this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; if (this.think > 0) { this.think -= dt; if (this.think <= 0 && !this.over) this.cpuShot(); } },
+      tick(dt) { this.decay(dt); if (this.state === 'dead') { this.dead += dt; return; } if (this.state !== 'run') return; if (this.think > 0 && !this.net) { this.think -= dt; if (this.think <= 0 && !this.over) this.cpuShot(); } },
       draw() {
         const c = this.ctx, w = this.w, sk = SK, cs = this.cs, gx = this.gx, gy = this.gy;
         drawBg(c, w, this.h);
-        txt(c, 'FLEET', w / 2, 28, 24, sk.fg, 'center'); txt(c, 'SCORE ' + this.score, 16, 56, 11, sk.dim, 'left', MONO); txt(c, this.status, w - 14, 56, 11, sk.fg, 'right', MONO);
+        txt(c, 'FLEET', w / 2, 28, 24, sk.fg, 'center'); txt(c, this.net ? 'vs ' + String(this.net.side < 0 ? this.net.names[1] : this.oppName()).slice(0, 12) : 'SCORE ' + this.score, 16, 56, 11, sk.dim, 'left', MONO); txt(c, this.status, w - 14, 56, 11, sk.fg, 'right', MONO);
         box(c, gx - 5, gy - 5, cs * N + 10, cs * N + 10, { fill: sk.panel, r: Math.min(sk.r, 8), hard: Math.min(sk.hard, 3), soft: 0, lw: sk.lw });
         for (let r = 0; r < N; r++) for (let q = 0; q < N; q++) {
           const X = gx + q * cs, Y = gy + r * cs, s = this.en.shots[r][q]; c.fillStyle = (r + q) % 2 ? sk.bg[0] : sk.bg[1]; c.globalAlpha = 0.75; c.fillRect(X + 1, Y + 1, cs - 2, cs - 2); c.globalAlpha = 1;
@@ -5738,16 +5850,17 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
           if (s === 1) dot(c, X + cs / 2, Y + cs / 2, cs * 0.1, sk.fg, { lw: 0 });
           if (s === 2) { dot(c, X + cs / 2, Y + cs / 2, cs * 0.3, sk.bad, { lw: 0 }); c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(X + cs * 0.33, Y + cs * 0.33); c.lineTo(X + cs * 0.67, Y + cs * 0.67); c.moveTo(X + cs * 0.67, Y + cs * 0.33); c.lineTo(X + cs * 0.33, Y + cs * 0.67); c.stroke(); }
         }
-        txt(c, 'ENEMY WATERS', w / 2, gy + cs * N + 20, 11, sk.dim, 'center', MONO); txt(c, 'YOUR FLEET', w / 2, this.my - 12, 11, sk.dim, 'center', MONO);
+        const NN = this.net, watch = NN && NN.side < 0;
+        txt(c, watch ? String(NN.names[1]).toUpperCase() + '\'S WATERS' : NN ? String(this.oppName()).toUpperCase() + '\'S WATERS' : 'ENEMY WATERS', w / 2, gy + cs * N + 20, 11, sk.dim, 'center', MONO); txt(c, watch ? String(NN.names[0]).toUpperCase() + '\'S FLEET' : 'YOUR FLEET', w / 2, this.my - 12, 11, sk.dim, 'center', MONO);
         const ms = this.ms; box(c, this.mx - 4, this.my - 4, ms * N + 8, ms * N + 8, { fill: sk.panel, r: Math.min(sk.r, 6), hard: 0, soft: 0, lw: sk.lw ? 1.5 : 0 });
         for (let r = 0; r < N; r++) for (let q = 0; q < N; q++) {
           const X = this.mx + q * ms, Y = this.my + r * ms, id = this.me.grid[r][q], s = this.me.shots[r][q]; c.fillStyle = (r + q) % 2 ? sk.bg[0] : sk.bg[1]; c.globalAlpha = 0.6; c.fillRect(X, Y, ms, ms); c.globalAlpha = 1;
           if (id >= 0) { c.fillStyle = sk.pal[2]; c.fillRect(X + 1, Y + 1, ms - 2, ms - 2); }
           if (s === 1) dot(c, X + ms / 2, Y + ms / 2, ms * 0.12, sk.fg, { lw: 0 }); if (s === 2) dot(c, X + ms / 2, Y + ms / 2, ms * 0.3, sk.bad, { lw: 0 });
         }
-        drawFloats(c, this); flashFx(c, this); endVeil(this);
+        drawFloats(c, this); flashFx(c, this); if (this.net) this.mpVeil(); else endVeil(this); if (this.mp) this.drawFbtn(c);
       }
-    }, MIX);
+    }, MIX, opt && opt.mp ? turnMP('fleet', 'Fleet') : {});
   }
 
   /* --- Pinball --- */
@@ -5937,8 +6050,8 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
   });
 
   NEW_SLIDES.push(
-    mk(makeCheckers(SKINS.felt), 'Checkers', SKINS.felt, 'Classic checkers against the computer. Jumps are forced and kings fly both ways.', '#checkers #boardgames #classic', 4.6e9, 1.2e9, 340e6, 'checkers'),
-    mk(makeFleet(SKINS.navy), 'Fleet', SKINS.navy, 'Hunt the hidden enemy ships while they hunt yours. Sink all five first.', '#battleship #strategy #navy', 5.9e9, 1.6e9, 460e6, 'fleet'),
+    mk(makeCheckers(SKINS.felt, { mp: true }), 'Checkers', SKINS.felt, 'Classic checkers against the computer or a friend online. Jumps are forced and kings fly both ways.', '#checkers #boardgames #classic #1v1', 4.6e9, 1.2e9, 340e6, 'checkers'),
+    mk(makeFleet(SKINS.navy, { mp: true }), 'Fleet', SKINS.navy, 'Hunt the hidden enemy ships while they hunt yours. Sink all five first. PLAY A FRIEND for 1v1 online.', '#battleship #strategy #navy #1v1', 5.9e9, 1.6e9, 460e6, 'fleet'),
     mk(makePinball(SKINS.arcade), 'Pinball', SKINS.arcade, 'Tap left and right to flip. Hit the bumpers and chase the multiplier.', '#pinball #arcade #highscore', 8.7e9, 2.7e9, 830e6, 'pinball'),
     mk(makeDarts(SKINS.wood), 'Darts', SKINS.wood, 'Hold to steady your aim, let go to throw. Five rounds, three darts each.', '#darts #aim #bullseye', 3.4e9, 780e6, 160e6, 'darts'),
     mk(makeBowling(SKINS.bubblegum), 'Bowling', SKINS.bubblegum, 'Slide your ball, flick it up the lane and knock them all down.', '#bowling #strike #chill', 4.8e9, 1.1e9, 280e6, 'bowling')
