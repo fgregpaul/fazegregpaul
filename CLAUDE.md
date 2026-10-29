@@ -113,7 +113,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (85 hand-made games, shuffled into the feed on each load)
+## Game list (86 hand-made games, shuffled into the feed on each load)
 
 Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
@@ -143,6 +143,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Dungeon Greg | Zelda-like dungeon | `quest` |
 | Echo | Simon | `simon` |
 | Encore | Guitar Hero | `encore` |
+| Facet Rush | browser low-poly track-builder racers (3D time trials). Raw WebGL, flat-shaded meshes built in code. Tracks are turtle strings in `TRACKS` (`S` straight, `L`/`R` 90° turns, `U`/`D` ramps one level up/down, `B` boost, `C` checkpoint, `J` jump gap that drops a level, `F` finish; the start piece is implicit) parsed by `parse()` onto a 24-unit grid, bridges allowed when levels don't overlap. Fixed 120 Hz car physics (`step`), drift = brake + steer. The author bot (`pilot`/`authorRun`) drives every track on load to set Author/Gold/Silver/Bronze times (x1, x1.07, x1.22, x1.5), custom tracks included. Ghost of your PB (falls back to the author run), checkpoint splits, respawn/restart. Track builder saves one custom track (`SAVE.custom`); 5 themed tracks (Green Mile, Frost Coil, Dune Hopper, Overpass, Neon Skyway). Save: `gregsnap_facet_v1`. Phones: on-screen steer/gas/brake pads | `facet` |
 | Fishing | fishing arcade | `fishing` |
 | Fizz Street | Schedule I (soda version) | `fizz` |
 | Fleet | Battleship. Online 1v1 via `turnMP`: the host places both fleets at random and sends them in the start data | `fleet` |
