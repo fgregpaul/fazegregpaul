@@ -714,7 +714,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       const ins = g.noInset ? [0, 0, 0, null, null] : insets(canvas); if (ins[3]) ins[3].style.setProperty('--caph', ins[1] + 'px');
       g.d = d; g.ox = 0; g.oy = ins[0]; g.w = g.W - ins[2]; g.h = Math.max(120, g.H - ins[0] - ins[1]);
       if (g.fsAspect && document.documentElement.classList.contains('fs')) { const mw = Math.round(g.h * g.fsAspect); if (g.w > mw) { g.ox = Math.round((g.w - mw) / 2); g.w = mw; } } /* portrait-only games stay a centred column in fullscreen */
-      canvas.width = g.W * d; canvas.height = g.H * d;
+      if (g._asleep) { canvas.width = 1; canvas.height = 1; } else { canvas.width = g.W * d; canvas.height = g.H * d; } /* see canvas sleep */
       g.ctx.setTransform(d, 0, 0, d, 0, 0);
       g._bgc = null; g._ovc = null;
       SK = g.sk || SKINS.comic; GM = g;
@@ -722,6 +722,17 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       if (g.inited) g.draw();
     };
     { const ro = new ResizeObserver(fit); ro.observe(canvas); const cp = canvas.closest && canvas.closest('.slide') && canvas.closest('.slide').querySelector('.cap'); if (cp) ro.observe(cp, { box: 'border-box' }); const tp = document.querySelector('.top'); if (tp) ro.observe(tp, { box: 'border-box' }); window.addEventListener('resize', fit); }
+    /* canvas sleep: a full-screen canvas (+ its cached background and overlay) is ~12 MB on a phone, and the feed has 120+ of them.
+       iPhones kill the tab ("A problem repeatedly occurred") once canvases pass a few hundred MB, so only slides near the
+       current one keep a real-size canvas; the rest shrink to 1x1 and get their pixels back when you scroll near them. */
+    g._sleep = () => { if (g._asleep) return; g._asleep = true; canvas.width = 1; canvas.height = 1; g._bgc = null; g._ovc = null; };
+    g._wake = () => {
+      if (!g._asleep) return; g._asleep = false;
+      const r = realRect();
+      if (!g.W || Math.round(r.width) !== g.W || Math.round(r.height) !== g.H) { fit(); return; }
+      canvas.width = g.W * g.d; canvas.height = g.H * g.d; g.ctx.setTransform(g.d, 0, 0, g.d, 0, 0); g._bgc = null; g._ovc = null;
+      if (g.inited) { SK = g.sk || SKINS.comic; GM = g; g.draw(); }
+    };
     fit();
     SK = g.sk || SKINS.comic; GM = g;
     g.reset(); g.inited = true; g.draw();
@@ -18926,6 +18937,7 @@ function engine(){
       if (e.isIntersecting) {
         const i = +e.target.dataset.i;
         if (i !== cur || !games[i].entered) { cur = i; games[i].entered = true; if (games[i].enter) games[i].enter(); }
+        for (let j = 0; j < SLIDES.length; j++) { const g = SLIDES[j].game; if (!g || !g._wake) continue; if (Math.abs(j - i) <= WAKE) g._wake(); else g._sleep(); }
         theme(SLIDES[i].sk);
         setPath(SLIDES[i]);
         feed.querySelectorAll('.is-cur').forEach(x => x.classList.remove('is-cur')); e.target.classList.add('is-cur');
@@ -18934,6 +18946,7 @@ function engine(){
       }
     });
   }, { root: feed, threshold: [0.6] });
+  const WAKE = 2; /* slides within this many of the current one keep full-size canvases (canvas sleep) */
   const buildSlide = (s, i) => {
     const sk = s.sk; s.liked = false; s.game.sk = sk; loadFonts(sk);
     const el = document.createElement('section');
@@ -18961,6 +18974,7 @@ function engine(){
     const av = el.querySelector('.av'); av.style.background = sk.pal[0]; av.style.color = onC(sk.pal[0]);
     feed.appendChild(el);
     const cv = el.querySelector('canvas');
+    s.game._asleep = Math.abs(i - cur) > WAKE;
     mount(cv, s.game);
     if (s.game.bind) s.game.bind(cv);
     io.observe(el);
