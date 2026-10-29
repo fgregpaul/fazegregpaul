@@ -15123,7 +15123,26 @@ function engine(){
      Test hook: ?peerhost=ws://localhost:PORT points signaling at a local server. */
   const NET = (() => {
     const PFX = 'gregsnap-v1-', CODECH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478', 'turn:eu-0.turn.peerjs.com:3478?transport=tcp', 'turn:us-0.turn.peerjs.com:3478?transport=tcp'], username: 'peerjs', credential: 'peerjsp' }] };
+    /* Relays (TURN) carry the game when phones can't reach each other directly. That happens a lot when both phones are on
+       the same home Wi-Fi: many routers block phone-to-phone traffic and can't loop a connection back in ("hairpin NAT").
+       Two free relays: PeerJS's, and Open Relay's public static-auth server, whose login we make ourselves from its
+       published shared secret (TURN REST auth: username = expiry, password = base64 HMAC-SHA1). Port 443 over TCP/TLS gets
+       through almost any network. ?relay forces relay-only (for testing). */
+    const ICE = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478?transport=tcp'], username: 'peerjs', credential: 'peerjsp' }] };
+    try { if (/[?&]relay\b/.test(location.search)) ICE.iceTransportPolicy = 'relay'; } catch (_) {}
+    let iceAt = 0;
+    const freshIce = async () => {
+      if (Date.now() - iceAt < 6 * 3600e3) return; iceAt = Date.now();
+      try {
+        const user = Math.floor(Date.now() / 1000 + 24 * 3600) + ':gregsnap', enc = new TextEncoder();
+        const key = await crypto.subtle.importKey('raw', enc.encode('openrelayprojectsecret'), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+        const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(user)));
+        let bin = ''; sig.forEach(b => { bin += String.fromCharCode(b); });
+        const OR = { urls: ['turn:staticauth.openrelay.metered.ca:80', 'turn:staticauth.openrelay.metered.ca:443?transport=tcp', 'turns:staticauth.openrelay.metered.ca:443?transport=tcp'], username: user, credential: btoa(bin) };
+        ICE.iceServers = ICE.iceServers.filter(s => !/openrelay/.test(String(s.urls))).concat([OR]);
+      } catch (_) { iceAt = 0; }
+    };
+    freshIce();
     let SIG = 'wss://0.peerjs.com:443/peerjs?key=peerjs', LOCAL = false;
     try { const h = new URLSearchParams(location.search).get('peerhost'); if (h && /^wss?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(h)) { SIG = h.replace(/\/?$/, '/') + 'peerjs?key=peerjs'; LOCAL = true; } } catch (_) {}
     const tok = () => Math.random().toString(36).slice(2, 12);
@@ -15184,7 +15203,7 @@ function engine(){
     }
     const sendPlayers = s => { const str = JSON.stringify({ t: 'players', players: s.players }); s.peers.forEach(P => { if (P.pid) P.raw(str); }); fire('players', s.players); };
     N.host = async (kind, name) => {
-      N.leave();
+      N.leave(); await freshIce();
       let sig = null, code = '';
       const token = tok();
       for (let k = 0; k < 5 && !sig; k++) { code = newCode(); try { sig = await signal(PFX + code, token); } catch (e) { if (e.message !== 'taken') throw new Error('Could not reach the lobby server. Check your connection and try again.'); } }
@@ -15224,7 +15243,7 @@ function engine(){
     };
     /* keep knocking for a while: the host may be switching apps to send the code */
     N.join = (code, kind, name, status) => new Promise((res, rej) => {
-      N.leave();
+      N.leave(); freshIce();
       code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
       if (code.length < 4) { rej(new Error('Enter the 4-letter lobby code.')); return; }
       const myId = PFX + code + '-' + tok().slice(0, 8), token = tok();
@@ -15242,7 +15261,7 @@ function engine(){
       const ensureSig = async () => { if (s.sig && s.sig.open()) return true; try { const g = await signal(myId, token); g.on = onSig; s.sig = g; return true; } catch (_) { return false; } };
       const attempt = async () => {
         if (done || N.s !== s) return;
-        if (Date.now() - T0 > LIMIT) { fail(answered ? 'Found lobby ' + code + ' but couldn\'t connect to it. One of you may be on a network that blocks game connections (try phone data instead of school/work Wi-Fi). [B]' : away ? 'Lobby ' + code + ' isn\'t answering. The host needs GregSnap open on the lobby screen, then try again. [A]' : 'Could not find lobby ' + code + '. Check the code and try again. [C]'); return; }
+        if (Date.now() - T0 > LIMIT) { fail(answered ? 'Found lobby ' + code + ' but couldn\'t connect to it, even through the relay servers. Try again, or put one phone on mobile data. [B]' : away ? 'Lobby ' + code + ' isn\'t answering. The host needs GregSnap open on the lobby screen, then try again. [A]' : 'Could not find lobby ' + code + '. Check the code and try again. [C]'); return; }
         if (!(await ensureSig())) { st('Can\'t reach the lobby server, retrying…'); tmr = setTimeout(attempt, 2500); return; }
         if (P) { const old = P; P = null; old.onclose = null; old.close(); }
         att++; answered = false;
@@ -15295,22 +15314,27 @@ function engine(){
     function ensure() {
       if (el) return;
       const st = document.createElement('style');
-      st.textContent = '#glob{position:fixed;inset:0;font-size:15px;line-height:1.3;text-align:left;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(6,6,20,.62);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:Figtree,Nunito,system-ui,sans-serif;padding:16px}' +
-        '#glob[hidden]{display:none}#glob .gl-gl{width:min(380px,100%);max-height:100%;overflow:auto;background:linear-gradient(165deg,#2b1a6b,#14204e);color:#fff;border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:20px 18px 18px;box-shadow:0 18px 50px rgba(0,0,0,.55);position:relative}' +
-        '#glob h3{margin:0 0 2px;font:900 22px/1.1 "Luckiest Guy","Bungee",system-ui,sans-serif;letter-spacing:.04em;color:#ffd23a}#glob .gl-sub{margin:0 0 14px;font-size:13px;opacity:.75}' +
-        '#glob label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;opacity:.7;margin:10px 0 5px;text-transform:uppercase}' +
-        '#glob input{width:100%;box-sizing:border-box;border:1.5px solid rgba(255,255,255,.2);background:rgba(0,0,0,.28);color:#fff;border-radius:12px;padding:11px 12px;font:700 16px system-ui,sans-serif;outline:none}#glob input:focus{border-color:#ffd23a}' +
-        '#glob input.gl-code{text-transform:uppercase;letter-spacing:.35em;text-align:center;font-size:22px}' +
-        '#glob button{border:0;border-radius:12px;padding:12px 14px;font:800 15px system-ui,sans-serif;cursor:pointer;width:100%;margin-top:10px;color:#241048;background:linear-gradient(180deg,#fff27a,#ffc21f);box-shadow:0 4px 0 #c7781a}#glob button:active{transform:translateY(2px);box-shadow:0 2px 0 #c7781a}' +
-        '#glob button.gl-alt{background:rgba(255,255,255,.12);color:#fff;box-shadow:none}#glob button[disabled]{opacity:.5;cursor:default}' +
-        '#glob .gl-x{position:absolute;top:10px;right:10px;width:34px;height:34px;margin:0;padding:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;box-shadow:none;font-size:18px}' +
-        '#glob .gl-or{display:flex;align-items:center;gap:8px;margin:14px 0 2px;font-size:12px;opacity:.6}#glob .gl-or:before,#glob .gl-or:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.2)}' +
-        '#glob .gl-row{display:flex;gap:8px}#glob .gl-row>*{flex:1}' +
-        '#glob .gl-big{font:900 44px/1 "Luckiest Guy","Bungee",system-ui,sans-serif;letter-spacing:.18em;text-align:center;color:#fff;background:rgba(0,0,0,.28);border-radius:14px;padding:12px 0 6px;margin:4px 0 4px;user-select:all;-webkit-user-select:all}' +
-        '#glob ul{list-style:none;margin:6px 0 0;padding:0}#glob li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.07);margin-top:6px;font-weight:700}' +
-        '#glob li i{width:12px;height:12px;border-radius:50%;flex:none}#glob li small{margin-left:auto;font-size:11px;opacity:.7;font-weight:700}' +
-        '#glob .gl-err{margin-top:10px;padding:9px 11px;border-radius:10px;background:rgba(255,80,100,.18);color:#ffc0c8;font-size:13px}' +
-        '#glob .gl-note{margin-top:10px;font-size:12px;opacity:.65;line-height:1.4}#glob .gl-spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:glspin .8s linear infinite;vertical-align:-2px;margin-right:6px}@keyframes glspin{to{transform:rotate(1turn)}}';
+      st.textContent = '#glob{position:fixed;inset:0;font-size:15px;line-height:1.35;text-align:left;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(8,8,10,.58);backdrop-filter:blur(14px) saturate(120%);-webkit-backdrop-filter:blur(14px) saturate(120%);font-family:Figtree,system-ui,-apple-system,sans-serif;padding:18px;color:#f3efe6}' +
+        '#glob[hidden]{display:none}#glob .gl-gl{width:min(372px,100%);max-height:100%;overflow:auto;background:linear-gradient(180deg,#17171a 0%,#0f0f11 100%);border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:26px 22px 20px;box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05);position:relative;animation:glin .28s cubic-bezier(.2,.8,.2,1)}' +
+        '@keyframes glin{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}' +
+        '#glob .gl-eye{font:500 10.5px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase;color:#c8b48a;margin:0 0 12px}' +
+        '#glob h3{margin:0;font:500 30px/1.1 "Playfair Display",Georgia,serif;letter-spacing:-.01em;color:#f6f2e9}#glob h3 i{font-style:italic;color:#d9c9a3}' +
+        '#glob .gl-sub{margin:8px 0 20px;font-size:13.5px;color:#8f8a80}' +
+        '#glob label{display:block;font:500 10.5px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.16em;color:#77736b;margin:16px 0 8px;text-transform:uppercase}' +
+        '#glob input{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:#f6f2e9;border-radius:14px;padding:13px 14px;font:500 16px Figtree,system-ui,sans-serif;outline:none;transition:border-color .15s,background .15s}#glob input:focus{border-color:rgba(200,180,138,.7);background:rgba(255,255,255,.055)}' +
+        '#glob input::placeholder{color:#5d5a54}#glob input.gl-code{text-transform:uppercase;letter-spacing:.4em;text-align:center;font:500 18px "DM Mono",ui-monospace,monospace;padding-left:calc(14px + .4em)}' +
+        '#glob button{border:0;border-radius:999px;padding:14px 16px;font:600 15px Figtree,system-ui,sans-serif;letter-spacing:.01em;cursor:pointer;width:100%;margin-top:12px;color:#121214;background:#f2ede3;transition:transform .12s,background .15s,opacity .15s}#glob button:hover{background:#fffaf0}#glob button:active{transform:scale(.985)}' +
+        '#glob button.gl-alt{background:transparent;color:#e9e4d9;border:1px solid rgba(255,255,255,.14)}#glob button.gl-alt:hover{background:rgba(255,255,255,.05)}#glob button[disabled]{opacity:.38;cursor:default;transform:none}' +
+        '#glob button.gl-ghost{background:none;border:0;color:#8f8a80;font-weight:500;font-size:13.5px;padding:10px;margin-top:6px}#glob button.gl-ghost:hover{color:#e9e4d9;background:none}' +
+        '#glob .gl-x{position:absolute;top:14px;right:14px;width:34px;height:34px;margin:0;padding:0;border-radius:50%;background:transparent;color:#8f8a80;font:300 22px/1 Figtree,system-ui,sans-serif;border:0}#glob .gl-x:hover{background:rgba(255,255,255,.06);color:#f6f2e9}' +
+        '#glob .gl-or{display:flex;align-items:center;gap:12px;margin:20px 0 4px;font:500 10.5px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;color:#5f5c56}#glob .gl-or:before,#glob .gl-or:after{content:"";flex:1;height:1px;background:rgba(255,255,255,.08)}' +
+        '#glob .gl-row{display:flex;gap:10px}#glob .gl-row>*{flex:1}#glob .gl-row button{margin-top:12px}' +
+        '#glob .gl-tiles{display:flex;justify-content:center;gap:8px;margin:4px 0 2px;user-select:all;-webkit-user-select:all}#glob .gl-tiles span{width:56px;height:68px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(200,180,138,.28);font:500 34px/1 "Playfair Display",Georgia,serif;color:#f6f2e9}' +
+        '#glob ul{list-style:none;margin:0;padding:0;border-top:1px solid rgba(255,255,255,.07)}#glob li{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid rgba(255,255,255,.07);font-weight:600;font-size:15px}' +
+        '#glob li i{width:30px;height:30px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:600 13px/1 Figtree,system-ui,sans-serif;font-style:normal;color:#121214}#glob li em{font-style:normal;color:#77736b;font-weight:500;margin-left:6px}#glob li small{margin-left:auto;font:500 10px/1 "DM Mono",ui-monospace,monospace;letter-spacing:.16em;color:#c8b48a}' +
+        '#glob .gl-err{margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(214,110,96,.08);border:1px solid rgba(214,110,96,.25);color:#e8b2a8;font-size:13px}' +
+        '#glob .gl-note{margin-top:14px;font-size:12.5px;color:#77736b;line-height:1.5}#glob .gl-note b{color:#bdb6a8;font-weight:600}' +
+        '#glob .gl-wait{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:14px;color:#bdb6a8}#glob .gl-spin{display:inline-block;width:14px;height:14px;flex:none;border:1.5px solid rgba(255,255,255,.15);border-top-color:#c8b48a;border-radius:50%;animation:glspin .9s linear infinite}@keyframes glspin{to{transform:rotate(1turn)}}';
       document.head.appendChild(st);
       el = document.createElement('div'); el.id = 'glob'; el.hidden = true; el.innerHTML = '<div class="gl-gl" role="dialog" aria-label="Play with friends"></div>';
       document.body.appendChild(el);
@@ -15318,30 +15342,31 @@ function engine(){
       ['pointerdown', 'touchstart', 'wheel'].forEach(t => el.addEventListener(t, e => e.stopPropagation(), { passive: true }));
       el.addEventListener('click', e => { if (e.target === el && performance.now() - shownAt > 500) hide(); const b = e.target.closest('button'); if (b && b.dataset.a) act(b.dataset.a); });
     }
-    const COLS = ['#ffcf33', '#4ecdc4', '#ff6b6b', '#a06cd5', '#5aa9e6', '#90be6d', '#f15bb5', '#ff9f1c'];
+    const COLS = ['#d9c9a3', '#9fc2b4', '#d6a39a', '#b7a8d4', '#a3bcd9', '#c4cf9a', '#dba9c4', '#e0b98c'];
     function render() {
       if (!el) return;
       const c = el.querySelector('.gl-gl'), s = NET.s, t = esc(game ? game.title : 'Game');
-      let h = '<button class="gl-x" data-a="close" aria-label="Close">✕</button>';
+      let h = '<button class="gl-x" data-a="close" aria-label="Close">×</button><p class="gl-eye">GregSnap · Multiplayer</p>';
       if (s && (s.role === 'host' || s.me)) {
-        const host = s.role === 'host';
-        h += '<h3>LOBBY</h3><p class="gl-sub">' + t + ' · share this code with friends</p><div class="gl-big">' + esc(s.code) + '</div>' +
-          '<div class="gl-row"><button class="gl-alt" data-a="copy">Copy invite link</button>' + (navigator.share ? '<button class="gl-alt" data-a="share">Share…</button>' : '') + '</div>' +
-          '<label>Players (' + s.players.length + '/' + NET.max + ')</label><ul>' +
-          s.players.map((p, i) => '<li><i style="background:' + COLS[i % COLS.length] + '"></i>' + esc(p.name) + (p.id === s.me ? ' (you)' : '') + '<small>' + (p.host ? 'HOST' : '') + '</small></li>').join('') + '</ul>' +
-          (host ? '<button data-a="start" data-enter ' + (busy || s.players.length < ((game && game.mpMin) || 1) ? 'disabled' : '') + '>' + (s.inGame ? 'Match in progress…' : s.players.length < ((game && game.mpMin) || 1) ? 'Waiting for a friend to join…' : 'Start match') + '</button>' : '<div class="gl-note"><span class="gl-spin"></span>Waiting for the host to start…</div>') +
-          '<button class="gl-alt" data-a="leave">Leave lobby</button>' +
+        const host = s.role === 'host', need = (game && game.mpMin) || 1, short = s.players.length < need;
+        h += '<h3>Your <i>lobby</i></h3><p class="gl-sub">' + t + ' · share this code with friends</p>' +
+          '<div class="gl-tiles" aria-label="Lobby code ' + esc(s.code) + '">' + String(s.code).split('').map(ch => '<span>' + esc(ch) + '</span>').join('') + '</div>' +
+          '<div class="gl-row"><button class="gl-alt" data-a="copy">Copy invite link</button>' + (navigator.share ? '<button class="gl-alt" data-a="share">Share</button>' : '') + '</div>' +
+          '<label>Players · ' + s.players.length + ' of ' + NET.max + '</label><ul>' +
+          s.players.map((p, i) => '<li><i style="background:' + COLS[i % COLS.length] + '">' + esc(String(p.name).trim().charAt(0).toUpperCase() || '?') + '</i>' + esc(p.name) + (p.id === s.me ? '<em>you</em>' : '') + '<small>' + (p.host ? 'HOST' : '') + '</small></li>').join('') + '</ul>' +
+          (host ? '<button data-a="start" data-enter ' + (busy || short ? 'disabled' : '') + '>' + (s.inGame ? 'Match in progress…' : short ? 'Waiting for a friend to join…' : 'Start match') + '</button>' : '<div class="gl-wait"><span class="gl-spin"></span>Waiting for the host to start…</div>') +
+          '<button class="gl-ghost" data-a="leave">Leave lobby</button>' +
           (host && NET.s.sigUp === false ? '<div class="gl-err">Reconnecting the lobby…</div>' : '') + (host && !s.inGame ? '<div class="gl-note"><b>Keep GregSnap open on this screen while friends join.</b> If you switch apps to send the code, come right back.</div>' : '') + (host ? '<div class="gl-note">' + esc((game && game.mpNote) || 'Empty spots are filled with bots.') + ' Friends can join with the code on fazegregpaul.com, or by opening the invite link.</div>' : '');
       } else if (view === 'wait') {
-        h += '<h3>PLAY WITH FRIENDS</h3><p class="gl-sub">' + t + '</p><div class="gl-note" style="font-size:15px;opacity:.9"><span class="gl-spin"></span>' + esc(err || 'Connecting…') + '</div><button class="gl-alt" data-a="cancel">Cancel</button>';
+        h += '<h3>Play with <i>friends</i></h3><p class="gl-sub">' + t + '</p><div class="gl-wait"><span class="gl-spin"></span>' + esc(err || 'Connecting…') + '</div><button class="gl-ghost" data-a="cancel">Cancel</button>';
       } else {
-        h += '<h3>PLAY WITH FRIENDS</h3><p class="gl-sub">' + t + ' · ' + esc((game && game.mpSub) || 'up to ' + NET.max + ' players') + '</p>' +
+        h += '<h3>Play with <i>friends</i></h3><p class="gl-sub">' + t + ' · ' + esc((game && game.mpSub) || 'up to ' + NET.max + ' players') + '</p>' +
           '<label for="glName">Your name</label><input id="glName" maxlength="16" autocomplete="off" value="' + esc(getName()) + '">' +
           '<button data-a="host"' + (preCode ? '' : ' data-enter') + '>Create a lobby</button>' +
-          '<div class="gl-or">or join one</div>' +
-          '<div class="gl-row"><input id="glCode" class="gl-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" value="' + esc(preCode) + '"><button data-a="join"' + (preCode ? ' data-enter' : '') + ' style="margin-top:0">Join</button></div>' +
+          '<div class="gl-or">or join with a code</div>' +
+          '<div class="gl-row"><input id="glCode" class="gl-code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" value="' + esc(preCode) + '"><button class="gl-alt" data-a="join"' + (preCode ? ' data-enter' : '') + ' style="margin-top:0;flex:0 0 96px">Join</button></div>' +
           (err ? '<div class="gl-err">' + esc(err) + '</div>' : '') +
-          '<div class="gl-note">Games connect phone-to-phone. Most home Wi-Fi and phone data work; some school or work networks block it.</div>';
+          '<div class="gl-note">Phones connect directly to each other. If that\'s blocked, the game relays through a server automatically.</div>';
       }
       c.innerHTML = h;
     }
