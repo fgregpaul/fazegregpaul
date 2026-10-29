@@ -14788,7 +14788,9 @@ function engine(){
   /* ===== GregNet: shared multiplayer lobbies for any game =====
      Peer-to-peer WebRTC data channels. Signaling ("the handshake") goes through the free PeerJS cloud
      server (wss://0.peerjs.com, same protocol as the PeerJS library, no library needed). After that,
-     game traffic flows browser-to-browser. Star topology: the host relays everything.
+     game traffic flows browser-to-browser. The cloud server checks message shapes: OFFER payloads must carry the
+     same fields the PeerJS library sends (sdp, type, connectionId, label, reliable, serialization, metadata) or it
+     closes the socket, so keep these payloads exactly as they are. Star topology: the host relays everything.
      A game opts in with `mp: true` and these hooks (all optional except the first two):
        mpHostStart(players) -> data   host pressed Start; return what every client needs to start
        mpClientStart(data, me, players)  a client received the host's start data
@@ -14840,18 +14842,18 @@ function engine(){
       const close = () => { if (P.dead) return; P.dead = true; try { pc.close(); } catch (_) {} if (P.onclose) P.onclose(); };
       const chk = () => { if (!P.open && P.rel && P.rel.readyState === 'open') { P.open = true; if (P.onopen) P.onopen(); } };
       const wire = ch => { ch.onopen = chk; ch.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (P.onmsg) P.onmsg(m); }; ch.onclose = () => { if (ch === P.rel) close(); }; };
-      pc.onicecandidate = e => { if (e.candidate) sig.send({ type: 'CANDIDATE', dst: remote, payload: { type: 'data', connectionId: cid, candidate: e.candidate } }); };
+      pc.onicecandidate = e => { if (e.candidate && e.candidate.candidate) sig.send({ type: 'CANDIDATE', dst: remote, payload: { candidate: e.candidate, type: 'data', connectionId: cid } }); };
       let dT = null;
       pc.onconnectionstatechange = () => { const s = pc.connectionState; if (s === 'failed' || s === 'closed') close(); else if (s === 'disconnected') { clearTimeout(dT); dT = setTimeout(() => { if (pc.connectionState !== 'connected') close(); }, 6000); } };
       if (initiator) {
         P.rel = pc.createDataChannel('r'); P.fast = pc.createDataChannel('f', { ordered: false, maxRetransmits: 0 }); wire(P.rel); wire(P.fast);
-        pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => sig.send({ type: 'OFFER', dst: remote, payload: { type: 'data', connectionId: cid, sdp: pc.localDescription } })).catch(close);
+        pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => sig.send({ type: 'OFFER', dst: remote, payload: { sdp: pc.localDescription, type: 'data', connectionId: cid, label: cid, reliable: true, serialization: 'json', metadata: {} } })).catch(close);
       } else pc.ondatachannel = e => { if (e.channel.label === 'r') P.rel = e.channel; else P.fast = e.channel; wire(e.channel); chk(); };
       const flush = () => { const q = P.q; P.q = []; q.forEach(c => pc.addIceCandidate(c).catch(() => {})); };
       P.signal = async m => {
         try {
           const p = m.payload || {};
-          if (m.type === 'OFFER') { await pc.setRemoteDescription(p.sdp); const a = await pc.createAnswer(); await pc.setLocalDescription(a); sig.send({ type: 'ANSWER', dst: remote, payload: { type: 'data', connectionId: cid, sdp: pc.localDescription } }); flush(); }
+          if (m.type === 'OFFER') { await pc.setRemoteDescription(p.sdp); const a = await pc.createAnswer(); await pc.setLocalDescription(a); sig.send({ type: 'ANSWER', dst: remote, payload: { sdp: pc.localDescription, type: 'data', connectionId: cid } }); flush(); }
           else if (m.type === 'ANSWER') { await pc.setRemoteDescription(p.sdp); flush(); }
           else if (m.type === 'CANDIDATE' && p.candidate) { if (pc.remoteDescription) pc.addIceCandidate(p.candidate).catch(() => {}); else P.q.push(p.candidate); }
         } catch (_) { close(); }
@@ -14926,7 +14928,7 @@ function engine(){
         if (P) { const old = P; P = null; old.onclose = null; old.close(); }
         att++; answered = false;
         if (att > 1 && !away) st('Still looking for lobby ' + code + '… (the host needs GregSnap open)');
-        const cur = rtc(sp, PFX + code, true, tok()); P = cur;
+        const cur = rtc(sp, PFX + code, true, 'dc_' + tok()); P = cur;
         cur.onopen = () => cur.send({ t: 'hello', kind, name: clean(name) });
         cur.onmsg = d => {
           if (d.t === 'welcome') { if (done) return; done = true; clearTimeout(tmr); s.host = cur; s.me = d.you; res(s); setTimeout(() => { if (N.s === s && s.sig) s.sig.close(); }, 8000); }
