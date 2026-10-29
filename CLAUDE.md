@@ -190,7 +190,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Steady Greg | GregSnap original (movie joke) | (one of the original 8) |
 | Sudoku | Sudoku | `sudoku` |
 | Summit | Celeste | `summit` |
-| Storm Isle | Fortnite (top-down 2D battle royale: Sky Barge drop, 9 named towns, chests, 5 guns in 5 rarities, wall building, shrinking storm, 29 bots; phone twin sticks; online lobbies with friends via GregNet) | `royale` |
+| Storm Isle | Fortnite (top-down 2D battle royale: Sky Barge drop, 9 named towns, chests, 5 guns in 5 rarities, wall building, shrinking storm, 29 bots; phones: floating move stick on the left + a fixed aim circle bottom-right (`aimGeom()`; push past the dashed ring to shoot); online lobbies with friends via GregNet) | `royale` |
 | Survive the Night | Vampire Survivors | `survive` |
 | Suspects | Among Us | `sus` |
 | Sweeper | Minesweeper | `sweeper` |

@@ -15079,7 +15079,7 @@ function engine(){
 
   /* ===== Storm Isle: top-down battle royale (inspired by Fortnite) with online lobbies =====
      30 players (you + friends + bots) drop from the Sky Barge onto a generated island with 9 named
-     towns. Loot chests, build walls, outrun the storm. Phones: twin sticks + buttons. Desktop: WASD + mouse.
+     towns. Loot chests, build walls, outrun the storm. Phones: move stick + a fixed aim circle + buttons. Desktop: WASD + mouse.
      Multiplayer: the host simulates everything (bots, storm, loot, damage); the island is generated from a
      shared seed with deterministic maths only (no Math.pow/hypot/sin in anything that decides layout) so
      every phone builds the same map. Clients move themselves and send actions; the host sends snapshots. */
@@ -15790,6 +15790,8 @@ function engine(){
     const isTouch = () => G && G.touchMode;
     const touchAds = () => !!(TS.r && TS.r.ads);
     const stickR = () => 46 * U();
+    /* fixed aim stick: a little circle in the bottom-right you drag inside (it never moves to where your finger lands) */
+    function aimGeom() { const u = U(), R0 = stickR(), r = 27 * u, hb = hotbarGeom(); return { x: W - r * 2 - 12 - 16 * u - R0, y: hb.y - 34 * u - R0, R0 }; }
     function stickVec(s) { const R0 = stickR(), dx = s.x - s.ox, dy = s.y - s.oy, d = Math.hypot(dx, dy); if (d < 4) return [0, 0]; const m = Math.min(1, d / R0); return [dx / d * m, dy / d * m]; }
     let W = 0, H = 0, ctx = null;
     const U = () => clamp(Math.min(W, H) / 720, .62, 1.15);
@@ -16005,10 +16007,15 @@ function engine(){
         button('use', x, by, r * 2, r * 2, 'USE', { round: true, ghost: true, glow: !!near, fs: 13 * u, fn: () => interact(p) });
         button('reload', x, by - r * 2 - 12 * u, r * 2, r * 2, '↻', { round: true, ghost: true, fs: 22 * u, fn: () => startReload(p) });
         button('build', x, by - (r * 2 + 12 * u) * 2, r * 2, r * 2, buildMode ? 'EXIT' : 'BUILD', { round: true, ghost: true, on: buildMode, fs: 11 * u, fn: () => { buildMode = !buildMode; if (buildMode) { p.reload = 0; p.using = null; } } });
-        if (buildMode) { button('box', x - r * 2 - 10 * u, by - (r * 2 + 12 * u) * 2, r * 2, r * 2, 'BOX', { round: true, ghost: true, fs: 12 * u, fn: () => boxUp(p) }); button('matc', x - r * 2 - 10 * u, by - r * 2 - 12 * u, r * 2, r * 2, '', { round: true, ghost: true, fn: () => { p.matSel = (p.matSel + 1) % 3; }, icon: (cx, cy) => { ctx.save(); ctx.translate(cx, cy); drawItemIcon(ctx, { kind: 'mats', mat: MATS[p.matSel] }, 1.1 * u); ctx.restore(); } }); }
+        if (buildMode) { button('box', x - r * 2 - 10 * u, by - (r * 2 + 12 * u) * 3, r * 2, r * 2, 'BOX', { round: true, ghost: true, fs: 12 * u, fn: () => boxUp(p) }); button('matc', x - r * 2 - 10 * u, by - (r * 2 + 12 * u) * 2, r * 2, r * 2, '', { round: true, ghost: true, fn: () => { p.matSel = (p.matSel + 1) % 3; }, icon: (cx, cy) => { ctx.save(); ctx.translate(cx, cy); drawItemIcon(ctx, { kind: 'mats', mat: MATS[p.matSel] }, 1.1 * u); ctx.restore(); } }); }
       }
-      for (const s of [TS.l, TS.r]) { if (!s) continue; const R0 = stickR(); ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s.ox, s.oy, R0, 0, TAU); ctx.fill(); ctx.stroke(); const v = stickVec(s); ctx.fillStyle = s === TS.r ? (Math.hypot(v[0], v[1]) > .55 ? 'rgba(255,90,90,.75)' : 'rgba(255,255,255,.6)') : 'rgba(255,255,255,.6)'; circ(ctx, s.ox + v[0] * R0, s.oy + v[1] * R0, R0 * .42); }
-      if (!TS.l && !TS.r && p.state === 'ground' && matchT < 50) { ctx.globalAlpha = .7; tx('drag left side to move', W * .25, H * .62, 12 * u, '#fff'); tx('drag right side to aim & shoot', W * .72, H * .62, 12 * u, '#fff'); ctx.globalAlpha = 1; }
+      if (p.state === 'ground') { const ag = aimGeom(), R0 = ag.R0, s = TS.r, v = s ? stickVec(s) : [0, 0], fire = Math.hypot(v[0], v[1]) > .55;
+        ctx.fillStyle = s ? 'rgba(255,255,255,.16)' : 'rgba(10,15,35,.32)'; ctx.strokeStyle = buildMode ? 'rgba(127,216,255,.75)' : 'rgba(255,255,255,.55)'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(ag.x, ag.y, R0, 0, TAU); ctx.fill(); ctx.stroke();
+        ctx.setLineDash([4, 5]); ctx.strokeStyle = 'rgba(255,255,255,.3)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(ag.x, ag.y, R0 * .55, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = fire ? 'rgba(255,90,90,.8)' : 'rgba(255,255,255,.65)'; circ(ctx, ag.x + v[0] * R0, ag.y + v[1] * R0, R0 * .4);
+        if (!s) { ctx.strokeStyle = 'rgba(20,25,45,.7)'; ctx.lineWidth = 2; const cx = ag.x, cy = ag.y, k = R0 * .18; ctx.beginPath(); ctx.arc(cx, cy, k, 0, TAU); ctx.moveTo(cx - k * 1.7, cy); ctx.lineTo(cx + k * 1.7, cy); ctx.moveTo(cx, cy - k * 1.7); ctx.lineTo(cx, cy + k * 1.7); ctx.stroke(); } }
+      for (const s of [TS.l]) { if (!s) continue; const R0 = stickR(); ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(s.ox, s.oy, R0, 0, TAU); ctx.fill(); ctx.stroke(); const v = stickVec(s); ctx.fillStyle = s === TS.r ? (Math.hypot(v[0], v[1]) > .55 ? 'rgba(255,90,90,.75)' : 'rgba(255,255,255,.6)') : 'rgba(255,255,255,.6)'; circ(ctx, s.ox + v[0] * R0, s.oy + v[1] * R0, R0 * .42); }
+      if (!TS.l && !TS.r && !buildMode && p.state === 'ground' && matchT < 50) { ctx.globalAlpha = .7; tx('drag left side to move', W * .25, H * .62, 12 * u, '#fff'); tx('drag the aim circle ↘', W * .72, H * .62 - 16 * u, 12 * u, '#fff'); tx('push to the edge to shoot', W * .72, H * .62, 12 * u, '#fff'); ctx.globalAlpha = 1; }
     }
     function drawCrosshair() { const p = player; if (!p.alive || p.state !== 'ground' || showMap || isTouch() || !mouse.on) return; const x = mouse.x, y = mouse.y;
       if (buildMode) { ctx.strokeStyle = '#7fd8ff'; ctx.lineWidth = 2; ctx.strokeRect(x - 8, y - 8, 16, 16); ctx.fillStyle = '#7fd8ff'; circ(ctx, x, y, 2); return; }
@@ -16057,7 +16064,7 @@ function engine(){
       button('mp', cx - bw / 2, by + bh + 16 * u, bw, bh, inL ? 'LOBBY ' + NET.s.code + ' (' + NET.s.players.length + ')' : 'PLAY WITH FRIENDS', { alt: true, fs: Math.min(22 * u, bw / 11), fn: () => LOBBY.open(G) });
       const st = STATS.games ? 'Wins ' + STATS.wins + '  ·  Matches ' + STATS.games + '  ·  Eliminations ' + STATS.kills : 'Loot chests, build walls, outrun the storm';
       tx(st, cx, by + bh * 2 + 44 * u, 12 * u, 'rgba(255,255,255,.85)', 'center', false, 700);
-      const hint = T ? ['Left thumb: move  ·  Right thumb: aim & shoot', 'USE opens chests  ·  BUILD places walls'] : ['WASD move  ·  mouse aim & shoot  ·  E open chests', 'Q build  ·  T material  ·  B box up  ·  M map  ·  R reload'];
+      const hint = T ? ['Left thumb: move  ·  Aim circle: aim, push to the edge to shoot', 'USE opens chests  ·  BUILD places walls'] : ['WASD move  ·  mouse aim & shoot  ·  E open chests', 'Q build  ·  T material  ·  B box up  ·  M map  ·  R reload'];
       hint.forEach((h, i) => tx(h, cx, H - 44 * u + i * 18 * u, 11 * u, 'rgba(255,255,255,.75)', 'center', false, 600));
       if (G.note) tx(G.note, cx, by - 22 * u, 13 * u, '#ff9aa8', 'center', false, 700);
     }
@@ -16113,15 +16120,17 @@ function engine(){
           if (!player || !player.alive) return;
           if (touch) {
             if (player.state === 'bus') { wantJump = true; return; }
-            const side = p.x < W * .45 ? 'l' : 'r'; if (TS[side]) return;
-            TS[side] = { id: ev.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y, ads: false };
+            let side = p.x < W * .45 ? 'l' : 'r'; const ag = aimGeom();
+            if (player.state === 'ground' && Math.hypot(p.x - ag.x, p.y - ag.y) < ag.R0 * 1.7) side = 'r'; else if (side === 'r') return;
+            if (TS[side]) return;
+            TS[side] = side === 'r' ? { id: ev.pointerId, ox: ag.x, oy: ag.y, x: p.x, y: p.y, ads: false } : { id: ev.pointerId, ox: p.x, oy: p.y, x: p.x, y: p.y, ads: false };
             try { cv.setPointerCapture(ev.pointerId); } catch (_) {}
           } else { if (ev.button === 0) mouse.down = true; if (ev.button === 2) mouse.rdown = true; }
         });
         cv.addEventListener('pointermove', ev => {
           const p = pos(ev);
           if (ev.pointerType === 'mouse') { mouse.x = p.x; mouse.y = p.y; mouse.on = true; this.touchMode = false; return; }
-          for (const k of ['l', 'r']) { const s = TS[k]; if (!s || s.id !== ev.pointerId) continue; s.x = p.x; s.y = p.y; const R0 = stickR() * 1.4, dx = s.x - s.ox, dy = s.y - s.oy, d = Math.hypot(dx, dy); if (d > R0) { s.ox += dx / d * (d - R0); s.oy += dy / d * (d - R0); } if (k === 'r') { const g = player && curGun(player); s.ads = !!(g && g.type === 'sniper'); } }
+          for (const k of ['l', 'r']) { const s = TS[k]; if (!s || s.id !== ev.pointerId) continue; s.x = p.x; s.y = p.y; const R0 = stickR() * 1.4, dx = s.x - s.ox, dy = s.y - s.oy, d = Math.hypot(dx, dy); if (d > R0 && k === 'l') { s.ox += dx / d * (d - R0); s.oy += dy / d * (d - R0); } if (k === 'r') { const g = player && curGun(player); s.ads = !!(g && g.type === 'sniper'); } }
         });
         const up = ev => { for (const k of ['l', 'r']) if (TS[k] && TS[k].id === ev.pointerId) TS[k] = null; if (ev.pointerType === 'mouse') { if (ev.button === 0 || ev.type !== 'pointerup') mouse.down = false; if (ev.button === 2 || ev.type !== 'pointerup') mouse.rdown = false; } };
         ['pointerup', 'pointercancel'].forEach(t => cv.addEventListener(t, up));
