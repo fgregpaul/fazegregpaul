@@ -14802,7 +14802,7 @@ function engine(){
      Test hook: ?peerhost=ws://localhost:PORT points signaling at a local server. */
   const NET = (() => {
     const PFX = 'gregsnap-v1-', CODECH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-    const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }] };
+    const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478', 'turn:eu-0.turn.peerjs.com:3478?transport=tcp', 'turn:us-0.turn.peerjs.com:3478?transport=tcp'], username: 'peerjs', credential: 'peerjsp' }] };
     let SIG = 'wss://0.peerjs.com:443/peerjs?key=peerjs', LOCAL = false;
     try { const h = new URLSearchParams(location.search).get('peerhost'); if (h && /^wss?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/.test(h)) { SIG = h.replace(/\/?$/, '/') + 'peerjs?key=peerjs'; LOCAL = true; } } catch (_) {}
     const tok = () => Math.random().toString(36).slice(2, 12);
@@ -14811,21 +14811,27 @@ function engine(){
     const fire = (k, ...a) => { try { if (N.cb[k]) N.cb[k](...a); } catch (e) { console.error(e); } };
     const clean = n => String(n || 'Player').replace(/[<>&"]/g, '').slice(0, 16).trim() || 'Player';
 
-    function signal(id) {
+    /* resolves once the signaling socket is registered. A reconnect with the same token can re-attach to a
+       still-registered id, in which case the server sends no OPEN, so an open socket with no error counts too. */
+    function signal(id, token) {
       return new Promise((res, rej) => {
-        let ws; try { ws = new WebSocket(SIG + '&id=' + encodeURIComponent(id) + '&token=' + tok() + '&version=1.5.4'); } catch (e) { rej(new Error('ws')); return; }
-        const S = { ws, on: null, onclose: null, send(o) { try { if (ws.readyState === 1) ws.send(JSON.stringify(o)); } catch (_) {} }, close() { clearInterval(hb); try { ws.close(); } catch (_) {} } };
+        let ws; try { ws = new WebSocket(SIG + '&id=' + encodeURIComponent(id) + '&token=' + (token || tok()) + '&version=1.5.4'); } catch (e) { rej(new Error('ws')); return; }
+        let ok = false;
+        const S = { ws, on: null, onclose: null, open: () => ws.readyState === 1, send(o) { try { if (ws.readyState === 1) ws.send(JSON.stringify(o)); } catch (_) {} }, close() { clearInterval(hb); try { ws.close(); } catch (_) {} } };
         const hb = setInterval(() => S.send({ type: 'HEARTBEAT' }), 5000);
-        const to = setTimeout(() => { S.close(); rej(new Error('timeout')); }, 12000);
+        const done = () => { if (ok) return; ok = true; clearTimeout(to); clearTimeout(ra); res(S); };
+        const to = setTimeout(() => { if (!ok) { S.close(); rej(new Error('timeout')); } }, 12000);
+        let ra = null;
+        ws.onopen = () => { if (token) ra = setTimeout(done, 2500); };
         ws.onmessage = ev => {
           let m; try { m = JSON.parse(ev.data); } catch (_) { return; }
-          if (m.type === 'OPEN') { clearTimeout(to); res(S); }
-          else if (m.type === 'ID-TAKEN') { clearTimeout(to); S.close(); rej(new Error('taken')); }
-          else if (m.type === 'ERROR' || m.type === 'INVALID-KEY') { clearTimeout(to); S.close(); rej(new Error('server')); }
+          if (m.type === 'OPEN') done();
+          else if (m.type === 'ID-TAKEN') { clearTimeout(to); clearTimeout(ra); S.close(); if (!ok) rej(new Error('taken')); }
+          else if (m.type === 'ERROR' || m.type === 'INVALID-KEY') { clearTimeout(to); clearTimeout(ra); S.close(); if (!ok) rej(new Error('server')); }
           else if (S.on) S.on(m);
         };
-        ws.onerror = () => { clearTimeout(to); rej(new Error('ws')); };
-        ws.onclose = () => { clearInterval(hb); if (S.onclose) S.onclose(); };
+        ws.onerror = () => { if (!ok) { clearTimeout(to); clearTimeout(ra); rej(new Error('ws')); } };
+        ws.onclose = () => { clearInterval(hb); if (!ok) { clearTimeout(to); clearTimeout(ra); rej(new Error('ws')); } else if (S.onclose) S.onclose(); };
       });
     }
     function rtc(sig, remote, initiator, cid) {
@@ -14859,14 +14865,16 @@ function engine(){
     N.host = async (kind, name) => {
       N.leave();
       let sig = null, code = '';
-      for (let k = 0; k < 5 && !sig; k++) { code = newCode(); try { sig = await signal(PFX + code); } catch (e) { if (e.message !== 'taken') throw new Error('Could not reach the lobby server. Check your connection and try again.'); } }
+      const token = tok();
+      for (let k = 0; k < 5 && !sig; k++) { code = newCode(); try { sig = await signal(PFX + code, token); } catch (e) { if (e.message !== 'taken') throw new Error('Could not reach the lobby server. Check your connection and try again.'); } }
       if (!sig) throw new Error('Could not make a lobby code. Try again.');
-      const s = { role: 'host', code, kind, sig, peers: new Map(), players: [{ id: 'h', name: clean(name), host: true }], me: 'h', inGame: false, nextId: 1 };
+      const s = { role: 'host', code, kind, sig, token, peers: new Map(), players: [{ id: 'h', name: clean(name), host: true }], me: 'h', inGame: false, nextId: 1, sigUp: true, retry: 0 };
+      const sp = { send: o => { if (s.sig) s.sig.send(o); } };
       N.s = s;
-      sig.on = m => {
+      const onSig = m => {
         if (m.type === 'OFFER') {
           const old = s.peers.get(m.src); if (old) old.close();
-          const P = rtc(sig, m.src, false, (m.payload && m.payload.connectionId) || tok()); P.pid = null; s.peers.set(m.src, P);
+          const P = rtc(sp, m.src, false, (m.payload && m.payload.connectionId) || tok()); P.pid = null; s.peers.set(m.src, P);
           P.onmsg = d => {
             if (d.t === 'hello') {
               if (d.kind !== s.kind) { P.send({ t: 'nope', why: 'That code is for a different game.' }); return; }
@@ -14882,32 +14890,60 @@ function engine(){
           P.signal(m);
         } else if (m.type === 'ANSWER' || m.type === 'CANDIDATE') { const P = s.peers.get(m.src); if (P) P.signal(m); }
       };
-      sig.onclose = () => { s.sigDown = true; };
+      /* phones pause pages in the background and drop the socket: reconnect with the same id + token */
+      const attach = g => { s.sig = g; s.sigUp = true; s.retry = 0; g.on = onSig; g.onclose = () => { if (N.s !== s) return; s.sigUp = false; fire('status'); later(); }; fire('status'); };
+      let busyR = false, tmr = null;
+      const later = () => { clearTimeout(tmr); tmr = setTimeout(reconnect, Math.min(5000, 600 * (1 + s.retry++))); };
+      const reconnect = async () => { if (N.s !== s || busyR || (s.sig && s.sig.open())) return; busyR = true; try { attach(await signal(PFX + s.code, s.token)); } catch (_) { later(); } busyR = false; };
+      s.reconnect = reconnect;
+      s.onVis = () => { if (document.visibilityState === 'visible' && N.s === s && !(s.sig && s.sig.open())) { s.sigUp = false; fire('status'); reconnect(); } };
+      document.addEventListener('visibilitychange', s.onVis); addEventListener('pageshow', s.onVis);
+      attach(sig);
       return s;
     };
-    N.join = (code, kind, name) => new Promise((res, rej) => {
+    /* keep knocking for a while: the host may be switching apps to send the code */
+    N.join = (code, kind, name, status) => new Promise((res, rej) => {
       N.leave();
       code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
       if (code.length < 4) { rej(new Error('Enter the 4-letter lobby code.')); return; }
-      signal(PFX + code + '-' + tok().slice(0, 8)).then(sig => {
-        const s = { role: 'client', code, kind, sig, me: null, players: [], host: null, inGame: false };
-        N.s = s;
-        const P = rtc(sig, PFX + code, true, tok()); s.host = P;
-        let done = false;
-        const fail = why => { if (done) return; done = true; clearTimeout(to); if (N.s === s) N.leave(); rej(new Error(why)); };
-        const to = setTimeout(() => fail('Could not find lobby ' + code + '. Check the code, or the host may be on a network that blocks game connections.'), 16000);
-        sig.on = m => { if (m.type === 'EXPIRE') fail('No lobby with code ' + code + '.'); else if (m.type === 'ANSWER' || m.type === 'CANDIDATE') P.signal(m); };
-        P.onopen = () => P.send({ t: 'hello', kind, name: clean(name) });
-        P.onmsg = d => {
-          if (d.t === 'welcome') { if (done) return; done = true; clearTimeout(to); s.me = d.you; res(s); setTimeout(() => { if (N.s === s) sig.close(); }, 8000); }
+      const myId = PFX + code + '-' + tok().slice(0, 8), token = tok();
+      const s = { role: 'client', code, kind, sig: null, me: null, players: [], host: null, inGame: false };
+      N.s = s;
+      const T0 = Date.now(), LIMIT = 75000;
+      let done = false, P = null, att = 0, answered = false, away = false, tmr = null;
+      const st = m => { try { if (status) status(m); } catch (_) {} };
+      const fail = why => { if (done) return; done = true; clearTimeout(tmr); if (N.s === s) N.leave(); rej(new Error(why)); };
+      const sp = { send: o => { if (s.sig) s.sig.send(o); } };
+      const onSig = m => {
+        if (m.type === 'EXPIRE') { away = true; st('The host\'s GregSnap isn\'t answering. Ask them to open it and stay on the lobby screen…'); }
+        else if ((m.type === 'ANSWER' || m.type === 'CANDIDATE') && P && m.payload && m.payload.connectionId === P.cid) { if (m.type === 'ANSWER') { answered = true; away = false; st('Found lobby ' + code + '. Connecting…'); } P.signal(m); }
+      };
+      const ensureSig = async () => { if (s.sig && s.sig.open()) return true; try { const g = await signal(myId, token); g.on = onSig; s.sig = g; return true; } catch (_) { return false; } };
+      const attempt = async () => {
+        if (done || N.s !== s) return;
+        if (Date.now() - T0 > LIMIT) { fail(answered ? 'Found lobby ' + code + ' but couldn\'t connect to it. One of you may be on a network that blocks game connections (try phone data instead of school/work Wi-Fi). [B]' : away ? 'Lobby ' + code + ' isn\'t answering. The host needs GregSnap open on the lobby screen, then try again. [A]' : 'Could not find lobby ' + code + '. Check the code and try again. [C]'); return; }
+        if (!(await ensureSig())) { st('Can\'t reach the lobby server, retrying…'); tmr = setTimeout(attempt, 2500); return; }
+        if (P) { const old = P; P = null; old.onclose = null; old.close(); }
+        att++; answered = false;
+        if (att > 1 && !away) st('Still looking for lobby ' + code + '… (the host needs GregSnap open)');
+        const cur = rtc(sp, PFX + code, true, tok()); P = cur;
+        cur.onopen = () => cur.send({ t: 'hello', kind, name: clean(name) });
+        cur.onmsg = d => {
+          if (d.t === 'welcome') { if (done) return; done = true; clearTimeout(tmr); s.host = cur; s.me = d.you; res(s); setTimeout(() => { if (N.s === s && s.sig) s.sig.close(); }, 8000); }
           else if (d.t === 'nope') fail(d.why || 'Could not join.');
           else if (d.t === 'players') { s.players = d.players; fire('players', s.players); }
           else if (d.t === 'start') { s.inGame = true; fire('start', d.data); }
           else if (d.t === 'lobby') { s.inGame = false; fire('lobby'); }
           else if (d.t === 'g') fire('msg', 'h', d.d);
         };
-        P.onclose = () => { if (!done) fail('Could not connect to the host.'); else if (N.s === s) { N.s = null; try { sig.close(); } catch (_) {} fire('end', 'The host left the lobby.'); } };
-      }).catch(() => rej(new Error('Could not reach the lobby server. Check your connection and try again.')));
+        cur.onclose = () => { if (!done) { if (P === cur) { clearTimeout(tmr); tmr = setTimeout(attempt, 1200); } } else if (N.s === s && s.host === cur) { N.s = null; try { s.sig && s.sig.close(); } catch (_) {} fire('end', 'The host left the lobby.'); } };
+        clearTimeout(tmr); tmr = setTimeout(() => { if (!done && P === cur) attempt(); }, answered ? 12000 : 6500);
+        /* an answer extends the wait for the actual connection */
+        const chk = setInterval(() => { if (done || P !== cur) { clearInterval(chk); return; } if (answered) { clearInterval(chk); clearTimeout(tmr); tmr = setTimeout(() => { if (!done && P === cur) attempt(); }, 12000); } }, 300);
+      };
+      s.cancel = () => { if (!done) { done = true; clearTimeout(tmr); rej(new Error('')); } };
+      st('Joining ' + code + '…');
+      attempt();
     });
     N.isHost = () => !!(N.s && N.s.role === 'host');
     N.send = (d, fast) => { const s = N.s; if (s && s.role === 'client' && s.host) s.host.send({ t: 'g', d }, fast); };
@@ -14917,9 +14953,10 @@ function engine(){
     N.toLobby = () => { const s = N.s; if (!s || s.role !== 'host') return; s.inGame = false; s.peers.forEach(P => { if (P.pid) P.send({ t: 'lobby' }); }); };
     N.leave = () => {
       const s = N.s; if (!s) return; N.s = null;
+      try { if (s.onVis) { document.removeEventListener('visibilitychange', s.onVis); removeEventListener('pageshow', s.onVis); } if (s.cancel) s.cancel(); } catch (_) {}
       try { if (s.role === 'client' && s.host) { s.host.send({ t: 'bye' }); const h = s.host; setTimeout(() => h.close(), 150); } } catch (_) {}
       if (s.peers) s.peers.forEach(P => { try { P.close(); } catch (_) {} });
-      try { s.sig.close(); } catch (_) {}
+      try { if (s.sig) { s.sig.onclose = null; s.sig.close(); } } catch (_) {}
     };
     addEventListener('pagehide', () => N.leave());
     return N;
@@ -14973,7 +15010,7 @@ function engine(){
           s.players.map((p, i) => '<li><i style="background:' + COLS[i % COLS.length] + '"></i>' + esc(p.name) + (p.id === s.me ? ' (you)' : '') + '<small>' + (p.host ? 'HOST' : '') + '</small></li>').join('') + '</ul>' +
           (host ? '<button data-a="start" data-enter ' + (busy ? 'disabled' : '') + '>' + (s.inGame ? 'Match in progress…' : 'Start match') + '</button>' : '<div class="gl-note"><span class="gl-spin"></span>Waiting for the host to start…</div>') +
           '<button class="gl-alt" data-a="leave">Leave lobby</button>' +
-          (host ? '<div class="gl-note">Empty spots are filled with bots. Friends can join with the code on fazegregpaul.com, or by opening the invite link.</div>' : '');
+          (host && NET.s.sigUp === false ? '<div class="gl-err">Reconnecting the lobby…</div>' : '') + (host && !s.inGame ? '<div class="gl-note"><b>Keep GregSnap open on this screen while friends join.</b> If you switch apps to send the code, come right back.</div>' : '') + (host ? '<div class="gl-note">Empty spots are filled with bots. Friends can join with the code on fazegregpaul.com, or by opening the invite link.</div>' : '');
       } else if (view === 'wait') {
         h += '<h3>PLAY WITH FRIENDS</h3><p class="gl-sub">' + t + '</p><div class="gl-note" style="font-size:15px;opacity:.9"><span class="gl-spin"></span>' + esc(err || 'Connecting…') + '</div><button class="gl-alt" data-a="cancel">Cancel</button>';
       } else {
@@ -14997,7 +15034,7 @@ function engine(){
       }
       if (a === 'join') {
         const n = nameNow(), ci = el.querySelector('#glCode'), code = (ci && ci.value) || preCode; preCode = code; view = 'wait'; err = 'Joining ' + String(code).toUpperCase() + '…'; render();
-        try { await NET.join(code, game.mpKind || game.title, n); err = ''; view = 'room'; wire(); fireG('mpPlayers', NET.s.players); } catch (e) { view = 'menu'; err = e.message; }
+        try { await NET.join(code, game.mpKind || game.title, n, m => { if (view === 'wait') { err = m; render(); } }); err = ''; view = 'room'; wire(); fireG('mpPlayers', NET.s.players); } catch (e) { if (!e.message) return; view = 'menu'; err = e.message; }
         render(); return;
       }
       if (a === 'cancel') { NET.leave(); view = 'menu'; err = ''; render(); return; }
@@ -15021,6 +15058,7 @@ function engine(){
         left: id => fireG('mpLeft', id),
         start: data => { hide(); const s = NET.s; fireG('mpClientStart', data, s.me, s.players); },
         lobby: () => { fireG('mpLobby'); show(); },
+        status: () => { if (el && !el.hidden) render(); },
         end: why => { view = 'menu'; err = why; fireG('mpEnd', why); show(); },
       };
     }
