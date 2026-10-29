@@ -335,6 +335,13 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
 <script>
 (() => {
   const TAU = Math.PI * 2;
+  /* very short play areas (phones held sideways) can make some games ask for negative circle sizes, which throws and used
+     to stop the whole app loading: clamp them to 0 instead */
+  (() => { try { const P = CanvasRenderingContext2D.prototype, A = P.arc, E = P.ellipse, RR = P.roundRect;
+    P.arc = function (x, y, r, ...k) { return A.call(this, x, y, r > 0 ? r : 0, ...k); };
+    P.ellipse = function (x, y, rx, ry, ...k) { return E.call(this, x, y, rx > 0 ? rx : 0, ry > 0 ? ry : 0, ...k); };
+    if (RR) P.roundRect = function (x, y, w, h, r) { if (typeof r === 'number' && !(r >= 0)) r = 0; else if (Array.isArray(r)) r = r.map(v => typeof v === 'number' && !(v >= 0) ? 0 : v); return RR.call(this, x, y, w, h, r); };
+  } catch (_) {} })();
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -694,7 +701,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       }
       c.drawImage(this._bgc, 0, 0, this.W, this.H);
       c.save(); c.translate(this.ox, this.oy);
-      raw.call(this);
+      try { raw.call(this); } catch (e) { if (!this._drawErr) { this._drawErr = 1; console.error(e); } }
       c.restore();
       post(this);
     };
@@ -15381,20 +15388,36 @@ function engine(){
       P.close = close;
       return P;
     }
+    /* Backup route: when phone-to-phone and the TURN relays are all blocked (school/work Wi-Fi, which usually allows only
+       normal HTTPS), game messages ride the lobby server's own websocket, packed into CANDIDATE messages (the one message
+       type the server just forwards). Slower, so 'fast' snapshots are thinned to ~9 Hz. ?forcews uses it straight away. */
+    const RELAY = 'gsrelay', FORCEWS = (() => { try { return /[?&]forcews\b/.test(location.search); } catch (_) { return false; } })();
+    function wsPeer(getSig, remote) {
+      const P = { remote, cid: RELAY, relay: true, open: true, dead: false, onmsg: null, onclose: null, lastIn: Date.now(), lastFast: 0 };
+      P.raw = (str, fast) => {
+        if (P.dead) return; const now = performance.now();
+        if (fast) { if (now - P.lastFast < 110) return; P.lastFast = now; }
+        const g = getSig(); if (!g || !g.open()) return; if (fast && g.ws && g.ws.bufferedAmount > 32768) return;
+        g.send({ type: 'CANDIDATE', dst: remote, payload: { candidate: { candidate: 'gs1:' + str, sdpMid: '0', sdpMLineIndex: 0 }, type: 'data', connectionId: RELAY } });
+      };
+      P.send = (o, fast) => P.raw(JSON.stringify(o), fast);
+      P.close = () => { if (P.dead) return; P.dead = true; clearInterval(P.hb); if (P.onclose) P.onclose(); };
+      P.got = str => { P.lastIn = Date.now(); let m; try { m = JSON.parse(str); } catch (_) { return; } if (m && m.t === 'ping') return; if (P.onmsg) P.onmsg(m); };
+      P.hb = setInterval(() => { P.raw('{"t":"ping"}'); if (Date.now() - P.lastIn > 20000) P.close(); }, 5000);
+      return P;
+    }
+    const relayData = m => { const p = m && m.payload; if (!p || p.connectionId !== RELAY || !p.candidate) return null; const c = String(p.candidate.candidate || ''); return c.slice(0, 4) === 'gs1:' ? c.slice(4) : null; };
     const sendPlayers = s => { const str = JSON.stringify({ t: 'players', players: s.players }); s.peers.forEach(P => { if (P.pid) P.raw(str); }); fire('players', s.players); };
     N.host = async (kind, name) => {
       N.leave(); await freshIce();
       let sig = null, code = '';
       const token = tok();
-      for (let k = 0; k < 5 && !sig; k++) { code = newCode(); try { sig = await signal(PFX + code, token); } catch (e) { if (e.message !== 'taken') throw new Error('Could not reach the lobby server. Check your connection and try again.'); } }
+      for (let k = 0; k < 5 && !sig; k++) { code = newCode(); try { sig = await signal(PFX + code, token); } catch (e) { if (e.message !== 'taken') throw new Error('Could not reach the lobby server. This Wi-Fi may be blocking it (school and work networks often do). Try mobile data.'); } }
       if (!sig) throw new Error('Could not make a lobby code. Try again.');
       const s = { role: 'host', code, kind, sig, token, peers: new Map(), players: [{ id: 'h', name: clean(name), host: true }], me: 'h', inGame: false, nextId: 1, sigUp: true, retry: 0 };
       const sp = { send: o => { if (s.sig) s.sig.send(o); } };
       N.s = s;
-      const onSig = m => {
-        if (m.type === 'OFFER') {
-          const old = s.peers.get(m.src); if (old) old.close();
-          const P = rtc(sp, m.src, false, (m.payload && m.payload.connectionId) || tok()); P.pid = null; s.peers.set(m.src, P);
+      const wirePeer = (P, src) => {
           P.onmsg = d => {
             if (d.t === 'hello') {
               if (d.kind !== s.kind) { P.send({ t: 'nope', why: 'That code is for a different game.' }); return; }
@@ -15406,9 +15429,21 @@ function engine(){
             } else if (d.t === 'g' && P.pid) fire('msg', P.pid, d.d);
             else if (d.t === 'bye') P.close();
           };
-          P.onclose = () => { if (s.peers.get(m.src) === P) s.peers.delete(m.src); if (P.pid && N.s === s) { s.players = s.players.filter(p => p.id !== P.pid); sendPlayers(s); fire('left', P.pid); } };
+          P.onclose = () => { if (s.peers.get(src) === P) s.peers.delete(src); if (P.pid && N.s === s) { s.players = s.players.filter(p => p.id !== P.pid); sendPlayers(s); fire('left', P.pid); } };
+      };
+      const onSig = m => {
+        const rd = m.type === 'CANDIDATE' ? relayData(m) : null;
+        if (rd != null) {
+          let P = s.peers.get(m.src);
+          if (!P || !P.relay) { if (P) { P.onclose = null; P.close(); } P = wsPeer(() => s.sig, m.src); P.pid = null; s.peers.set(m.src, P); wirePeer(P, m.src); }
+          P.got(rd); return;
+        }
+        if (m.type === 'OFFER') {
+          const old = s.peers.get(m.src); if (old) old.close();
+          const P = rtc(sp, m.src, false, (m.payload && m.payload.connectionId) || tok()); P.pid = null; s.peers.set(m.src, P);
+          wirePeer(P, m.src);
           P.signal(m);
-        } else if (m.type === 'ANSWER' || m.type === 'CANDIDATE') { const P = s.peers.get(m.src); if (P) P.signal(m); }
+        } else if (m.type === 'ANSWER' || m.type === 'CANDIDATE') { const P = s.peers.get(m.src); if (P && !P.relay) P.signal(m); }
       };
       /* phones pause pages in the background and drop the socket: reconnect with the same id + token */
       const attach = g => { s.sig = g; s.sigUp = true; s.retry = 0; g.on = onSig; g.onclose = () => { if (N.s !== s) return; s.sigUp = false; fire('status'); later(); }; fire('status'); };
@@ -15430,36 +15465,60 @@ function engine(){
       const s = { role: 'client', code, kind, sig: null, me: null, players: [], host: null, inGame: false };
       N.s = s;
       const T0 = Date.now(), LIMIT = 75000;
-      let done = false, P = null, att = 0, answered = false, away = false, tmr = null;
+      let done = false, P = null, att = 0, answered = false, away = false, tmr = null, sigFails = 0, relayMode = false;
       const st = m => { try { if (status) status(m); } catch (_) {} };
       const fail = why => { if (done) return; done = true; clearTimeout(tmr); if (N.s === s) N.leave(); rej(new Error(why)); };
       const sp = { send: o => { if (s.sig) s.sig.send(o); } };
       const onSig = m => {
         if (m.type === 'EXPIRE') { away = true; st('The host\'s GregSnap isn\'t answering. Ask them to open it and stay on the lobby screen…'); }
-        else if ((m.type === 'ANSWER' || m.type === 'CANDIDATE') && P && m.payload && m.payload.connectionId === P.cid) { if (m.type === 'ANSWER') { answered = true; away = false; st('Found lobby ' + code + '. Connecting…'); } P.signal(m); }
+        else if (m.type === 'CANDIDATE' && P && P.relay && relayData(m) != null) P.got(relayData(m));
+        else if ((m.type === 'ANSWER' || m.type === 'CANDIDATE') && P && !P.relay && m.payload && m.payload.connectionId === P.cid) { if (m.type === 'ANSWER') { answered = true; away = false; st('Found lobby ' + code + '. Connecting…'); } P.signal(m); }
       };
-      const ensureSig = async () => { if (s.sig && s.sig.open()) return true; try { const g = await signal(myId, token); g.on = onSig; s.sig = g; return true; } catch (_) { return false; } };
-      const attempt = async () => {
-        if (done || N.s !== s) return;
-        if (Date.now() - T0 > LIMIT) { fail(answered ? 'Found lobby ' + code + ' but couldn\'t connect to it, even through the relay servers. Try again, or put one phone on mobile data. [B]' : away ? 'Lobby ' + code + ' isn\'t answering. The host needs GregSnap open on the lobby screen, then try again. [A]' : 'Could not find lobby ' + code + '. Check the code and try again. [C]'); return; }
-        if (!(await ensureSig())) { st('Can\'t reach the lobby server, retrying…'); tmr = setTimeout(attempt, 2500); return; }
-        if (P) { const old = P; P = null; old.onclose = null; old.close(); }
-        att++; answered = false;
-        if (att > 1 && !away) st('Still looking for lobby ' + code + '… (the host needs GregSnap open)');
-        const cur = rtc(sp, PFX + code, true, 'dc_' + tok()); P = cur;
-        cur.onopen = () => cur.send({ t: 'hello', kind, name: clean(name) });
+      const ensureSig = async () => {
+        if (s.sig && s.sig.open()) return true;
+        try {
+          const g = await signal(myId, token); g.on = onSig; s.sig = g;
+          /* on the backup route the lobby socket IS the connection: keep it alive through phone sleeps */
+          g.onclose = () => { if (N.s === s && P && P.relay && !P.dead) setTimeout(function re() { if (N.s === s && P && P.relay && !P.dead) ensureSig().then(ok => { if (!ok) setTimeout(re, 2000); }); }, 700); };
+          return true;
+        } catch (_) { return false; }
+      };
+      const wireClient = cur => {
         cur.onmsg = d => {
-          if (d.t === 'welcome') { if (done) return; done = true; clearTimeout(tmr); s.host = cur; s.me = d.you; res(s); setTimeout(() => { if (N.s === s && s.sig) s.sig.close(); }, 8000); }
+          if (d.t === 'welcome') { if (done) return; done = true; clearTimeout(tmr); s.host = cur; s.me = d.you; res(s); if (!cur.relay) setTimeout(() => { if (N.s === s && s.sig && s.host && !s.host.relay) s.sig.close(); }, 8000); }
           else if (d.t === 'nope') fail(d.why || 'Could not join.');
           else if (d.t === 'players') { s.players = d.players; fire('players', s.players); }
           else if (d.t === 'start') { s.inGame = true; fire('start', d.data); }
           else if (d.t === 'lobby') { s.inGame = false; fire('lobby'); }
           else if (d.t === 'g') fire('msg', 'h', d.d);
         };
-        cur.onclose = () => { if (!done) { if (P === cur) { clearTimeout(tmr); tmr = setTimeout(attempt, 1200); } } else if (N.s === s && s.host === cur) { N.s = null; try { s.sig && s.sig.close(); } catch (_) {} fire('end', 'The host left the lobby.'); } };
-        clearTimeout(tmr); tmr = setTimeout(() => { if (!done && P === cur) attempt(); }, answered ? 12000 : 6500);
-        /* an answer extends the wait for the actual connection */
-        const chk = setInterval(() => { if (done || P !== cur) { clearInterval(chk); return; } if (answered) { clearInterval(chk); clearTimeout(tmr); tmr = setTimeout(() => { if (!done && P === cur) attempt(); }, 12000); } }, 300);
+        cur.onclose = () => { if (!done) { if (P === cur) { clearTimeout(tmr); if (!cur.relay && answered) goRelay(); else tmr = setTimeout(attempt, 1200); } } else if (N.s === s && s.host === cur) { N.s = null; try { s.sig && s.sig.close(); } catch (_) {} fire('end', 'The host left the lobby.'); } };
+      };
+      const goRelay = async () => {
+        if (done || N.s !== s || relayMode) return; relayMode = true; clearTimeout(tmr);
+        if (P) { const old = P; P = null; old.onclose = null; old.close(); }
+        st('Found lobby ' + code + '. Direct connection is blocked here, using the backup route…');
+        if (!(await ensureSig())) { relayMode = false; tmr = setTimeout(attempt, 2000); return; }
+        const cur = wsPeer(() => s.sig, PFX + code); P = cur; wireClient(cur);
+        cur.send({ t: 'hello', kind, name: clean(name) });
+        const again = setInterval(() => { if (done || P !== cur) { clearInterval(again); return; } cur.send({ t: 'hello', kind, name: clean(name) }); }, 4000);
+        tmr = setTimeout(() => { if (!done && P === cur) fail('Found lobby ' + code + ' but this network blocks every way of connecting to it. Try mobile data. [B]'); }, 25000);
+      };
+      const attempt = async () => {
+        if (done || N.s !== s) return;
+        if (Date.now() - T0 > LIMIT) { fail(answered ? 'Found lobby ' + code + ' but couldn\'t connect to it, even through the relay servers. Try again, or put one phone on mobile data. [B]' : away ? 'Lobby ' + code + ' isn\'t answering. The host needs GregSnap open on the lobby screen, then try again. [A]' : 'Could not find lobby ' + code + '. Check the code and try again. [C]'); return; }
+        if (!(await ensureSig())) { if (++sigFails >= 3) { fail('Can\'t reach the lobby server. This Wi-Fi is probably blocking it (school and work networks often do). Switch to mobile data and try again. [D]'); return; } st('Can\'t reach the lobby server, retrying…'); tmr = setTimeout(attempt, 2500); return; }
+        sigFails = 0; if (relayMode) return;
+        if (FORCEWS) { goRelay(); return; }
+        if (P) { const old = P; P = null; old.onclose = null; old.close(); }
+        att++; answered = false;
+        if (att > 1 && !away) st('Still looking for lobby ' + code + '… (the host needs GregSnap open)');
+        const cur = rtc(sp, PFX + code, true, 'dc_' + tok()); P = cur;
+        cur.onopen = () => cur.send({ t: 'hello', kind, name: clean(name) });
+        wireClient(cur);
+        clearTimeout(tmr); tmr = setTimeout(() => { if (!done && P === cur) attempt(); }, 6500);
+        /* the host answered: give the direct/TURN route 9s, then switch to the backup route */
+        const chk = setInterval(() => { if (done || P !== cur) { clearInterval(chk); return; } if (answered) { clearInterval(chk); clearTimeout(tmr); tmr = setTimeout(() => { if (!done && P === cur && !cur.open) goRelay(); }, FORCEWS ? 300 : 9000); } }, 300);
       };
       s.cancel = () => { if (!done) { done = true; clearTimeout(tmr); rej(new Error('')); } };
       st('Joining ' + code + '…');
@@ -15520,7 +15579,8 @@ function engine(){
       document.body.appendChild(el);
       ['keydown', 'keyup', 'keypress'].forEach(t => el.addEventListener(t, e => { e.stopPropagation(); if (t === 'keydown' && e.key === 'Escape') hide(); if (t === 'keydown' && e.key === 'Enter') { const b = el.querySelector('[data-enter]'); if (b) b.click(); } }));
       ['pointerdown', 'touchstart', 'wheel'].forEach(t => el.addEventListener(t, e => e.stopPropagation(), { passive: true }));
-      el.addEventListener('click', e => { if (e.target === el && performance.now() - shownAt > 500) hide(); const b = e.target.closest('button'); if (b && b.dataset.a) act(b.dataset.a); });
+      /* a phone tap that opened the sheet must not also press whatever button appears under the finger */
+      el.addEventListener('click', e => { if (performance.now() - shownAt < 450) return; if (e.target === el) hide(); const b = e.target.closest('button'); if (b && b.dataset.a) act(b.dataset.a); });
     }
     const COLS = ['#d9c9a3', '#9fc2b4', '#d6a39a', '#b7a8d4', '#a3bcd9', '#c4cf9a', '#dba9c4', '#e0b98c'];
     function render() {
@@ -15588,7 +15648,7 @@ function engine(){
         end: why => { view = 'menu'; err = why; fireG('mpEnd', why); show(); },
       };
     }
-    function show() { ensure(); render(); if (el.hidden) shownAt = performance.now(); el.hidden = false; setTimeout(() => { const i = el.querySelector('#glCode'); if (preCode && i && view === 'menu' && !NET.s) { const b = el.querySelector('[data-a="join"]'); if (b && !show.auto) { show.auto = 1; b.click(); } } }, 50); }
+    function show() { ensure(); render(); if (el.hidden) shownAt = performance.now(); el.hidden = false; setTimeout(() => { const i = el.querySelector('#glCode'); if (preCode && i && view === 'menu' && !NET.s) { const b = el.querySelector('[data-a="join"]'); if (b && !show.auto) { show.auto = 1; act('join'); } } }, 50); }
     function hide() { if (el) el.hidden = true; }
     return {
       open(g, o) { ensure(); if (game && game !== g && NET.s) { NET.leave(); fireG('mpEnd', ''); } game = g; preCode = (o && o.code) || preCode; if (!NET.s) { view = 'menu'; } else wire(); err = (o && o.err) || (NET.s ? '' : err); show(); },
