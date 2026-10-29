@@ -1086,7 +1086,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     },
   };
 
-  /* ---------- game 8: Hoodie Dash (one-tap runner) ---------- */
+  /* ---------- game 8: Greg Dash (one-tap runner) ---------- */
   const dash = {
     state: 'ready', y: 0, vy: 0, obs: [], speed: 260, dist: 0, best: 0, t: 0, shake: 0, dead: 0, runT: 0, offs: 0,
     geom() { this.groundY = this.h - 90; this.px = 64; },
@@ -1409,7 +1409,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     c.restore();
     txt(c, Math.floor(this.dist) + ' m', w - 14, 24, 28, sk.fg, 'right');
     txt(c, 'BEST ' + this.best + ' m', 14, 20, 12, sk.dim, 'left', MONO);
-    if (this.state === 'ready') veil(c, w, h, 'HOODIE DASH', 'Tap to jump. Avoid eye contact.');
+    if (this.state === 'ready') veil(c, w, h, 'GREG DASH', 'Tap to jump. Avoid eye contact.');
     if (this.state === 'dead') veil(c, w, h, 'EYE CONTACT MADE', Math.floor(this.dist) + ' m. Tap to retry.');
   };
 
@@ -1503,7 +1503,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     under: ['the dash blast boon is great', 'the boss room came fast', 'archers are annoying', 'i love when the room clears', 'reached room 7'],
     isle: ['rowan saying one line in his journal took an hour. im unwell', 'married juni and she fixed the cat', 'the lantern night scene made me tear up', 'elio burning 200 buns is so real', 'cloud fishing is genius', 'gave marisol a moonflower and she said i understand her. ok i do', 'kai delivered their own love letter LOL', 'my turnips survived i am a farmer now', 'wren talking to the sunflower about me', 'the moon isle at night is so pretty', 'pip winked at elio. PIP', 'spent 3 in game days just fishing off the dock'],
 
-    crownrush: ['hoodie greg just walks past everything like he has a meeting at the tower', 'lag spike + galaxy bomb is so dirty', 'the pigeons are actually broken', 'lost to a bot named kayla.mp4 im deleting the app', 'interns cost 2 and still carry', 'server rack on defense saves me every time', 'my deck is all flying stuff and nobody can stop it', 'the doggo says WOOF when it bites lmao', '3 crowned the bot in overtime lets gooo', 'reply guys shooting little text bubbles is too accurate', 'who else just spams skater kid', 'the elixir bar going 2x at the end gets me every time', 'mall cop with the flashlight is my favorite', 'coffee thrower is lowkey the best card'],
+    crownrush: ['big greg just walks past everything like he has a meeting at the tower', 'lag spike + galaxy bomb is so dirty', 'the pigeons are actually broken', 'lost to a bot named kayla.mp4 im deleting the app', 'interns cost 2 and still carry', 'server rack on defense saves me every time', 'my deck is all flying stuff and nobody can stop it', 'the doggo says WOOF when it bites lmao', '3 crowned the bot in overtime lets gooo', 'reply guys shooting little text bubbles is too accurate', 'who else just spams skater kid', 'the elixir bar going 2x at the end gets me every time', 'mall cop with the flashlight is my favorite', 'coffee thrower is lowkey the best card'],
     lawn: ['paper io but with lawn mowers lol', 'got boxed in by my own greed', 'the bots hunt your trail so mean', 'hit the fence again 😭', 'i got to 31% and a purple guy cut me', 'swipe controls are so smooth', 'why is it so satisfying to close a loop', 'dont leave your tail out too long', 'my lawn my rules', 'ran out of room and mowed myself', 'i own the neighborhood now', 'the stripes on the grass are a nice touch'],
     kart: ['this feels like the old snes kart games', 'the paper ball sniped me right before the finish 😭', 'mini turbo on every corner is the move', 'drove straight into the lake twice', 'tasha is cracked at this game', 'got 1st on my 4th try', 'the oil slicks are so annoying lol', 'who put trees there', 'coins actually make you faster??', 'the countdown music hits', 'dave rammed me off the track', 'need more tracks pls'],
     royale: ['the sky barge music needs to be a song', 'landed neon market with 6 other people and somehow won', 'box up saved my life fr', 'who keeps camping in the bushes', 'got sniped from across the lake 😭', 'me and my friends made a lobby and it actually works', 'the storm got me while i was healing', 'pump shotgun is so strong close up', 'legendary AR from a chest first try', 'bots keep building walls when i shoot them lol', 'frostfall lodge is the best drop', 'played on my phone and the sticks feel good'],
@@ -1549,7 +1549,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     servers: ['the red ones come out of nowhere', 'whack a mole but make it work stress', 'my phone is hot', 'i panic tapping everything', 'it gets crazy around 40', 'the flashing is mean'],
     stack: ['the shake when you miss is so good', 'perfect stack streak of 9', 'it looks easy until the tower gets tall', 'the camera zoom out is so satisfying', 'i stack interns for a living now', 'i can feel the pressure'],
     popup: ['the close buttons are so tiny', 'real life browsing experience', 'i feel personally attacked', 'the old windows look is so accurate', 'i closed the wrong one 5 times', 'flashbacks to downloading music in 2009'],
-    dash: ['the jump is so tight', 'died at the first spike again', 'endless runner but it feels fresh', 'the hoodie running animation is cute', 'i got 600 and then tripped', 'the speed up is subtle but deadly'],
+    dash: ['the jump is so tight', 'died at the first spike again', 'endless runner but it feels fresh', 'the little running animation is cute', 'i got 600 and then tripped', 'the speed up is subtle but deadly'],
     catch: ['i keep grabbing the bad ones', 'my paddle is too slow', 'it is chaos after 30', 'i like the theme on this one', 'catching is easy until it is not', 'so satisfying when you catch a lot at once'],
     whack: ['my reflexes are gone', 'tapped the wrong one so many times', 'it speeds up out of nowhere', 'hitting 30 was a struggle', 'wait there is a pattern', 'my finger hurts'],
     flap: ['the gap is tiny', 'flappy bird trauma is back', 'i can only get 4', 'the gravity feels right actually', 'it is all in the timing of the tap', 'one more try'],
@@ -4215,7 +4215,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
 
   /* --- Greg Clicker --- */
   function makeClicker(sk) {
-    const UP = [['Intern', 15, 0.5], ['Group chat', 100, 3], ['Server rack', 600, 14], ['Hoodie factory', 3500, 60], ['Satellite', 20000, 280], ['Galaxy mine', 120000, 1300]];
+    const UP = [['Intern', 15, 0.5], ['Group chat', 100, 3], ['Server rack', 600, 14], ['Merch factory', 3500, 60], ['Satellite', 20000, 280], ['Galaxy mine', 120000, 1300]];
     return Object.assign({
       sk, hold: true, title: 'Greg Clicker', how: 'Tap Greg to earn galaxies. Spend them on upgrades.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], gal: 0, total: 0, pc: 1, ps: 0, own: [], pop: 0, tapUp: 0, rows: [],
@@ -4656,7 +4656,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
   }
 
   /* --- Type Rush --- */
-  const TWORDS = 'cat dog sun map key red big hot ice fox box fun zip jam pen cup bag net hat log web fix run top win leaf lamp mint rock sand star tree wind fish moon road snow ship gold wave bird rain frog dust fire lime milk jump quiz spin glow pixel cloud storm river tiger honey lemon sugar candy happy zebra smile phone video music crate viral clout score level galaxy orbit hoodie signal rocket planet banana puzzle jungle winter'.split(' ');
+  const TWORDS = 'cat dog sun map key red big hot ice fox box fun zip jam pen cup bag net hat log web fix run top win leaf lamp mint rock sand star tree wind fish moon road snow ship gold wave bird rain frog dust fire lime milk jump quiz spin glow pixel cloud storm river tiger honey lemon sugar candy happy zebra smile phone video music crate viral clout score level galaxy orbit pickle signal rocket planet banana puzzle jungle winter'.split(' ');
   function makeTypeRush(sk) {
     const KB = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
     return Object.assign({
@@ -5438,7 +5438,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
     };
 
     const ARENAS = [WALNUT, DOODLE, DUNGEON, HAUNT, FROST, NEON];
-    // default arena follows the season, like Hoodie Kart (until you pick one)
+    // default arena follows the season, like Greg Kart (until you pick one)
     const seasonArena = () => { const m = new Date().getMonth(); return m === 9 ? 3 : m === 11 ? 4 : 1; };
 
     let ai0 = seasonArena(); try { const s = localStorage.getItem(ARENA_K); if (s != null && ARENAS[+s]) ai0 = +s; } catch (_) {}
@@ -8843,7 +8843,7 @@ const SUMMIT_LEVELS = [
 
   /* ---------- Crash ---------- */
   function makeCrash(sk) {
-    const HANDLES = ['jayden_r', 'xx_kayla', 'mike.trades', 'sol_bro', 'nina.k', 'dwayne44', 'lilmoney', 'emma49', 'big_steve', 'cryptokev', 'tia.m', 'hoodiegreg'];
+    const HANDLES = ['jayden_r', 'xx_kayla', 'mike.trades', 'sol_bro', 'nina.k', 'dwayne44', 'lilmoney', 'emma49', 'big_steve', 'cryptokev', 'tia.m', 'gregfan22'];
     const crashPt = () => { const u = Math.random(); return Math.min(1000, Math.max(1, Math.floor(0.97 / (1 - u) * 100) / 100)); };
     return Object.assign({
       sk, hold: true, title: 'Crash', how: 'Bet, then watch the multiplier climb. Tap CASH OUT before it crashes. Wait too long and you lose the bet. Set auto cash out if your hands shake.',
@@ -13659,7 +13659,7 @@ const TEAM = {
 };
 
 const CARDS = {
-  greg:     {name:'Hoodie Greg',  cost:5, kind:'troop', hp:2600, dmg:170, hit:1.5, range:0.8, speed:0.85, r:0.75, targets:'buildings', count:1, desc:'Huge tank. Ignores troops and walks straight at towers.'},
+  greg:     {name:'Big Greg',  cost:5, kind:'troop', hp:2600, dmg:170, hit:1.5, range:0.8, speed:0.85, r:0.75, targets:'buildings', count:1, desc:'Huge tank. Ignores troops and walks straight at towers.'},
   intern:   {name:'Interns',      cost:2, kind:'troop', hp:300,  dmg:75,  hit:1.1, range:0.6, speed:1.45, r:0.38, targets:'ground', count:2, desc:'Two cheap interns. Overworked, underpaid, surprisingly scrappy.'},
   coffee:   {name:'Coffee Thrower',cost:3,kind:'troop', hp:340,  dmg:115, hit:1.2, range:5,   speed:1.1,  r:0.42, targets:'both', count:1, proj:'coffee', desc:'Lobs hot coffee from range. Hits air and ground.'},
   pigeons:  {name:'Pigeon Flock', cost:3, kind:'troop', hp:110,  dmg:45,  hit:1.0, range:0.5, speed:2.0,  r:0.3,  targets:'both', count:4, fly:true, desc:'Four fast flying pigeons. Fragile but annoying.'},
@@ -14038,7 +14038,7 @@ function engine(){
     const body = flash>0 ? '#fff' : null;
     switch(key){
       case 'greg': {
-        // hoodie body
+        // greg body
         rr(-s*0.95,-s*0.2,s*1.9,s*1.15,s*0.5); ctx.fillStyle=body||'#7b7f8c'; ctx.fill(); ctx.lineWidth=s*0.13; ctx.strokeStyle=OUT; ctx.stroke();
         ctx.fillStyle=T.main; rr(-s*0.35,s*0.2,s*0.7,s*0.35,s*0.12); ctx.fill(); ctx.stroke();
         // hood
@@ -14546,7 +14546,7 @@ function engine(){
     slide: '#2b5fb8', sbgc: '#2b5fb8', sfg: '#ffffff', sdim: '#cfe0ff', stag: '#ffd23f', tsize: 34, tfw: 400, tls: '0.5px',
     frame: 'border:4px solid #1d1a2e;border-radius:18px;box-shadow:0 0 0 3px #ffd23f,0 10px 24px rgba(10,20,60,.45)'
   });
-  NEW_SLIDES.push(mk(makeCrownRush(SKINS.crownrush), 'Crown Rush', SKINS.crownrush, 'Build an 8-card deck and knock down the other guy\'s towers. Hoodie Greg tanks, pigeons swarm, interns fight for exposure. 3 minute matches, elixir doubles at the end.', '#crownrush #cardgame #towers #deckbuilder', 13.8e9, 4.1e9, 2.2e9, 'crownrush'));
+  NEW_SLIDES.push(mk(makeCrownRush(SKINS.crownrush), 'Crown Rush', SKINS.crownrush, 'Build an 8-card deck and knock down the other guy\'s towers. Big Greg tanks, pigeons swarm, interns fight for exposure. 3 minute matches, elixir doubles at the end.', '#crownrush #cardgame #towers #deckbuilder', 13.8e9, 4.1e9, 2.2e9, 'crownrush'));
 
   /* ===== Lawn Lords: territory-grab mower game (paper.io-style), original ===== */
   function makeLawn(sk) {
@@ -14753,7 +14753,7 @@ function engine(){
   });
   NEW_SLIDES.push(mk(makeLawn(SKINS.lawn), 'Lawn Lords', SKINS.lawn, 'Mow a loop around the grass to claim it. Cross another mower\'s trail and they are toast. Do not hit the fence. First to half the lawn wins.', '#lawn #io #territory #mowing', 12.4e9, 3.7e9, 1.5e9, 'lawn'));
 
-  /* ===== Hoodie Kart: mode-7 style kart racer (inspired by 16-bit kart racers, all original) ===== */
+  /* ===== Greg Kart: mode-7 style kart racer (inspired by 16-bit kart racers, all original) ===== */
   function makeKart(sk) {
     const TS = 1024, M = TS - 1, RWD = 40, LAPS = 3, NK = 6, TOP = 170, ACC = 115, GRIP = 5.2, KW = 34, STEP = 6;
     const CREW = [
@@ -14920,7 +14920,7 @@ function engine(){
     const ITEMS = { boost: ['TURBO ROCKET', 'speed boost'], ball: ['PAPER BALL', 'throw it ahead'], puddle: ['OIL SLICK', 'drop it behind'] };
 
     return Object.assign({
-      sk, hold: true, noVeil: true, title: 'Hoodie Kart', how: 'Steer and grab items. Hold a hard turn to charge a mini-turbo.',
+      sk, hold: true, noVeil: true, title: 'Greg Kart', how: 'Steer and grab items. Hold a hard turn to charge a mini-turbo.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], t: 0, keys: {}, touches: null, karts: [], boxes: [], coins: [], haz: [], trees: [],
       ensure() {
         if (!this.KS) { this.KS = CREW.map(c => { const a = []; for (let i = 0; i < 16; i++) a.push(kartSprite(c, i / 16 * TAU)); return a; }); this.CB = { coin: coinSprite(), box: boxSprite(), ball: ballSprite(), oil: oilSprite() }; this.IC = { boost: pix(ROCKET, IPAL), ball: pix(PAPER, IPAL), puddle: oilSprite() }; }
@@ -15259,7 +15259,7 @@ function engine(){
         if (this.state === 'run' && this.msgT > 0 && this.cd <= 0) this.ht(c, this.msg2, w / 2, h * 0.32, big * 0.75, this.msg2 === 'FINISH!' ? '#ffe14d' : '#ffffff', 'center');
         if (this.state === 'ready') {
           c.fillStyle = 'rgba(14,16,52,.55)'; c.fillRect(-this.ox, -this.oy, this.W, this.H);
-          const ty = h * 0.22; this.ht(c, 'HOODIE', w / 2, ty, big * 1.05, '#ffe14d', 'center'); this.ht(c, 'KART', w / 2, ty + big * 1.05, big * 1.35, '#ff4f6d', 'center');
+          const ty = h * 0.22; this.ht(c, 'GREG', w / 2, ty, big * 1.05, '#ffe14d', 'center'); this.ht(c, 'KART', w / 2, ty + big * 1.05, big * 1.35, '#ff4f6d', 'center');
           const sy = ty + big * 2.2, scol = { spring: '#ff9cc8', summer: '#5ad1ff', autumn: '#ff8a3c', winter: '#dff1ff' }[TR.id];
           this.ht(c, TR.season.toUpperCase(), w / 2, sy, sm * 0.9, scol, 'center'); this.ht(c, TR.name, w / 2, sy + sm * 1.5, sm * 1.25, '#ffffff', 'center');
           const ay = sy + sm * 0.8, ax = Math.min(w * 0.11, 60); [-1, 1].forEach(d => { const x0 = w / 2 + d * (w / 2 - ax); c.fillStyle = 'rgba(20,20,58,.6)'; c.beginPath(); c.arc(x0, ay, sm * 1.5, 0, TAU); c.fill(); c.fillStyle = '#ffe14d'; c.beginPath(); c.moveTo(x0 + d * sm * 0.7, ay); c.lineTo(x0 - d * sm * 0.45, ay - sm * 0.75); c.lineTo(x0 - d * sm * 0.45, ay + sm * 0.75); c.closePath(); c.fill(); });
@@ -15291,7 +15291,7 @@ function engine(){
     slide: '#1d2a7a', sbgc: '#1d2a7a', sfg: '#ffffff', sdim: '#c9d6ff', stag: '#ffe14d', tsize: 28, tfw: 400, tls: '.02em',
     frame: 'border:4px solid #14143a;border-radius:14px;box-shadow:0 0 0 3px #ffe14d,0 10px 22px rgba(10,16,60,.45)'
   });
-  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Hoodie Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop oil slicks and fire turbo rockets.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
+  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Greg Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop oil slicks and fire turbo rockets.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
 
   /* ===== GregNet: shared multiplayer lobbies for any game =====
      Peer-to-peer WebRTC data channels. Signaling ("the handshake") goes through the free PeerJS cloud
@@ -16789,9 +16789,9 @@ function engine(){
   });
   NEW_SLIDES.push(mk(makeRoyale(SKINS.royale), 'Storm Isle', SKINS.royale, 'Drop from the Sky Barge onto a brand-new island every match: 9 towns, glowing chests, 5 guns, wall building and a shrinking storm. 30 players. Go solo against bots, or tap Play with friends to make a lobby and send your friends the code.', '#battleroyale #building #multiplayer #withfriends', 21.7e9, 6.4e9, 3.9e9, 'royale'));
 
-  /* ===== Hoodie Strike: 5v5 bomb-defusal FPS (inspired by classic tactical shooters; original map, teams and guns) =====
+  /* ===== Dune Strike: 5v5 bomb-defusal FPS (inspired by classic tactical shooters; original map, teams and guns) =====
      Raw WebGL into an offscreen canvas, CS-style HUD drawn on top. Map "Dunes" is a 48x48 grid of cells with heights
-     (walls, low walls, crates). Hoodies attack and plant the bomb on A or B; Suits defend. First to 6 rounds, sides swap after 5.
+     (walls, low walls, crates). Founders attack and plant the bomb on A or B; Suits defend. First to 6 rounds, sides swap after 5.
      Solo and the host run the same simulation (bots, rounds, money, bomb, damage). Online (GregNet, mpKind 'strike'):
      clients move themselves, do their own hit tests and send hits; the host applies damage and sends 15 Hz snapshots
      ({k:'S'}) plus reliable event batches ({k:'E'}). Test hook: _dbg on the game object. */
@@ -16858,7 +16858,7 @@ function engine(){
       ['Grenades', [['he', 'HE Grenade'], ['fl', 'Flashbang'], ['sm', 'Smoke']]],
     ];
     const costOf = k => WEP[k] ? WEP[k].cost : NADE[k] ? NADE[k].cost : { vest: 650, vesth: 1000, kit: 400 }[k];
-    const TEAMN = { T: 'HOODIES', C: 'SUITS' }, TCOL = { T: '#ffb040', C: '#7fb2ff' };
+    const TEAMN = { T: 'FOUNDERS', C: 'SUITS' }, TCOL = { T: '#ffb040', C: '#7fb2ff' };
     const BOTN = ['Marcus', 'Dex', 'Tilly', 'Wren', 'Yuki', 'Omar', 'Rosa', 'Kip', 'Ivo', 'Nadia', 'Brick', 'Lou', 'Sami', 'Pax', 'Juno', 'Hank', 'Cleo', 'Rafa', 'Mo', 'Bea', 'Trent', 'Ana', 'Gus', 'Zed'];
     const SKIN = ['#f1c7a0', '#d9a679', '#b97d52', '#8a5636', '#5e3a24', '#f5d6b8'];
     const HOOD = ['#b8742f', '#8a5a2b', '#6d6b3a', '#a04a2a', '#7a6a52', '#9a8050'];
@@ -17747,7 +17747,7 @@ function engine(){
       const gT = GSIDE[0] === 'T' ? 0 : 1, scT = SC[gT], scC = SC[1 - gT], aT = ents.filter(e => e.alive && e.side === 'T').length, aC = ents.filter(e => e.alive && e.side === 'C').length;
       const sx = CP ? pad + RS + 8 * u : w / 2 - 110 * u, sw = CP ? w - sx - pad : 220 * u, sy = pad;
       ctx.fillStyle = 'rgba(10,10,10,.5)'; rr(sx, sy, sw, 30 * u, 8); ctx.fill();
-      tx('HOODIES', sx + 8 * u, sy + 15 * u, 10 * u, TCOL.T, 'left', HUDF); tx(String(scT), sx + sw / 2 - 22 * u, sy + 15 * u, 17 * u, '#fff', 'center', HUDF); tx(':', sx + sw / 2, sy + 14 * u, 15 * u, 'rgba(255,255,255,.6)', 'center', HUDF); tx(String(scC), sx + sw / 2 + 22 * u, sy + 15 * u, 17 * u, '#fff', 'center', HUDF); tx('SUITS', sx + sw - 8 * u, sy + 15 * u, 10 * u, TCOL.C, 'right', HUDF);
+      tx('FOUNDERS', sx + 8 * u, sy + 15 * u, 10 * u, TCOL.T, 'left', HUDF); tx(String(scT), sx + sw / 2 - 22 * u, sy + 15 * u, 17 * u, '#fff', 'center', HUDF); tx(':', sx + sw / 2, sy + 14 * u, 15 * u, 'rgba(255,255,255,.6)', 'center', HUDF); tx(String(scC), sx + sw / 2 + 22 * u, sy + 15 * u, 17 * u, '#fff', 'center', HUDF); tx('SUITS', sx + sw - 8 * u, sy + 15 * u, 10 * u, TCOL.C, 'right', HUDF);
       tx(aT + ' alive', sx + 8 * u, sy + 40 * u, 9 * u, 'rgba(255,255,255,.75)', 'left', UIF, 700); tx(aC + ' alive', sx + sw - 8 * u, sy + 40 * u, 9 * u, 'rgba(255,255,255,.75)', 'right', UIF, 700); tx('Round ' + round, sx + sw / 2, sy + 40 * u, 9 * u, 'rgba(255,255,255,.6)', 'center', UIF, 700);
       /* kill feed */
       let fy = CP ? sy + 60 * u : pad + 10 * u; const fxr = w - pad, fmax = CP ? 3 : 5; let shown = 0;
@@ -17849,7 +17849,7 @@ function engine(){
       const u = U(), w = W_, h = H_; ctx.fillStyle = 'rgba(20,14,6,.42)'; ctx.fillRect(0, 0, w, h);
       const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(0,0,0,.35)'); g.addColorStop(.5, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.55)'); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
       const cx = w / 2, fs = Math.min(54 * u, w / 7.2); let y = h * .2;
-      ctx.save(); ctx.translate(cx, y); ctx.rotate(-.03); tx('HOODIE', 0, -fs * .55, fs, '#ffb428', 'center', HUDF, 900); tx('STRIKE', 0, fs * .45, fs * 1.08, '#fff', 'center', HUDF, 900); ctx.restore();
+      ctx.save(); ctx.translate(cx, y); ctx.rotate(-.03); tx('DUNE', 0, -fs * .55, fs, '#ffb428', 'center', HUDF, 900); tx('STRIKE', 0, fs * .45, fs * 1.08, '#fff', 'center', HUDF, 900); ctx.restore();
       tx('5 vs 5 · plant or defuse · map: Dunes', cx, y + fs * 1.35, 12 * u, 'rgba(255,255,255,.85)', 'center', UIF, 700);
       const bw = Math.min(w - 40, 340 * u), bh = 50 * u, bx = cx - bw / 2; y = h * .2 + fs * 1.35 + 34 * u;
       const half = (bw - 10) / 2;
@@ -17899,8 +17899,8 @@ function engine(){
 
     /* ---------- game object ---------- */
     G = Object.assign({
-      sk, hold: true, noVeil: true, title: 'Hoodie Strike', how: 'Hoodies plant the bomb, Suits defend. First to 6 rounds.',
-      mp: true, mpKind: 'strike', mpMin: 2, mpSub: 'teams of 5, up to 8 friends', mpNote: 'Friends are split across Hoodies and Suits. Empty spots are filled with bots.',
+      sk, hold: true, noVeil: true, title: 'Dune Strike', how: 'Founders plant the bomb, Suits defend. First to 6 rounds.',
+      mp: true, mpKind: 'strike', mpMin: 2, mpSub: 'teams of 5, up to 8 friends', mpNote: 'Friends are split across Founders and Suits. Empty spots are filled with bots.',
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], note: '',
       layout() {}, reset() { if (this.state !== 'run') this.state = 'ready'; },
       enter() { for (const k in keys) keys[k] = false; mouse.down = mouse.rdown = false; TS.l = TS.r = TS.fire = TS.use = null; lookAcc = [0, 0]; },
@@ -17964,7 +17964,7 @@ function engine(){
       draw() { const c0 = this.ctx; c0.save(); c0.beginPath(); c0.rect(0, 0, this.w, this.h); c0.clip(); try { this.draw2(); } finally { c0.restore(); } },
       draw2() {
         ctx = this.ctx; W_ = this.w; H_ = this.h; BTN = [];
-        if (!initGL()) { ctx.fillStyle = '#2a2014'; ctx.fillRect(0, 0, W_, H_); tx('This device cannot run WebGL, which Hoodie Strike needs.', W_ / 2, H_ / 2, 13, '#fff', 'center'); return; }
+        if (!initGL()) { ctx.fillStyle = '#2a2014'; ctx.fillRect(0, 0, W_, H_); tx('This device cannot run WebGL, which Dune Strike needs.', W_ / 2, H_ / 2, 13, '#fff', 'center'); return; }
         drawScene(ctx, W_, H_);
         if (this.state !== 'run') { title(); return; }
         if (ph === 'over') { overScreen(); return; }
@@ -17999,7 +17999,7 @@ function engine(){
     return G;
   }
   skin('strike', { bg: ['#c9a46a', '#7a5a30'], pat: 'none', fg: '#ffffff', dim: '#fff1d8', panel: '#2a2014', pfg: '#ffffff', dark: true, line: '#1a1208', lw: 0, r: 6, pal: ['#ffb428', '#7fb2ff', '#e2563a', '#d8c090'], good: '#9f9', bad: '#ff6b6b', font: '"Arial Black","Arial Bold",Arial,sans-serif', fw: 900, fs: 0.92, mono: '"Figtree",system-ui,sans-serif', mw: 700, ms: 0.85, veil: 'rgba(30,20,8,.55)', vfg: '#ffffff', slide: '#7a5a30', sbgc: '#3a2a14', sfg: '#ffffff', sdim: '#f0dcb8', stag: '#ffb428', tsize: 24, tfw: 900, tls: '.02em', frame: '' });
-  NEW_SLIDES.push(mk(makeStrike(SKINS.strike), 'Hoodie Strike', SKINS.strike, '5v5 on Dunes. Hoodies plant the bomb on A or B, Suits defend. Buy guns between rounds, spray, flash, smoke, defuse. Bots fill the teams, or bring friends.', '#fps #tactical #5v5 #3d', 31.2e9, 9.4e9, 6.1e9, 'strike'));
+  NEW_SLIDES.push(mk(makeStrike(SKINS.strike), 'Dune Strike', SKINS.strike, '5v5 on Dunes. Founders plant the bomb on A or B, Suits defend. Buy guns between rounds, spray, flash, smoke, defuse. Bots fill the teams, or bring friends.', '#fps #tactical #5v5 #3d', 31.2e9, 9.4e9, 6.1e9, 'strike'));
 
   /* ===== Facet Rush: low-poly 3D time-trial racer with a track builder (inspired by browser track-builder racers; original tracks, car and art) ===== */
   function makeFacet(sk) {
@@ -18831,10 +18831,10 @@ function engine(){
       desc: 'Find the real X. Greg hid it. Greg is proud.', tags: '#growthhacking #retention',
       music: 'subscribe (unsubscribe is hard) · Growth Team', likes: 6.6e9, comments: 3.1e9, shares: 530e6,
       cm: [['growth.hacker', 'retention is up 400% because nobody can leave'], ['mom', 'i have been trying to close this since july'], ['intern.kyle', 'the real X is 6px. i measured. i was told to make it 5']] },
-    { game: dash, sk: dash.sk, title: 'Hoodie Dash', handle: 'hoodie.greg',
+    { game: dash, sk: dash.sk, title: 'Greg Dash', handle: 'greg.paul',
       desc: 'Greg runs through the conference. Jump the lanyards. Never make eye contact.', tags: '#conferencelife #grindset',
       music: 'networking (sprint) · Greg', likes: 9.9e9, comments: 4.2e9, shares: 880e6,
-      cm: [['hoodie.greg', 'same hoodie. fourteen of them. one is always clean'], ['vc_dave', 'Greg please slow down i have a pitch'], ['intern.kyle', 'i was a lanyard. they promoted me to booth']] }
+      cm: [['greg.paul', 'same shirt. fourteen of them. one is always clean'], ['vc_dave', 'Greg please slow down i have a pitch'], ['intern.kyle', 'i was a lanyard. they promoted me to booth']] }
   ];
   const arm = off => {
     let d = '';
