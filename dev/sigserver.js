@@ -17,6 +17,8 @@ srv.on('upgrade',(req,sock)=>{const u=new URL(req.url,'http://x');const id=u.sea
   if(op===8){sock.end();return;} if(op!==1)continue;
   let m;try{m=JSON.parse(pl.toString())}catch(e){continue}
   if(m.type==='HEARTBEAT')continue;
+  // like the PeerJS cloud server: an OFFER without the library's fields gets the socket closed
+  if(m.type==='OFFER'){const p=m.payload||{};if(!p.sdp||!p.connectionId||p.label==null||p.serialization==null||p.reliable==null){console.log('rejected malformed OFFER from',id);sock.end();return;}}
   m.src=id;const dst=clients.get(m.dst);
   if(dst)send(dst,m);else if(m.type!=='LEAVE'&&m.type!=='EXPIRE'){const q=queue.get(m.dst)||[];q.push({m,t:Date.now(),src:id});queue.set(m.dst,q);}
  }});
