@@ -90,6 +90,14 @@ body{
 }
 .play canvas{display:block;width:100%;height:100%;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .play canvas.hold{touch-action:none}
+/* essay post: a long read that sometimes shows up in the feed */
+.essay{position:absolute;overflow-y:auto;overscroll-behavior-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;scrollbar-width:thin;color:#1d1d1b;font:17px/1.62 Georgia,'Iowan Old Style','Times New Roman',serif;-webkit-user-select:text;user-select:text}
+.essay .in{max-width:34em;margin:0 auto;padding:26px 22px 40px}
+.essay h1{font:700 27px/1.2 Georgia,serif;margin:4px 0 6px;letter-spacing:-.01em}
+.essay .by{font:13px/1.4 Georgia,serif;color:#77756e;font-style:italic;margin:0 0 22px}
+.essay h2{font:700 19px/1.3 Georgia,serif;margin:28px 0 8px}
+.essay p{margin:0 0 15px}
+.essay .coda{margin-top:28px;padding-top:14px;border-top:1px solid #dcd9cf;color:#6b6962;font-size:15px;font-style:italic}
 
 .rail{position:absolute;right:8px;bottom:150px;width:52px;display:flex;flex-direction:column;align-items:center;gap:9px}
 .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font:800 20px var(--display);box-shadow:0 0 0 2px var(--sfg,#fff)}
@@ -18466,6 +18474,35 @@ function engine(){
   skin('facet', { bg: ['#0f1730', '#0b1020'], pat: 'none', fg: '#ffffff', dim: '#b8c4e0', panel: '#141c33', pfg: '#ffffff', dark: true, line: '#3ef0c9', lw: 0, r: 12, pal: ['#3ef0c9', '#ffd166', '#ff4d4d', '#4fe3ff'], good: '#3ef0c9', bad: '#ff5a5a', font: '"Chakra Petch","Arial Black",sans-serif', fw: 700, fs: 1, mono: '"Chakra Petch","Courier New",monospace', mw: 500, ms: 0.9, veil: 'rgba(8,12,24,.6)', vfg: '#ffffff', slide: '#0b1020', sbgc: '#0b1020', sfg: '#ffffff', sdim: '#b8c4e0', stag: '#3ef0c9', tsize: 26, tfw: 700, tls: '.04em', frame: '' });
   NEW_SLIDES.push(mk(makeFacet(SKINS.facet), 'Facet Rush', SKINS.facet, 'Low-poly 3D time trials. Brake before the corners or slide wide. 5 tracks with hairpins, sweeping turns, big jumps and bridges, ghost racing against your best, author/gold/silver/bronze medals, and a track builder to make your own.', '#racing #3d #lowpoly #timetrial', 18.7e9, 5.2e9, 3.3e9, 'facet'));
 
+  /* ===== Essay: "The crate is the point". Not a game: a long read that turns up in the feed now and then
+     (about 1 load in 5, somewhere in the first ~30 posts, plus a small chance further down). Link: /essay. ===== */
+  const ESSAY_HTML = "<h1>The crate is the point</h1>\n<p>There&rsquo;s a website called fazegregpaul.com. Open it on your phone and you get something that looks a lot like TikTok: a vertical feed, a heart and a comment bubble down the right side, a username and a caption at the bottom. The difference is that every post is a game. Not a video of a game. The game. Chess against a real engine, a kart racer, a battle royale, a Wordle knockoff called Gregle. Swipe and you&rsquo;re in the next one. Under every post, in small faded type, it says &ldquo;a Greg Paul production.&rdquo;</p>\n<p>It&rsquo;s a movie prop. GregSnap is the app at the center of a parody of <i>The Social Network</i>, in which Greg Paul, the real-life father of Logan and Jake Paul, builds &ldquo;TikTok for games&rdquo; and then, in the movie&rsquo;s version of the fall, puts gambling in it. The domain glues his name to FaZe, the gaming organization, which is about as efficient a way to say &ldquo;internet famous&rdquo; as two words allow.</p>\n<p>I want to argue that it&rsquo;s also a pretty good piece of satire, mostly because of something props usually only pretend to do: it actually works.</p>\n\n<h2>The numbers</h2>\n<p>Most satire of tech exaggerates. GregSnap mostly doesn&rsquo;t have to. Look at the top of the screen. There&rsquo;s a counter that says something like 4,812,330,119 online, and it climbs by a few hundred several times a second. That&rsquo;s more than half the people on Earth, all supposedly on one phone game site right now.</p>\n<p>It&rsquo;s absurd, but it&rsquo;s not that far from the real thing. Platforms put big numbers on the screen because big numbers are the product: they tell you this is where everyone is, so this is where you should be. GregSnap just skips the part where the numbers have to be true.</p>\n<p>The same goes for the posts. Every game has billions of likes. The comments under them, meanwhile, are completely ordinary: someone stuck on level three, someone who showed their mom, someone up at 2am. That&rsquo;s the joke. Real people, saying real-people things, under a like count larger than the population of China.</p>\n\n<h2>The money</h2>\n<p>Tap the swirl and you get the Galaxy Crate, a big button that says OPEN CRATE $10.00. Open it and you win some galaxies. Sometimes the crate takes some back. Galaxies are named after one of the gifts TikTok sells for viewers to throw at live streamers. There&rsquo;s a casino too: blackjack, hold&rsquo;em, roulette, slots, a crash game, and a chicken that crosses a road while a multiplier climbs. And when you&rsquo;ve won some galaxies, what do you do with them? You donate them to the people who made the games.</p>\n<p>No real money changes hands. The $10.00 is just printed on the button. That&rsquo;s the part I think is clever. Once you take the money out, what&rsquo;s left is the shape of the thing, and the shape is a loop: pay to open a box, get a currency, spend the currency to show love to a creator, go back to the box.</p>\n<p>The real versions of this, loot boxes and battle passes and stream gifts, mostly work by keeping the dollars a step or two away from the moment you&rsquo;re in. You buy coins, then gems, then the gift. GregSnap puts the price right on the button and lets you keep pressing it anyway. (You will. I did.)</p>\n\n<h2>Why it matters that it works</h2>\n<p>A mockup of &ldquo;TikTok, but for games&rdquo; would get a laugh on screen and then you&rsquo;d forget it. GregSnap is a real site with dozens of real games, and each one is styled like a different person made it: its own fonts, its own colors, its own idea of what a game should look like. Which is what a feed is. A lot of strangers&rsquo; stuff, all flattened into the same swipe.</p>\n<p>So the satire isn&rsquo;t something you&rsquo;re told. It&rsquo;s something you notice twenty minutes into a mini golf game, on a site that is making fun of you for spending twenty minutes on a mini golf game.</p>\n<p>That&rsquo;s also why I don&rsquo;t buy the most obvious reading, that it&rsquo;s a takedown of the Pauls in particular. Greg Paul&rsquo;s name is on it because he&rsquo;s a perfect stand-in: famous for being next to fame, exactly the kind of person you could imagine being pitched an app. But the target is the format. Put any name on it and the crate is still the joke.</p>\n\n<h2>The catch</h2>\n<p>The honest problem with satire this close to the real thing is that it&rsquo;s hard to tell from the real thing. The counter going up is funny. Catching yourself watching it go up is less funny. If you took the &ldquo;a Greg Paul production&rdquo; line off the bottom and wired the crate to a credit card, you&rsquo;d have a business, and not an unusual one.</p>\n<p>I think that&rsquo;s the point. The best thing you can say about GregSnap is that the joke is good enough to work as a product. Which is more or less the problem it&rsquo;s making fun of.</p>\n\n<p class=\"coda\">If you got here by swiping: yes, this essay is one of the posts now. Swipe again and you&rsquo;re back in the games. The crate will still be there.</p>";
+  const ESSAY_CM = ['why is there an essay on my fyp', 'i came here to play mini golf not to be perceived', 'read the whole thing. opened a crate right after', 'the chicken game part is so real', 'who wrote this', 'this is longer than my english homework', 'ok this is actually kind of good', 'the counter going up is the funniest part of this site', '"you will. i did." lmao', 'i scrolled past this 3 times before i read it', 'this site is making fun of me and i am letting it', 'imagine reading on a game app', 'skimmed it, agreed with it, back to chess', 'the point about the $10 button got me', 'professor greg paul', 'saving this for my media studies class', 'lowkey the best post on here', 'the last line 💀', 'i donated all my galaxies before reading this and now i feel weird', 'swiped and got an essay. 10/10 would swipe again'];
+  const ESK = skin('essayread', {
+    bg: ['#fbfaf6', '#fbfaf6'], fg: '#1d1d1b', dim: '#77756e', panel: '#ffffff', pfg: '#1d1d1b', line: '#1d1d1b',
+    pal: ['#8a2a1f', '#2a4a7a', '#4f6b3a', '#b07a2a'], good: '#4f6b3a', bad: '#8a2a1f',
+    font: 'Georgia,"Iowan Old Style","Times New Roman",serif', mono: 'Georgia,serif', fw: 700, mw: 400,
+    veil: 'rgba(251,250,246,.8)', vfg: '#1d1d1b', tsize: 22, tfw: 700, tls: '-.01em'
+  });
+  delete SKINS.essayread; /* keep it out of the generated games' skin pool */
+  function makeEssay(sk) {
+    let box = null, g = null;
+    const place = () => { if (!box || !g) return; box.style.left = g.ox + 'px'; box.style.top = g.oy + 'px'; box.style.width = g.w + 'px'; box.style.height = g.h + 'px'; };
+    return g = Object.assign({
+      sk, title: 'The Crate Is the Point', how: '', noVeil: true, state: 'run', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [],
+      layout() { place(); }, reset() {}, enter() {}, kick() { return false; },
+      bind(cv) {
+        box = document.createElement('article'); box.className = 'essay'; box.setAttribute('aria-label', 'Essay');
+        box.innerHTML = '<div class="in">' + ESSAY_HTML.replace('</h1>', '</h1><p class="by">A long read. About 5 minutes.</p>') + '</div>';
+        cv.parentNode.appendChild(box); place();
+      },
+      tick() {}, draw() {}
+    }, MIX);
+  }
+  const ESSAY = mk(makeEssay(ESK), 'The Crate Is the Point', ESK, 'An essay about GregSnap, on GregSnap. Scroll inside to read.', '#longread #essay #satire', 2.3e9, 640e6, 410e6, 'essay');
+  ESSAY.quiet = true; ESSAY.handle = 'slow.reads'; ESSAY.music = 'no music, just reading';
+  ESSAY.cm = shuf(ESSAY_CM).map(t => [rname(), jit(t), Math.floor(Math.pow(10, rand(0, 4.1)))]).sort((a, b) => b[2] - a[2]);
+
   /* ===== endless generator: same four game engines, but every game is dressed by a different "author" ===== */
   const PACKS = [
     { adj: ['Cosmic', 'Orbit', 'Nova', 'Galaxy', 'Astro'], goods: ['STAR', 'MOON', 'ORB'], bads: ['ROCK', 'JUNK', 'VOID'], tags: ['#space #stars', '#astronomy #cosmic'] },
@@ -18816,7 +18853,7 @@ function engine(){
     };
   }
   function ensureAhead(k) {
-    while (SLIDES.length <= k) { const s = genSlide(); SLIDES.push(s); buildSlide(s, SLIDES.length - 1); }
+    while (SLIDES.length <= k) { const s = SLIDES.indexOf(ESSAY) < 0 && Math.random() < 0.02 ? ESSAY : genSlide(); SLIDES.push(s); buildSlide(s, SLIDES.length - 1); }
   }
 
     const SLIDES = [
@@ -18873,6 +18910,7 @@ function engine(){
      so e.g. a "Cosmic Slither" is as likely to show up near the top as Glow Worm */
   TEMPLATES.forEach(T => SLIDES.push(genSlide(T)));
   { const rnd = Math.random; for (let i = SLIDES.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = SLIDES[i]; SLIDES[i] = SLIDES[j]; SLIDES[j] = tmp; } }
+  if (Math.random() < 0.2) SLIDES.splice(4 + Math.floor(Math.random() * 26), 0, ESSAY);
 
   /* game links: fazegregpaul.com/chess opens Chess first. GitHub Pages has no /chess file, so 404.html
      sends the browser to /?g=chess and we put the nice path back in the address bar. */
@@ -18888,6 +18926,7 @@ function engine(){
   };
   const findLink = want => {
     const w = squash(want); if (!w) return null;
+    if (w === 'essay' || w === squash(ESSAY.title)) { const k = SLIDES.indexOf(ESSAY); if (k >= 0) SLIDES.splice(k, 1); return ESSAY; }
     let i = SLIDES.findIndex(s => !s.gen && squash(s.title) === w);
     if (i >= 0) return SLIDES.splice(i, 1)[0];
     /* a generated game: adjective from a pack + suffix from a template (+ optional kind) */
@@ -19318,6 +19357,7 @@ function engine(){
   function musicNote(t, f, d, v, type, bus) { const o = ac.createOscillator(), g = ac.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g); g.connect(bus); o.start(t); o.stop(t + d + 0.03); }
   function musicTick() {
     if (!musicOn || !soundOn || !ac || paused || document.hidden || !ensureBus()) return;
+    if (SLIDES[MUS.idx] && SLIDES[MUS.idx].quiet) return;
     const sp = 60 / MUS.bpm / 2; if (MUS.next < ac.currentTime - 0.5) MUS.next = ac.currentTime + 0.05;
     while (MUS.next < ac.currentTime + 0.16) {
       const s = MUS.step++, i = s % 16, t = MUS.next, a = MUS.arp[i];
