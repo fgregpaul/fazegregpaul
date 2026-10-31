@@ -1530,7 +1530,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
 
     crownrush: ['big greg just walks past everything like he has a meeting at the tower', 'lag spike + galaxy bomb is so dirty', 'the pigeons are actually broken', 'lost to a bot named kayla.mp4 im deleting the app', 'interns cost 2 and still carry', 'server rack on defense saves me every time', 'my deck is all flying stuff and nobody can stop it', 'the doggo says WOOF when it bites lmao', '3 crowned the bot in overtime lets gooo', 'reply guys shooting little text bubbles is too accurate', 'who else just spams skater kid', 'the elixir bar going 2x at the end gets me every time', 'mall cop with the flashlight is my favorite', 'coffee thrower is lowkey the best card'],
     lawn: ['paper io but with lawn mowers lol', 'got boxed in by my own greed', 'the bots hunt your trail so mean', 'hit the fence again 😭', 'i got to 31% and a purple guy cut me', 'swipe controls are so smooth', 'why is it so satisfying to close a loop', 'dont leave your tail out too long', 'my lawn my rules', 'ran out of room and mowed myself', 'i own the neighborhood now', 'the stripes on the grass are a nice touch'],
-    kart: ['this feels like the old snes kart games', 'the paper ball sniped me right before the finish 😭', 'mini turbo on every corner is the move', 'drove straight into the lake twice', 'tasha is cracked at this game', 'got 1st on my 4th try', 'the oil slicks are so annoying lol', 'who put trees there', 'coins actually make you faster??', 'the countdown music hits', 'dave rammed me off the track', 'need more tracks pls'],
+    kart: ['this feels like the old snes kart games', 'the paper ball sniped me right before the finish 😭', 'mini turbo on every corner is the move', 'drove straight into the lake twice', 'tasha is cracked at this game', 'got 1st on my 4th try', 'the oil slicks are so annoying lol', 'who put trees there', 'coins actually make you faster??', 'the countdown music hits', 'dave rammed me off the track', 'need more tracks pls', 'raced my friends in a lobby and won by like a second', 'hit my friend with a paper ball on the last lap and he left the lobby 😭'],
     royale: ['the sky barge music needs to be a song', 'landed neon market with 6 other people and somehow won', 'box up saved my life fr', 'who keeps camping in the bushes', 'got sniped from across the lake 😭', 'me and my friends made a lobby and it actually works', 'the storm got me while i was healing', 'pump shotgun is so strong close up', 'legendary AR from a chest first try', 'bots keep building walls when i shoot them lol', 'frostfall lodge is the best drop', 'played on my phone and the sticks feel good'],
     strike: ['the spray on the kestrel is actually learnable', 'bots on hard prefire everything 😭', 'defused with 0.4 seconds left i screamed', 'long doors is so scary', 'who keeps buying longshot on eco', 'my friends made a lobby and we 5 stacked the bots', 'hand cannon one taps are so satisfying', 'smoked mid and walked B like a pro', 'the HUD looks exactly like the old school shooters', 'got flashed by my own teammate lol', 'aim assist on phone is lowkey nice', 'eco round ace with the p9 no way', 'tunnels to B every round and they still dont look', 'fire in the hole!!'],
     facet: ['the author time on dune hopper is actually insane', 'finally got gold on frost coil after like 40 tries', 'drifting through the corners is so satisfying', 'my ghost is mocking me', 'built a track that is just one giant jump', 'overpass bridge is so pretty', 'neon skyway at night looks unreal', 'how is this 3d on my phone', 'missed the last checkpoint by one pixel', 'brake drift brake drift', 'beat my best by 0.004 seconds lets gooo', 'the low poly trees are so cute', 'respawn button is my best friend', 'took the jump way too fast and landed in a cactus field'],
@@ -14994,12 +14994,12 @@ function engine(){
         for (let i = 0; i < surf.length; i++) { const r = sd[i * 4]; surf[i] = r < 40 ? 0 : r < 100 ? 1 : r < 136 ? (th.ice ? 5 : 1) : r < 182 ? 2 : r < 228 ? 4 : 3; }
         TR.surf = surf;
         /* scenery */
-        const trees = []; let tries = 0;
+        const trees = [], rg = mulberry(9001 + TRACKS.indexOf(TR) * 77), rr2 = (lo, hi) => lo + rg() * (hi - lo); let tries = 0; /* seeded so every phone in an online race has the same trees */
         while (trees.length < 90 && tries++ < 4000) {
-          const tx = rand(24, TS - 24), ty = rand(24, TS - 24); if (surf[(ty | 0) * TS + (tx | 0)] !== 0) continue;
+          const tx = rr2(24, TS - 24), ty = rr2(24, TS - 24); if (surf[(ty | 0) * TS + (tx | 0)] !== 0) continue;
           let near = 1e9; for (let i = 0; i < NC; i += 3) { const p = CL[i], dd = (p[0] - tx) ** 2 + (p[1] - ty) ** 2; if (dd < near) near = dd; }
           if (near < (RWD + 34) ** 2) continue; if (trees.some(t => (t.x - tx) ** 2 + (t.y - ty) ** 2 < 30 * 30)) continue;
-          trees.push({ x: tx, y: ty, b: Math.random() < (th.bush === 'pumpkin' ? 0.4 : 0.3), v: Math.floor(Math.random() * 6) });
+          trees.push({ x: tx, y: ty, b: rg() < (th.bush === 'pumpkin' ? 0.4 : 0.3), v: Math.floor(rg() * 6) });
         }
         TR.trees = trees;
         const mm = mkCv(120, 120), m = mm.getContext('2d'); m.scale(120 / TS, 120 / TS); m.lineJoin = 'round'; path(m); m.strokeStyle = 'rgba(0,0,0,.55)'; m.lineWidth = RWD * 2 + 34; m.stroke(); path(m); m.strokeStyle = '#ffffff'; m.lineWidth = RWD * 2 - 10; m.stroke(); TR.mini = mm;
@@ -15043,7 +15043,7 @@ function engine(){
         this.bestLap = this.bests()[TR.id] || 0;
         this.state = 'ready';
       },
-      enter() { this.reset(); },
+      enter() { if (!this.net) this.reset(); },
       bests() { try { const r = localStorage.getItem('gregsnap_kart_v1'); if (!r) return {}; const v = JSON.parse(r); return typeof v === 'number' ? { spring: v } : v || {}; } catch (_) { return {}; } },
       saveBest(t) { this.bestLap = t; try { const b = this.bests(); b[TR.id] = t; localStorage.setItem('gregsnap_kart_v1', JSON.stringify(b)); } catch (_) {} },
       pickTrack(d) { this.ti = (this.ti + d + TRACKS.length) % TRACKS.length; sfx(d > 0 ? 660 : 520, 0.06, 0.05, 'square'); this.reset(); },
@@ -15054,6 +15054,8 @@ function engine(){
         const at = ev => { const r = cv.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; };
         cv.addEventListener('pointerdown', ev => {
           const p = at(ev), r = this.itemRect();
+          if (this.state === 'ready' && this.fb && p.x > this.fb.x && p.x < this.fb.x + this.fb.w && p.y > this.fb.y - 6 && p.y < this.fb.y + this.fb.h + 6) { LOBBY.open(this); return; }
+          if (this.net && this.state === 'dead') { const L = this.lb; if (L && p.x > L.x && p.x < L.x + L.w && p.y > L.y - 6 && p.y < L.y + L.h + 6) { this.mpToLobby(); return; } if (this.dead > 0.6 && this.net.host) this.mpRematch(); return; }
           if (this.state === 'run' && p.x > r.x - 14 && p.x < r.x + r.w + 14 && p.y > r.y - 10 && p.y < r.y + r.h + 14) { this.useItem(this.me); return; }
           if (this.state === 'ready' && (p.x < this.w * 0.22 || p.x > this.w * 0.78) && p.y > this.h * 0.25) { this.pickTrack(p.x < this.w / 2 ? -1 : 1); return; }
           if (this.kick()) return;
@@ -15064,6 +15066,7 @@ function engine(){
       },
       key(e) {
         const down = e.type === 'keydown', k = e.key;
+        if (this.net && this.state === 'dead') { if (down && (k === ' ' || k === 'Enter') && this.dead > 0.6 && this.net.host) this.mpRematch(); return k === ' ' || k === 'Enter'; }
         if (this.state !== 'run') { if (down && (k === ' ' || k === 'Enter')) { this.kick(); return true; } if (down && this.state === 'ready' && (k === 'ArrowLeft' || k === 'ArrowRight')) { this.pickTrack(k === 'ArrowLeft' ? -1 : 1); return true; } return false; }
         if (k === 'ArrowLeft') this.keys.l = down; else if (k === 'ArrowRight') this.keys.r = down; else if (k === 'ArrowDown') this.keys.b = down; else if (k === 'ArrowUp') this.keys.u = down;
         else if (k === ' ' || k === 'x' || k === 'X' || k === 'Enter') { if (down && !e.repeat) this.useItem(this.me); }
@@ -15080,8 +15083,8 @@ function engine(){
         if (!k.item || k.spin > 0 || k.fall > 0 || this.cd > 0) return;
         const cs = Math.cos(k.a), sn = Math.sin(k.a), mine = k === this.me;
         if (k.item === 'boost') { k.boost = 1.25; if (mine) { sfx(180, 0.45, 0.06, 'sawtooth'); sfx(360, 0.3, 0.04, 'square'); } }
-        else if (k.item === 'puddle') { this.haz.push({ k: 'puddle', x: k.x - cs * 18, y: k.y - sn * 18, life: 30 }); if (mine) sfx(240, 0.12, 0.05, 'triangle'); }
-        else if (k.item === 'ball') { const sp = Math.max(0, k.v) + 210; this.haz.push({ k: 'ball', x: k.x + cs * 14, y: k.y + sn * 14, vx: cs * sp, vy: sn * sp, life: 3.2, own: k, age: 0 }); if (mine) sfx(520, 0.1, 0.05, 'square'); }
+        else if (k.item === 'puddle') { this.addHaz({ k: 'puddle', x: k.x - cs * 18, y: k.y - sn * 18, life: 30 }); if (mine) sfx(240, 0.12, 0.05, 'triangle'); }
+        else if (k.item === 'ball') { const sp = Math.max(0, k.v) + 210; this.addHaz({ k: 'ball', x: k.x + cs * 14, y: k.y + sn * 14, vx: cs * sp, vy: sn * sp, life: 3.2, own: k.i, age: 0 }); if (mine) sfx(520, 0.1, 0.05, 'square'); }
         k.item = null;
       },
       hit(k) {
@@ -15105,7 +15108,7 @@ function engine(){
       },
       finishRace() {
         const lt = this.t - this.lapStart; this.lapT.push(lt); if (!this.bestLap || lt < this.bestLap) this.saveBest(lt);
-        this.over = true; this.endT = 0; this.place = this.fin.indexOf(this.me); this.me.ai = true; this.me.skill = 0.9;
+        this.over = true; this.endT = 0; this.place = Math.max(0, this.karts.filter(k => k.done && k !== this.me && k.time <= this.me.time).length); this.me.ai = true; this.me.skill = 0.9;
         this.score = PTS[this.place]; this.best = Math.max(this.best, this.score);
         this.msg2 = 'FINISH!'; this.msgT = 3; try { JING(this.place === 0 ? 'win' : this.place < 3 ? 'start' : 'over'); } catch (_) {}
       },
@@ -15143,7 +15146,7 @@ function engine(){
         if (k !== this.me && Math.abs(steer) > 0.6 && k.v > TOP * 0.55 && k.spin <= 0 && k.fall <= 0) k.chg += dt;
         else { if (k.chg > 0.6 && k.spin <= 0) k.boost = Math.max(k.boost, k.chg > 1.4 ? 0.7 : 0.4); k.chg = 0; }
         /* catch-up: the further you're ahead, the harder they push; leaders ease off only a little */
-        if (!this.over && k !== this.me) { const gap = this.me.prog - k.prog; if (gap > 0) k.tf *= 1 + clamp(gap / 350, 0, 0.1); else if (gap < -90) k.tf *= 0.96; }
+        if (!this.over && !this.net && k !== this.me) { const gap = this.me.prog - k.prog; if (gap > 0) k.tf *= 1 + clamp(gap / 350, 0, 0.1); else if (gap < -90) k.tf *= 0.96; }
         if (k.item) { k.itT -= dt; if (k.itT <= 0) { if (k.item !== 'ball' || this.karts.some(o => o !== k && Math.abs(wrapA(Math.atan2(o.y - k.y, o.x - k.x) - k.a)) < 0.25 && (o.x - k.x) ** 2 + (o.y - k.y) ** 2 < 160 * 160) || k.itT < -4) this.useItem(k); } }
         this.drive(k, steer, 1, dt);
       },
@@ -15151,8 +15154,11 @@ function engine(){
         this.decay(dt); this.t += dt;
         if (!this.tex) return;
         if (this.state === 'ready') { this.ca = this.me.a + Math.sin(this.t * 0.6) * 0.5; this.cam(); return; }
-        if (this.state === 'dead') { this.dead += dt; this.ca += dt * 0.15; this.cam(); return; }
+        if (this.state === 'dead') { this.dead += dt; if (this.net) { this.step(dt); return; } this.ca += dt * 0.15; this.cam(); return; }
         if (this.state !== 'run') return;
+        this.step(dt);
+      },
+      step(dt) {
         if (this.cd > 0) {
           const before = Math.ceil(this.cd); this.cd -= dt; const after = Math.ceil(this.cd);
           if (after !== before) { if (after > 0) sfx(440, 0.14, 0.06, 'square'); else { sfx(880, 0.35, 0.07, 'square'); this.lapStart = this.t; this.t0r = this.t; } }
@@ -15162,34 +15168,35 @@ function engine(){
         if (this.roll > 0) { this.roll -= dt; if (this.roll <= 0) { this.me.item = this.rollItem; sfx(1046, 0.12, 0.05, 'square'); } }
         /* player input */
         const me = this.me;
-        if (!this.over) {
+        if (this.spec) { /* watching */ } else if (!this.over) {
           let steer = (this.keys.r ? 1 : 0) - (this.keys.l ? 1 : 0), thr = this.keys.b ? -1 : 1;
           if (this.touches && this.touches.size) { const p = [...this.touches.values()].pop(); steer = clamp((p.x - this.w / 2) / (this.w * 0.24), -1, 1); if (Math.abs(steer) < 0.08) steer = 0; }
           if (Math.abs(steer) > 0.75 && me.v > TOP * 0.55 && me.spin <= 0 && me.fall <= 0) { this.charge += dt; this.sparkT += dt; }
           else { if (Math.abs(steer) < 0.35 && this.charge > 0.75 && me.spin <= 0) { me.boost = Math.max(me.boost, this.charge > 1.6 ? 0.75 : 0.42); sfx(260, 0.3, 0.05, 'sawtooth'); } if (Math.abs(steer) < 0.75) this.charge = 0; }
           this.drive(me, steer, thr, dt);
         } else { this.endT += dt; this.ai(me, dt); }
-        this.karts.forEach(k => { if (k !== me) this.ai(k, dt); });
+        this.karts.forEach(k => { if (k.rem) this.follow(k, dt); else if (k !== me) this.ai(k, dt); });
         /* kart bumps */
         for (let i = 0; i < NK; i++) for (let j = i + 1; j < NK; j++) {
-          const a = this.karts[i], b = this.karts[j]; if (a.fall > 0 || b.fall > 0) continue; const dx = b.x - a.x, dy = b.y - a.y, dd = dx * dx + dy * dy;
-          if (dd < 13 * 13 && dd > 0.01) { const d = Math.sqrt(dd), push = (13 - d) / 2, nx = dx / d, ny = dy / d; a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push; const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny; if (rv < 0) { a.vx += nx * rv * 0.6; a.vy += ny * rv * 0.6; b.vx -= nx * rv * 0.6; b.vy -= ny * rv * 0.6; } if ((a === me || b === me) && rv < -30) sfx(140, 0.06, 0.05); }
+          const a = this.karts[i], b = this.karts[j]; if (a.fall > 0 || b.fall > 0 || (a.rem && b.rem)) continue; const dx = b.x - a.x, dy = b.y - a.y, dd = dx * dx + dy * dy;
+          if (dd < 13 * 13 && dd > 0.01) { const d = Math.sqrt(dd), push = (13 - d) / 2, nx = dx / d, ny = dy / d, wa = a.rem ? 0 : b.rem ? 2 : 1, wb = b.rem ? 0 : a.rem ? 2 : 1; a.x -= nx * push * wa; a.y -= ny * push * wa; b.x += nx * push * wb; b.y += ny * push * wb; const rv = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny; if (rv < 0) { const va = wa ? 0.6 : 0, vb = wb ? 0.6 : 0; a.vx += nx * rv * va; a.vy += ny * rv * va; b.vx -= nx * rv * vb; b.vy -= ny * rv * vb; } if ((a === me || b === me) && rv < -30) sfx(140, 0.06, 0.05); }
         }
         /* pickups */
-        for (const bx of this.boxes) { if (bx.t > 0) { bx.t -= dt; continue; } for (const k of this.karts) { if (k.fall > 0) continue; if ((k.x - bx.x) ** 2 + (k.y - bx.y) ** 2 < 12 * 12) { bx.t = 3; if (!k.item && !(k === me && this.roll > 0)) this.giveItem(k); break; } } }
-        for (const cn of this.coins) { if (cn.t > 0) { cn.t -= dt; continue; } for (const k of this.karts) { if ((k.x - cn.x) ** 2 + (k.y - cn.y) ** 2 < 11 * 11) { cn.t = 9; k.coins = Math.min(10, k.coins + 1); if (k === me) { sfx(1320, 0.05, 0.04, 'square'); setTimeout(() => sfx(1760, 0.08, 0.035, 'square'), 50); } break; } } }
+        for (const bx of this.boxes) { if (bx.t > 0) { bx.t -= dt; continue; } for (const k of this.karts) { if (k.fall > 0) continue; if ((k.x - bx.x) ** 2 + (k.y - bx.y) ** 2 < 12 * 12) { bx.t = 3; if (!k.rem && !k.item && !(k === me && this.roll > 0)) this.giveItem(k); break; } } }
+        for (const cn of this.coins) { if (cn.t > 0) { cn.t -= dt; continue; } for (const k of this.karts) { if ((k.x - cn.x) ** 2 + (k.y - cn.y) ** 2 < 11 * 11) { cn.t = 9; if (!k.rem) k.coins = Math.min(10, k.coins + 1); if (k === me) { sfx(1320, 0.05, 0.04, 'square'); setTimeout(() => sfx(1760, 0.08, 0.035, 'square'), 50); } break; } } }
         /* hazards */
         for (let i = this.haz.length - 1; i >= 0; i--) {
           const h = this.haz[i]; h.life -= dt; let gone = h.life <= 0;
           if (h.k === 'ball') { h.age += dt; h.x += h.vx * dt; h.y += h.vy * dt; if (h.x < 8 || h.x > TS - 8) { h.vx *= -1; h.x = clamp(h.x, 8, TS - 8); } if (h.y < 8 || h.y > TS - 8) { h.vy *= -1; h.y = clamp(h.y, 8, TS - 8); } if (this.trees.some(t => (t.x - h.x) ** 2 + (t.y - h.y) ** 2 < 64)) gone = true; }
-          if (!gone) for (const k of this.karts) { if (k.fall > 0 || (h.k === 'ball' && k === h.own && h.age < 0.4)) continue; if ((k.x - h.x) ** 2 + (k.y - h.y) ** 2 < 11 * 11) { this.hit(k); gone = true; break; } }
-          if (gone) this.haz.splice(i, 1);
+          if (!gone) for (const k of this.karts) { if (k.rem || k.fall > 0 || (h.k === 'ball' && k.i === h.own && h.age < 0.4)) continue; if ((k.x - h.x) ** 2 + (k.y - h.y) ** 2 < 11 * 11) { this.hit(k); gone = h.hitK = true; break; } }
+          if (gone) { this.haz.splice(i, 1); if (this.net && (this.net.host || h.hitK)) this.hazGone(h); }
         }
         /* standings */
         this.order = this.karts.slice().sort((a, b) => (a.done && b.done) ? a.time - b.time : a.done ? -1 : b.done ? 1 : b.prog - a.prog);
         if (!this.over) { this.score = PTS[this.placeOf(me)]; }
+        if (this.net) { if (this.me.done && !this.spec) { this.place = this.order.indexOf(this.me); this.score = PTS[this.place]; } this.netTick(dt); }
         this.ca += wrapA(me.a - this.ca) * Math.min(1, dt * (me.spin > 0 ? 3 : 7)); this.cam();
-        if (this.over && this.endT > 3.4) { this.state = 'dead'; this.dead = 0; }
+        if (this.over && this.endT > 3.4 && this.state === 'run') { this.state = 'dead'; this.dead = 0; }
       },
       proj(x, y) {
         const dx = x - this.camx, dy = y - this.camy, cs = Math.cos(this.ca), sn = Math.sin(this.ca), z = dx * cs + dy * sn;
@@ -15218,7 +15225,7 @@ function engine(){
         this.boxes.forEach(o => { if (o.t > 0) return; const p = this.proj(o.x, o.y); if (p && p.z < 900) L.push({ p, f: 'b', o }); });
         this.haz.forEach(o => { const p = this.proj(o.x, o.y); if (p) L.push({ p, f: o.k, o }); });
         this.karts.forEach(o => { const p = this.proj(o.x, o.y); if (p) L.push({ p, f: 'k', o }); });
-        L.sort((a, b) => b.p.z - a.p.z);
+        L.sort((a, b) => b.p.z - a.p.z); this.tags = [];
         bx.imageSmoothingEnabled = false;
         for (const it of L) {
           const p = it.p, s = p.s, o = it.o;
@@ -15234,6 +15241,7 @@ function engine(){
             bx.globalAlpha = al; bx.fillStyle = 'rgba(0,0,0,.28)'; bx.beginPath(); bx.ellipse(p.sx, p.sy, dw * 0.36, dw * 0.1, 0, 0, TAU); bx.fill();
             if (o.boost > 0 && idx <= 2 || o.boost > 0 && idx >= 14) { bx.fillStyle = (this.t * 20 | 0) & 1 ? '#ffb300' : '#ff4f1f'; bx.beginPath(); bx.ellipse(p.sx, p.sy - dh * 0.32, dw * 0.12, dh * 0.2, 0, 0, TAU); bx.fill(); }
             bx.drawImage(im, p.sx - dw / 2, yy, dw, dh); bx.globalAlpha = 1;
+            if (o.nm && (o !== me || this.spec) && p.z < 520) this.tags.push({ x: p.sx * this.ps - this.ox, y: yy * this.ps - this.oy, n: o.nm, c: o.c.body });
             if (o === me && this.charge > 0.75 && !this.over) { const col = this.charge > 1.6 ? ['#ff8a1e', '#ffd34d'] : ['#5ad1ff', '#e6f8ff']; for (let q = 0; q < 6; q++) { bx.fillStyle = col[q & 1]; bx.fillRect(p.sx + (q < 3 ? -1 : 1) * dw * 0.32 + rand(-2, 2) * s * 0.3, p.sy - rand(0, 5) * s * 0.4, Math.max(1, s * 0.9), Math.max(1, s * 0.9)); } }
           }
         }
@@ -15255,15 +15263,80 @@ function engine(){
         c.imageSmoothingEnabled = true;
         this.hud(c, w, h);
       },
+      /* ---- online races (GregNet). Each phone drives its own kart and sends it 20x a second; the host drives the bots
+         and sends everyone's karts back. Items: the host numbers every ball/oil slick, whoever gets hit says so. ---- */
+      mp: true, mpKind: 'kart', mpMin: 2, mpSub: 'up to 6 racers', mpNote: 'Empty spots on the grid are filled with bot racers. Players past 6 watch.',
+      mpHostStart(players) {
+        const n = ((this.net && this.net.n) || 0) + 1, list = players.slice(0, NK).map((p, i) => [p.id, String(p.name || 'Player').slice(0, 14), i]);
+        const data = { ti: this.ti == null ? SEASON : this.ti, list, n }; this.mpBegin(data, 'h'); return data;
+      },
+      mpClientStart(data, me) { this.mpBegin(data, me); },
+      mpBegin(data, me) {
+        this.net = { host: me === 'h', me, n: data.n, sendT: 0 }; this.hid = 0; this.spec = false;
+        if (!this.tex) this.ensure();
+        this.ti = data.ti; this.reset();
+        let mine = null;
+        data.list.forEach(([pid, nm, ki]) => { const k = this.karts[ki]; if (!k) return; k.pid = pid; k.nm = nm; k.ai = false; k.human = true; if (pid === me) mine = k; });
+        this.karts.forEach(k => { k.rem = this.net.host ? (k.human && k !== mine) : k !== mine; });
+        this.spec = !mine; this.me = mine || this.karts[0];
+        this.ca = this.me.a; this.cam(); this.state = 'run'; window.__mpGame = this;
+        try { JING('start'); } catch (_) {}
+      },
+      mpRematch() { if (this.net && this.net.host && NET.s) { const d = this.mpHostStart(NET.s.players); if (d) NET.start(d); } },
+      mpToLobby() { if (this.net && this.net.host && NET.s) NET.toLobby(); this.mpStop(); LOBBY.open(this); },
+      mpStop() { this.net = null; this.spec = false; if (window.__mpGame === this) window.__mpGame = null; this.reset(); },
+      mpLobby() { this.mpStop(); },
+      mpEnd() { if (this.net) this.mpStop(); },
+      mpLeft(id) { if (!this.net || !this.net.host) return; const k = this.karts.find(q => q.pid === id); if (k) { k.rem = false; k.ai = true; k.pid = null; k.skill = 0.95; k.nx = null; } },
+      kst(k) { const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100; return [r1(k.x), r1(k.y), r2(k.a), r1(k.v), r1(k.vx), r1(k.vy), k.lap, k.prog, r2(Math.max(0, k.spin)), r2(Math.max(0, k.fall)), r2(Math.max(0, k.boost)), k.coins, k.done ? r2(k.time - (this.t0r || 0)) : -1]; },
+      kset(k, s) {
+        if (!k || !Array.isArray(s) || s.length < 13) return;
+        if (k.nx == null) { k.x = s[0]; k.y = s[1]; k.a = s[2]; }
+        k.nx = s[0]; k.ny = s[1]; k.na = s[2]; k.v = s[3]; k.vx = s[4]; k.vy = s[5]; k.lap = s[6]; k.prog = s[7]; k.spin = s[8]; k.fall = s[9]; k.boost = s[10]; k.coins = s[11];
+        if (s[12] >= 0 && !k.done) { k.done = true; k.time = (this.t0r || this.t) + s[12]; this.fin.push(k); }
+      },
+      follow(k, dt) {
+        if (k.nx == null) return;
+        k.nx += k.vx * dt; k.ny += k.vy * dt; k.fall = Math.max(0, k.fall - dt); k.boost = Math.max(0, k.boost - dt);
+        if (k.spin > 0) { k.spin -= dt; k.spinA += dt * 15; } else k.spinA = 0;
+        const dx = k.nx - k.x, dy = k.ny - k.y, f = Math.min(1, dt * 12);
+        if (dx * dx + dy * dy > 70 * 70) { k.x = k.nx; k.y = k.ny; k.a = k.na; } else { k.x += dx * f; k.y += dy * f; k.a = wrapA(k.a + wrapA(k.na - k.a) * f); }
+      },
+      netTick(dt) {
+        const N = this.net; N.sendT -= dt; if (N.sendT > 0) return; N.sendT = 0.05;
+        if (N.host) NET.bcast({ k: 'S', n: N.n, K: this.karts.map(k => [k.i].concat(this.kst(k))) }, true);
+        else if (!this.spec) NET.send({ k: 'p', n: N.n, s: this.kst(this.me) }, true);
+      },
+      addHaz(h) {
+        const N = this.net; if (!N) { this.haz.push(h); return; }
+        if (N.host) { h.id = ++this.hid; this.haz.push(h); NET.bcast({ k: 'hz', n: N.n, h }); }
+        else NET.send({ k: 'u', n: N.n, h });
+      },
+      hazGone(h) { const N = this.net; if (!N || !h.id) return; if (N.host) NET.bcast({ k: 'rm', n: N.n, id: h.id }); else NET.send({ k: 'hh', n: N.n, id: h.id }); },
+      dropHaz(id) { const i = this.haz.findIndex(q => q.id === id); if (i >= 0) this.haz.splice(i, 1); },
+      mpMsg(from, d) {
+        const N = this.net; if (!N || !d || typeof d !== 'object' || d.n !== N.n) return;
+        if (N.host) {
+          if (d.k === 'p') { const k = this.karts.find(q => q.pid === from && q.rem); if (k) this.kset(k, d.s); }
+          else if (d.k === 'u' && d.h && (d.h.k === 'ball' || d.h.k === 'puddle')) { const q = d.h, ok = v => typeof v === 'number' && isFinite(v); if (!ok(q.x) || !ok(q.y)) return; this.addHaz(q.k === 'ball' ? { k: 'ball', x: q.x, y: q.y, vx: ok(q.vx) ? clamp(q.vx, -500, 500) : 0, vy: ok(q.vy) ? clamp(q.vy, -500, 500) : 0, life: 3.2, own: q.own | 0, age: 0 } : { k: 'puddle', x: q.x, y: q.y, life: 30 }); }
+          else if (d.k === 'hh') { if (this.haz.some(q => q.id === d.id)) { this.dropHaz(d.id); NET.bcast({ k: 'rm', n: N.n, id: d.id }); } }
+          return;
+        }
+        if (d.k === 'S' && Array.isArray(d.K)) d.K.forEach(e => { const k = this.karts[e[0]]; if (k && k.rem) this.kset(k, e.slice(1)); });
+        else if (d.k === 'hz' && d.h) { if (!this.haz.some(q => q.id === d.h.id)) this.haz.push(d.h); }
+        else if (d.k === 'rm') this.dropHaz(d.id);
+      },
       ht(c, s, x, y, size, fill, al, stroke) {
         c.font = '400 ' + size + 'px ' + sk.font; c.textAlign = al || 'left'; c.textBaseline = 'middle'; c.lineJoin = 'round';
         c.lineWidth = Math.max(3, size / 5); c.strokeStyle = stroke || '#14143a'; c.strokeText(s, x, y); c.fillStyle = fill; c.fillText(s, x, y);
       },
       icon(c, it, x, y, s) { const im = this.IC && this.IC[it]; if (!im) return; c.imageSmoothingEnabled = false; c.drawImage(im, Math.round(x - s / 2), Math.round(y - s / 2), Math.round(s), Math.round(s)); c.imageSmoothingEnabled = true; },
       hud(c, w, h) {
+        if (this.state !== 'ready' && this.tags) this.tags.forEach(g => this.ht(c, g.n, g.x, g.y - 8, 12, '#ffffff', 'center', g.c));
         const me = this.me, big = clamp(Math.min(w, h) / 9, 30, 64), sm = clamp(big * 0.36, 12, 22), fmt = t => { t = Math.max(0, t); const m = Math.floor(t / 60), s = t - m * 60; return m + "'" + (s < 10 ? '0' : '') + s.toFixed(2).replace('.', '"'); };
         if (this.state === 'run') {
           this.ht(c, 'LAP ' + clamp(me.lap, 1, LAPS) + '/' + LAPS, 12, 26, sm, '#ffffff');
+          if (this.net) this.ht(c, (this.spec ? 'WATCHING ' + (me.nm || me.c.name) : 'ONLINE') + (NET.s ? ' · ' + NET.s.code : ''), 12, 26 + sm * 1.25, sm * 0.6, '#7fe0ff');
           this.ht(c, fmt(this.cd > 0 ? 0 : (me.done ? me.time : this.t) - (this.t0r || 0)), w - 12, 26, sm, '#ffe14d', 'right');
           /* item box */
           const r = this.itemRect(); c.fillStyle = 'rgba(20,20,58,.55)'; rr(c, r.x, r.y, r.w, r.h, 10); c.fill(); c.lineWidth = 3; c.strokeStyle = '#ffffff'; rr(c, r.x, r.y, r.w, r.h, 10); c.stroke();
@@ -15293,16 +15366,25 @@ function engine(){
           const lines = touch ? ['Tap the arrows to pick a track', 'Hold left or right to steer', 'Tap the item box to use items'] : ['← → pick a track, then steer', '↓ brake   Space uses your item', 'Hold a hard turn for a mini-turbo'];
           const ly = sy + sm * 4.4; lines.forEach((s, i) => this.ht(c, s, w / 2, ly + i * sm * 1.5, sm * 0.8, '#ffffff', 'center'));
           if (this.bestLap) this.ht(c, 'Best lap ' + fmt(this.bestLap), w / 2, ly + 3 * sm * 1.5 + 4, sm * 0.75, '#7fe0ff', 'center');
-          if ((this.t * 2 | 0) & 1) this.ht(c, touch ? 'Tap to race' : 'Click or press Space to race', w / 2, h * 0.84, sm, '#ffe14d', 'center');
+          const fbw = Math.min(280, w * 0.72), fbh = sm * 2.5, fby = Math.max(h * 0.7, ly + 3 * sm * 1.5 + sm * 1.6), inL = NET.s && LOBBY && NET.s.kind === 'kart';
+          this.fb = { x: w / 2 - fbw / 2, y: fby, w: fbw, h: fbh };
+          c.fillStyle = '#ff4f6d'; rr(c, this.fb.x, fby, fbw, fbh, fbh / 2); c.fill(); c.lineWidth = 3; c.strokeStyle = '#14143a'; rr(c, this.fb.x, fby, fbw, fbh, fbh / 2); c.stroke();
+          this.ht(c, inL ? 'LOBBY ' + NET.s.code + ' (' + NET.s.players.length + ')' : 'PLAY WITH FRIENDS', w / 2, fby + fbh / 2 + 1, sm * 0.9, '#ffffff', 'center');
+          if ((this.t * 2 | 0) & 1) this.ht(c, touch ? 'Tap to race' : 'Click or press Space to race', w / 2, Math.max(h * 0.86, fby + fbh + sm * 1.4), sm, '#ffe14d', 'center');
         }
         if (this.state === 'dead') {
           c.fillStyle = 'rgba(14,16,52,.62)'; c.fillRect(-this.ox, -this.oy, this.W, this.H);
           const pl = this.place || 0; this.ht(c, ORD[pl], w / 2, h * 0.17, big * 1.6, ['#ffd700', '#e0e6f0', '#e09a5a', '#ffffff', '#ffffff', '#ffffff'][pl], 'center');
           this.ht(c, (pl === 0 ? 'You win ' : pl < 3 ? 'Podium at ' : 'Finished ') + TR.name + '!', w / 2, h * 0.17 + big * 1.1, sm, '#ffffff', 'center');
           const rows = this.order || this.karts, ry = h * 0.17 + big * 1.1 + sm * 2.2, lh = Math.min(sm * 1.9, (h * 0.86 - ry) / 7);
-          rows.forEach((k, i) => { const y = ry + i * lh, x0 = w / 2 - Math.min(150, w * 0.4); c.fillStyle = k === this.me ? 'rgba(255,225,77,.25)' : 'rgba(255,255,255,.08)'; rr(c, x0, y - lh * 0.42, Math.min(300, w * 0.8), lh * 0.84, 8); c.fill(); this.ht(c, (i + 1) + '. ' + k.c.name, x0 + 10, y, sm * 0.85, '#ffffff', 'left', k.c.body); this.ht(c, k.done ? fmt(k.time - (this.t0r || 0)) : '--', x0 + Math.min(300, w * 0.8) - 10, y, sm * 0.8, '#ffe14d', 'right'); });
+          rows.forEach((k, i) => { const y = ry + i * lh, x0 = w / 2 - Math.min(150, w * 0.4); c.fillStyle = k === this.me ? 'rgba(255,225,77,.25)' : 'rgba(255,255,255,.08)'; rr(c, x0, y - lh * 0.42, Math.min(300, w * 0.8), lh * 0.84, 8); c.fill(); this.ht(c, (i + 1) + '. ' + (k.nm || k.c.name), x0 + 10, y, sm * 0.85, '#ffffff', 'left', k.c.body); this.ht(c, k.done ? fmt(k.time - (this.t0r || 0)) : '--', x0 + Math.min(300, w * 0.8) - 10, y, sm * 0.8, '#ffe14d', 'right'); });
           this.ht(c, '+' + this.score + ' pts' + (this.bestLap ? '   best lap ' + fmt(this.bestLap) : ''), w / 2, ry + 6.4 * lh, sm * 0.8, '#7fe0ff', 'center');
-          if (this.dead > 0.6) this.ht(c, 'Tap to race again', w / 2, h * 0.92, sm, '#ffe14d', 'center');
+          if (this.net) {
+            const lbw = Math.min(170, w * 0.42), lbh = sm * 2.1, lby = h * 0.92 - lbh / 2 - sm * 2.1; this.lb = { x: w / 2 - lbw / 2, y: lby, w: lbw, h: lbh };
+            c.fillStyle = 'rgba(20,20,58,.75)'; rr(c, this.lb.x, lby, lbw, lbh, lbh / 2); c.fill(); c.lineWidth = 2; c.strokeStyle = '#ffffff'; rr(c, this.lb.x, lby, lbw, lbh, lbh / 2); c.stroke();
+            this.ht(c, 'LOBBY', w / 2, lby + lbh / 2 + 1, sm * 0.75, '#ffffff', 'center');
+            if (this.dead > 0.6) this.ht(c, this.net.host ? 'Tap to race again' : 'Waiting for the host...', w / 2, h * 0.94, sm * (this.net.host ? 1 : 0.8), this.net.host ? '#ffe14d' : '#dbeeff', 'center');
+          } else if (this.dead > 0.6) this.ht(c, 'Tap to race again', w / 2, h * 0.92, sm, '#ffe14d', 'center');
         }
       }
     }, MIX);
@@ -15316,7 +15398,7 @@ function engine(){
     slide: '#1d2a7a', sbgc: '#1d2a7a', sfg: '#ffffff', sdim: '#c9d6ff', stag: '#ffe14d', tsize: 28, tfw: 400, tls: '.02em',
     frame: 'border:4px solid #14143a;border-radius:14px;box-shadow:0 0 0 3px #ffe14d,0 10px 22px rgba(10,16,60,.45)'
   });
-  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Greg Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop oil slicks and fire turbo rockets.', '#kart #racing #retro #16bit', 15.2e9, 4.4e9, 2.1e9, 'kart'));
+  NEW_SLIDES.push(mk(makeKart(SKINS.kart), 'Greg Kart', SKINS.kart, 'Old-school kart racing on 4 seasonal tracks: Greg Circuit, Sunny Bay, Maple Hollow and icy Frost Peak. 3 laps against 5 rivals. Grab item boxes, throw paper balls, drop oil slicks and fire turbo rockets. Tap Play with friends to race up to 6 people online.', '#kart #racing #retro #16bit #multiplayer', 15.2e9, 4.4e9, 2.1e9, 'kart'));
 
   /* ===== GregNet: shared multiplayer lobbies for any game =====
      Peer-to-peer WebRTC data channels. Signaling ("the handshake") goes through the free PeerJS cloud
