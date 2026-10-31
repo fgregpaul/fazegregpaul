@@ -361,7 +361,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const fmt = n => n >= 1e12 ? (n / 1e12).toFixed(2) + 'T' : n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(Math.round(n));
-  const shuf = a => a.slice().sort(() => Math.random() - 0.5);
+  const shuf = a => { const r = a.slice(); for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = r[i]; r[i] = r[j]; r[j] = t; } return r; };
   const DISPLAY = 'D', MONO = 'M';
   const lum = h => { const n = parseInt(h.slice(1), 16); return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
   const onC = h => (typeof h === 'string' && h[0] === '#' && h.length === 7) ? (lum(h) > 0.6 ? '#111111' : '#ffffff') : '#111111';
@@ -4749,7 +4749,7 @@ html.fs .fsgp{display:block;position:fixed;left:0;right:0;bottom:6px;z-index:6;t
       state: 'ready', score: 0, best: 0, dead: 0, shake: 0, flash: 0, floats: [], cards: [], a: -1, b: -1, wait: 0, moves: 0, t: 0, left: 10,
       geom() { this.cs = Math.floor(Math.min((this.w - 24) / NC, (this.h - 150) / NR)); this.gx = Math.floor((this.w - this.cs * NC) / 2); this.gy = 78; },
       layout() { this.geom(); },
-      reset() { this.geom(); const ids = []; for (let i = 0; i < 10; i++) ids.push(i, i); shuf(ids); this.cards = ids.map(id => ({ id, f: 0, up: false, ok: false })); this.a = this.b = -1; this.wait = 0; this.moves = 0; this.t = 0; this.left = 10; this.score = 0; this.floats = []; this.state = 'ready'; },
+      reset() { this.geom(); const ids = []; for (let i = 0; i < 10; i++) ids.push(i, i); this.cards = shuf(ids).map(id => ({ id, f: 0, up: false, ok: false })); this.a = this.b = -1; this.wait = 0; this.moves = 0; this.t = 0; this.left = 10; this.score = 0; this.floats = []; this.state = 'ready'; },
       enter() { this.reset(); },
       bind(cv) {
         cv.addEventListener('pointerdown', e => {
