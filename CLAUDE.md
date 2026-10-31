@@ -117,7 +117,7 @@ Minimum before merging:
 - Real touch input: use CDP `Input.dispatchTouchEvent` (synthetic mouse clicks miss touch-only bugs).
 - Google Fonts fail to load in the sandbox. That's expected, not a bug.
 
-## Game list (86 hand-made games, shuffled into the feed on each load)
+## Game list (88 hand-made games, shuffled into the feed on each load)
 
 Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mines, Cluck Cross — a chicken-crossing-the-road multiplier game inspired by Shuffle's chicken game) and the endless re-skinned games after them.
 
@@ -135,6 +135,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Boss Rush | bullet-hell boss fight | `boss` |
 | Bowling | bowling | `bowling` |
 | Brick Breaker | Breakout | `break` |
+| Cat Chute | Drop the Cat (slide colour-matched cat blocks out through chutes, against the clock). Levels are generated backwards (`gen(lvl)`, seeded by level): each cat is slid *in* through its chute, so reversing the order always solves it, and since sliding is reversible a level can never get stuck. Level saved in `gregsnap_catchute_v1` | `chute` |
 | Checkers | checkers. Online 1v1 via `turnMP` (black's board is turned around) | `checkers` |
 | Chess | chess vs Stockfish 11 with a chess.com-style bot Elo slider (250 to MAX, saved in localStorage). This Stockfish build has no UCI_Elo, so `eloPlan()` sets search depth + MultiPV by Elo and `choose()` picks among Stockfish's candidate moves (softmax by score, plus occasional slips at low Elo); MAX = plain best move. Hints are full-strength Stockfish; eval bar. **Online 1v1** via GregNet (`vs friend` button; `mpKind: 'chess'`): host + first joiner play, colours random then swapped each rematch, extra players watch. Black sees the board turned around (`flip`, `vr()/vq()` map logical squares to screen squares). Moves are `{t:'mv', n: ply, fr,fc,tr,tc,p}`; the host checks them and relays. Resign / rematch (host) / lobby buttons replace hint/undo online. One game with 6 switchable arenas in `ARENAS` (arrows up top, saved in localStorage, defaults by season): Walnut Club (flat classic), Doodle (the old Doodle Chess notebook), Pixel Dungeon, Haunted Hollow, Frostbite Village (Christmas pixel art), Neon Grid. Pixel arenas draw the board at 1/3 res and pixelate the piece silhouettes | `chess` |
 | Circle Beat | osu! | `circles` |
@@ -157,6 +158,7 @@ Plus the 7 Galaxy Casino games (Blackjack, Hold'em, Roulette, Slots, Crash, Mine
 | Galaxy Hunt 64 | Super Mario 64 / Galaxy | `g64` |
 | Gate Hop | Portal | `gate` |
 | Glow Worm | Slither.io | `worm` |
+| Goo Legion | Slime Legion (merge tower defense: summon slimes onto a 5x3 gate, drag twins together to level them up, heroes walk a winding path, pick 1 of 3 powers after every wave, boss every 5 waves, x2 speed). Best wave in `gregsnap_goolegion_v1` | `goo` |
 | Grand Prix | top-down racer | `race` |
 | Greg Clicker | Cookie Clicker | `clicker` |
 | Greg Inc. | AdVenture Capitalist | `tycoon` |
