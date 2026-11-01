@@ -19833,8 +19833,55 @@ function engine(){
     { kind: 'road', suffix: ['Rush', 'Drive', 'Traffic', 'Highway'], blurb: () => 'Weave through traffic. Do not crash.', make: sk => makeRoad(sk) },
     { kind: 'type', suffix: ['Typer', 'Words', 'Keys', 'Type'], blurb: () => 'Type the falling words before they land.', make: sk => makeTypeRush(sk) },
     { kind: 'pairs', suffix: ['Pairs', 'Flip', 'Match', 'Memory'], blurb: () => 'Flip cards and find the matching pairs.', make: sk => makePairs(sk) },
-    { kind: 'cross', suffix: ['Lanes', 'Crossing', 'Dash', 'Hopper'], blurb: () => 'Tap to hop forward. Dodge the traffic.', make: sk => makeCross(sk) }
+    { kind: 'cross', suffix: ['Lanes', 'Crossing', 'Dash', 'Hopper'], blurb: () => 'Tap to hop forward. Dodge the traffic.', make: sk => makeCross(sk) },
+    /* more engines that were only hand-made before; each one is re-skinned by a different "author" like the rest */
+    { kind: 'rocks', suffix: ['Rocks', 'Debris', 'Meteors', 'Shards'], blurb: () => 'Drag to fly. Your ship fires on its own. Split every rock down to dust.', make: sk => makeRocks(sk) },
+    { kind: 'river', suffix: ['Ribbit', 'Pond', 'Stream', 'Lily'], blurb: () => 'Cross the road, hop the river, make it home.', make: sk => makeRiver(sk) },
+    { kind: 'fishing', suffix: ['Angler', 'Reel', 'Cast', 'Bobber'], blurb: () => 'Drag your hook through the deep. Big catches are worth more.', make: sk => makeFishing(sk) },
+    { kind: 'wobble', suffix: ['Wobble', 'Topple', 'Skyscraper', 'Tower'], blurb: () => 'Stack the blocks as high as you can. Miss the edge and it falls off.', make: sk => makeWobble(sk) },
+    { kind: 'race', suffix: ['Circuit', 'Laps', 'Racer', 'Grid'], blurb: () => 'Three laps against three rivals. Dodge the oil.', make: sk => makeGP(sk) },
+    { kind: 'blast', suffix: ['Fit', 'Tiles', 'Pieces', 'Jam'], blurb: () => 'Drag blocks onto the board. Fill rows and columns to clear them.', make: sk => makeBlast(sk) },
+    { kind: 'circles', suffix: ['Circles', 'Pulse', 'Dots', 'Rings'], blurb: () => 'Tap the circles on the beat. Ranks go from D to SS.', make: sk => makeCircleBeat(sk) },
+    { kind: 'plinko', suffix: ['Pegs', 'Plink', 'Cascade', 'Chance'], blurb: () => 'Drop balls down the pegs and chase the big slots.', make: sk => makePlinko(sk) },
+    { kind: 'fruit', fam: 'merge', suffix: ['Harvest', 'Bin', 'Squish', 'Pile'], blurb: () => 'Drop things in the bin. Matching ones merge into bigger ones.', make: sk => makeFruitMerge(sk) },
+    { kind: 'darts', suffix: ['Darts', 'Bullseye', 'Toss', 'Board'], blurb: () => 'Hold to steady your aim, let go to throw.', make: sk => makeDarts(sk) },
+    { kind: 'bowling', suffix: ['Bowl', 'Pins', 'Alley', 'Roll'], blurb: () => 'Slide your ball, flick it up the lane and knock them all down.', make: sk => makeBowling(sk) },
+    { kind: 'pinball', suffix: ['Pinball', 'Flipper', 'Bumper', 'Tilt'], blurb: () => 'Tap left and right to flip. Chase the multiplier.', make: sk => makePinball(sk) },
+    { kind: 'survive', suffix: ['Survivors', 'Night', 'Horde', 'Siege'], blurb: () => 'Steer, shoot automatically and pick an upgrade every level.', make: sk => makeSurvive(sk) },
+    { kind: 'hanoi', suffix: ['Hanoi', 'Transfer', 'Rings', 'Spire'], blurb: () => 'Move the whole stack to the far peg. Small on big only.', make: sk => makeHanoi(sk) },
+    { kind: 'sudoku', suffix: ['Sudoku', 'Digits', 'Numbers', 'Squares'], blurb: () => 'A fresh number puzzle every time. Three mistakes allowed.', make: sk => makeSudoku(sk) },
+    { kind: 'wordsearch', suffix: ['Search', 'Seek', 'Hunt', 'Finder'], blurb: () => 'Hidden words, ninety seconds. Drag across the letters.', make: sk => makeWordSearch(sk) },
+    { kind: 'ttt', suffix: ['Noughts', 'Crosses', 'XO', 'Tic'], blurb: () => 'Three in a row. Easy, normal or impossible.', make: sk => makeTTT(sk) },
+    { kind: 'checkers', suffix: ['Checkers', 'Draughts', 'Kings', 'Jumps'], blurb: () => 'Classic checkers against the computer. Jumps are forced.', make: sk => makeCheckers(sk) },
+    { kind: 'fleet', suffix: ['Fleet', 'Armada', 'Harbor', 'Sonar'], blurb: () => 'Hunt the hidden ships before they hunt yours.', make: sk => makeFleet(sk) },
+    { kind: 'solitaire', suffix: ['Solitaire', 'Patience', 'Cards', 'Deal'], blurb: () => 'Tap or drag cards. Undo is free.', make: sk => makeSolitaire(sk) },
+    { kind: 'kitchen', suffix: ['Orders', 'Kitchen', 'Diner', 'Plate'], blurb: () => 'Build orders in the exact order. Customers do not wait forever.', make: sk => makeOrder(sk) },
+    { kind: 'encore', suffix: ['Encore', 'Strum', 'Tempo', 'Notes'], blurb: () => 'Four lanes, notes falling, tempo rising. Hold your combo.', make: sk => makeEncore(sk) },
+    { kind: 'boss', suffix: ['Boss', 'Barrage', 'Phase', 'Bullets'], blurb: () => 'One boss, three phases, endless bullets. Drag to dodge.', make: sk => makeBoss(sk) },
+    { kind: 'dash', suffix: ['Spikes', 'Cube', 'Jumper', 'Sprinter'], blurb: () => 'Tap to jump over spikes and walls. One mistake and you restart.', make: sk => makeDash(sk) }
   ];
+
+  /* a game's "family": every Pong (Rally or a generated one) is family 'pong', all the 2048 / fruit-merge games are 'merge', etc.
+     The feed never shows the same family twice within GAP posts, so you don't get two Pongs in a row. */
+  const GAP = 8;
+  const famOf = s => s === ESSAY ? 'essay' : (s.fam || s.kind || s.title);
+  /* reorders slides so that no family repeats within `gap` posts (keeps the random order otherwise).
+     `lock` = how many slides at the front must stay where they are (a game opened from a link). */
+  function spreadFamilies(arr, gap, lock) {
+    const out = arr.slice(0, lock || 0), rest = arr.slice(lock || 0);
+    while (rest.length) {
+      const recent = out.slice(-gap).map(famOf);
+      let i = rest.findIndex(x => recent.indexOf(famOf(x)) < 0);
+      /* near the end, place the families with the most games left first, so leftovers can still be spaced out */
+      if (rest.length < gap * 5) {
+        const cnt = {}; rest.forEach(x => { const f = famOf(x); cnt[f] = (cnt[f] || 0) + 1; });
+        let best = 0; rest.forEach((x, k) => { const f = famOf(x); if (recent.indexOf(f) < 0 && cnt[f] > best) { best = cnt[f]; i = k; } });
+      }
+      if (i < 0) i = 0;
+      out.push(rest.splice(i, 1)[0]);
+    }
+    arr.length = 0; out.forEach(x => arr.push(x));
+  }
 
   /* the first screens of the feed are curated; after that every game gets a skin nobody used recently */
   const recentSk = [];
@@ -19853,12 +19900,17 @@ function engine(){
     const game = T.make(sk, goods.concat(pk.goods.filter(x => goods.indexOf(x) < 0)).slice(0, 3), bads, pk); game.title = title;
     return {
       game, sk, title, handle, desc: T.blurb(goods, bads), tags: pick(pk.tags) + ' ' + pick(MORE),
-      music: 'original sound - ' + handle, likes: rand(2e8, 9e9), comments: rand(1e7, 4e9), shares: rand(1e6, 9e8), cm: genComments(T.kind), kind: T.kind, gen: true
+      music: 'original sound - ' + handle, likes: rand(2e8, 9e9), comments: rand(1e7, 4e9), shares: rand(1e6, 9e8), cm: genComments(T.kind), kind: T.kind, fam: T.fam || T.kind, gen: true
     };
   }
   function ensureAhead(k) {
     if (SOLO) return;
-    while (SLIDES.length <= k) { const s = SLIDES.indexOf(ESSAY) < 0 && Math.random() < 0.005 ? ESSAY : genSlide(); SLIDES.push(s); buildSlide(s, SLIDES.length - 1); }
+    while (SLIDES.length <= k) {
+      const recent = SLIDES.slice(-GAP).map(famOf);
+      const fresh = TEMPLATES.filter(T => recent.indexOf(T.fam || T.kind) < 0);
+      const s = SLIDES.indexOf(ESSAY) < 0 && Math.random() < 0.005 ? ESSAY : genSlide(pick(fresh.length ? fresh : TEMPLATES));
+      SLIDES.push(s); buildSlide(s, SLIDES.length - 1);
+    }
   }
 
     const SLIDES = [
@@ -19910,7 +19962,7 @@ function engine(){
 
   SLIDES.push(...NEW_SLIDES);
   const BASEK = ['wire', 'orbit', 'raise', 'swipe', 'servers', 'stack', 'popup', 'dash', 'snake', 'break', 'simon', 'hl', 'beat', 'sling'];
-  SLIDES.forEach((s, i) => { s.cm = genComments(s.kind || BASEK[i]); });
+  SLIDES.forEach((s, i) => { s.cm = genComments(s.kind || BASEK[i]); s.fam = s.fam || s.kind || BASEK[i]; });
   /* one re-skinned game of every generated type joins the hand-made ones before the shuffle,
      so e.g. a "Cosmic Slither" is as likely to show up near the top as Glow Worm */
   TEMPLATES.forEach(T => SLIDES.push(genSlide(T)));
@@ -19967,6 +20019,8 @@ function engine(){
     const s = want && !SOLO ? findLink(want) : null;
     if (s) { SLIDES.unshift(s); pathOn = true; } else setPath(null);
   }
+  /* shuffled feed, but never the same type of game twice in a row (or within GAP posts); a linked game stays first */
+  spreadFamilies(SLIDES, GAP, SLIDES.length && pathOn ? 1 : 0);
 
   const fixH = () => { try { const r = document.documentElement, pwa = navigator.standalone === true; r.classList.toggle('pwa', pwa); if (pwa) { const port = innerHeight >= innerWidth, sh = port ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height); r.style.setProperty('--apph', sh + 'px'); } } catch (_) {} };
   fixH(); window.addEventListener('resize', fixH); window.addEventListener('orientationchange', () => setTimeout(fixH, 250));
