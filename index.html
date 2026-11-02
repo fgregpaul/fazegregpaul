@@ -20062,7 +20062,9 @@ function engine(){
     function respawn() { const got = M.got.slice(), coins = M.coins, deaths = M.deaths; startLevel(M.li, true); M.got = got; M.coins = coins; M.deaths = deaths; M.ents.forEach(e => { if (e.t === 'star' && M.got[e.idx]) e.taken = 1; }); }
 
     /* ---------- hero ---------- */
-    const WALK = 66, RUN = 120, BIKEV = 165;
+    const U = 3.75 * 0.85, FPS = 60; // one SMW speed unit (1/16 px/frame) in our px/s; 0.85 keeps jump heights matching the courses
+    const WALK = 24 * U, RUN = 40 * U, SPRINT = 48 * U, BIKEV = 54 * U, ACC = 1.5 * U * FPS, REL = 1 * U * FPS, SKID = 3 * U * FPS, G_HOLD = 3 * U * FPS, G_FALL = 6 * U * FPS, VFALL = 64 * U, PFULL = 0.93;
+    const JUMPT = [80, 82, 85, 87, 90, 92, 95, 97]; // jump speed by run-speed bracket: faster = higher
     function hurt(src) { const H = M.H; if (H.inv > 0 || H.dead || M.clear) return;
       if (H.bike) { H.bike = false; H.h = 18; H.y += 4; H.inv = 1.4; M.ents.push({ t: 'bikeoff', x: H.x, y: H.y + 6, w: 16, h: 12, vx: -H.face * 120, vy: -200 }); sfx(200, 0.15, 0.06, 'sawtooth'); toast('BIKE LOST', HX('#ff6b6b')); return; }
       if (H.st > 0) { H.st--; H.inv = 1.5; sfx(260, 0.12, 0.06, 'square'); setTimeout(() => sfx(170, 0.18, 0.06, 'square'), 90); try { navigator.vibrate && navigator.vibrate(40); } catch (_) {} return; }
@@ -20096,7 +20098,7 @@ function engine(){
       if (how === 'stomp' && e.t === 'shell') { e.vx = 0; e.kt = 0.25; return; }
       if (how === 'stomp' && e.t === 'e') { e.dead = 'sq'; e.dt = 0.45; return; }
       e.dead = 'flip'; e.vy = -200; e.vx = (Math.random() - 0.5) * 60; e.dt = 2; burst(e.x + e.w / 2, e.y + 4, 4, [HX('#ffffff')], 40, 0.3); }
-    function stomp(e) { const H = M.H; kill(e, 'stomp'); H.vy = M.prev.j ? -290 : -200; H.onG = false; H.ride = null; M.combo = (M.combo || 0) + 1; sfx(200 + M.combo * 80, 0.08, 0.06, 'square'); burst(e.x + e.w / 2, e.y, 5, [HX('#ffffff'), HX('#ffe14d')], 50, 0.3); if (M.combo >= 3) getCoin(); }
+    function stomp(e) { const H = M.H; kill(e, 'stomp'); H.vy = -(M.prev.j ? 88 : 80) * U; H.onG = false; H.ride = null; M.combo = (M.combo || 0) + 1; sfx(200 + M.combo * 80, 0.08, 0.06, 'square'); burst(e.x + e.w / 2, e.y, 5, [HX('#ffffff'), HX('#ffe14d')], 50, 0.3); if (M.combo >= 3) getCoin(); }
 
     function readInput(dt) { const T = Object.values(M.ptrs), k = M.keys;
       const I = { l: !!(k.l || T.indexOf('l') >= 0), r: !!(k.r || T.indexOf('r') >= 0), j: !!(k.j || T.indexOf('a') >= 0), b: !!(k.b || T.indexOf('b') >= 0), d: !!k.d };
@@ -20108,14 +20110,19 @@ function engine(){
       if (H.dead) { H.dead += dt; H.vy += 900 * dt; H.y += H.vy * dt; if (H.dead > 2) respawn(); return; }
       if (M.clear) { I = { l: false, r: M.clear.t > 0.3, j: false, b: false, run: false }; }
       if (H.ride) { const p = H.ride; H.x += p.dx; H.y = p.y - H.h; }
-      const dir = (I.r ? 1 : 0) - (I.l ? 1 : 0), ice = H.onG && H.ice ? 0.22 : 1, max = H.bike ? BIKEV : I.run ? RUN : WALK; H.skid = 0;
-      if (dir) { H.face = dir; if (H.onG && H.vx * dir < -20) { H.vx += dir * 900 * ice * dt; H.skid = 1; }
-        else if (H.vx * dir < max) H.vx = Math.min(max, H.vx * dir + (H.onG ? (I.run ? 420 : 360) : 300) * ice * dt) * dir;
-        else if (H.onG) H.vx = (Math.max(max, Math.abs(H.vx) - 300 * dt)) * dir; }
-      else { const dec = (H.onG ? 480 * ice : 240) * dt; H.vx = Math.abs(H.vx) <= dec ? 0 : H.vx - Math.sign(H.vx) * dec; }
-      if (I.jp) H.jb = 0.12; else H.jb -= dt; H.coy = H.onG ? 0.09 : H.coy - dt;
-      if (H.jb > 0 && H.coy > 0) { H.vy = -(H.bike ? 300 : 265) - Math.abs(H.vx) * 0.17; H.onG = false; H.coy = 0; H.jb = 0; H.ride = null; sfx(H.bike ? 330 : 520, 0.07, 0.045, 'square'); setTimeout(() => sfx(H.bike ? 440 : 700, 0.06, 0.035, 'square'), 40); }
-      H.vy += (H.vy < 0 && I.j ? 600 : 1300) * dt; if (H.vy > 330) H.vy = 330;
+      // Super Mario World's documented movement (speeds in 1/16 px per frame at 60 fps), scaled to our 12px tiles
+      const dir = (I.r ? 1 : 0) - (I.l ? 1 : 0), ice = H.onG && H.ice, aMul = ice ? 0.25 : 1, rMul = ice ? 0.12 : 1; H.skid = 0;
+      if (H.onG) { if (I.run && dir && dir * H.vx >= RUN - 1 && !H.bike) H.pm = Math.min(PFULL, (H.pm || 0) + dt); else if (!(I.run && dir)) H.pm = Math.max(0, (H.pm || 0) - dt * 2); }
+      const max = H.bike ? BIKEV : (I.run && H.pm >= PFULL) ? SPRINT : I.run ? RUN : WALK, sp = Math.abs(H.vx);
+      if (dir) { H.face = dir;
+        if (H.vx * dir < 0) { H.vx += dir * (H.onG ? SKID * aMul : ACC) * dt; if (H.onG && sp > 30) { H.skid = 1; H.face = dir; if (Math.random() < dt * 30) burst(H.x + 4 - dir * 4, H.y + H.h - 1, 1, [HX('#ffffff'), HX('#d4d9e2')], 20, 0.3); } }
+        else if (sp < max) H.vx = Math.min(max, sp + ACC * aMul * dt) * dir;
+        else if (H.onG) H.vx = Math.max(max, sp - REL * rMul * dt) * dir; }
+      else if (H.onG) { const dec = REL * rMul * dt; H.vx = sp <= dec ? 0 : H.vx - Math.sign(H.vx) * dec; }
+      if (I.jp) H.jb = 0.1; else H.jb -= dt; H.coy = H.onG ? 0.07 : H.coy - dt;
+      if (H.jb > 0 && H.coy > 0) { const b = Math.min(7, Math.floor(Math.abs(H.vx) / U / 8)); H.vy = -JUMPT[b] * U * (H.bike ? 1.08 : 1); H.onG = false; H.coy = 0; H.jb = 0; H.ride = null; sfx(H.bike ? 330 : 520, 0.07, 0.045, 'square'); setTimeout(() => sfx(H.bike ? 440 : 700, 0.06, 0.035, 'square'), 40); }
+      H.vy += (H.vy < 0 && I.j ? G_HOLD : G_FALL) * dt; if (H.vy > VFALL) H.vy = VFALL;
+      if (H.onG && sp >= SPRINT - 1 && Math.random() < dt * 12) burst(H.x + 4 - H.face * 5, H.y + H.h - 1, 1, [HX('#ffffff')], 15, 0.25);
       if (I.bp && H.st === 2 && !H.bike && M.ents.filter(e => e.t === 'spark').length < 2) { M.ents.push({ t: 'spark', x: H.x + (H.face > 0 ? H.w : -6), y: H.y + 6, w: 6, h: 6, vx: H.face * 190, vy: 80, life: 2 }); sfx(880, 0.05, 0.04, 'square'); }
       const prevB = H.y + H.h, wasRide = H.ride; moveBody(H, dt);
       if (H.hx && tAt(H.hc, H.hr) === 8) lightTnt(H.hc, H.hr);
@@ -20206,7 +20213,7 @@ function engine(){
         else { if (M.ents.filter(e => e.t === 'e' && !e.dead).length < 2) { M.ents.push({ t: 'e', x: mx - 6, y: b.y + b.h - 11, w: 12, h: 11, vx: (dx < 0 ? -1 : 1) * 30, vy: -150, dir: -1, awake: 1 }); sfx(350, 0.08, 0.05, 'square'); } } }
       if (H.dead || !ovl(H, b)) return;
       const fromTop = H.vy > 0 && H.y + H.h - H.vy * dt <= b.y + 8;
-      if (fromTop && b.inv <= 0) { bossHit(1); H.vy = -330; H.onG = false; }
+      if (fromTop && b.inv <= 0) { bossHit(1); H.vy = -96 * U; H.onG = false; }
       else if (fromTop) { H.vy = -260; }
       else if (b.inv <= 0.6) hurt(); }
 
@@ -20221,7 +20228,7 @@ function engine(){
         if (H.x + 4 > gx + 21) finishLevel(); }
       if (M.clear) M.clear.t += dt;
       // camera
-      const lead = H.face * 18, tx = H.x - (GX + GW * 0.42) + lead * 0.6; let cx = M.cam.x + (tx - M.cam.x) * Math.min(1, dt * 5);
+      M.look = M.look == null ? 0 : M.look; const lt = H.face * Math.min(28, GW * 0.1); M.look += clamp(lt - M.look, -70 * dt, 70 * dt); const tx = H.x + 4 - (GX + GW * 0.5) + M.look; let cx = tx;
       let lo = 0, hi = L.W * TS - LW; if (M.arenaOn && !M.bossDown) { const ax0 = a.x0 * TS, ax1 = (a.x1 + 1) * TS; if (ax1 - ax0 <= GW) lo = hi = (ax0 + ax1) / 2 - GX - GW / 2; else { lo = ax0 - GX; hi = ax1 - GX - GW; } }
       cx = clamp(cx, lo, Math.max(lo, hi)); if (M.camInit) { cx = clamp(tx, lo, Math.max(lo, hi)); }
       const R = btnRects(), padB = R.touch ? R.bs + 10 : 6, cyMax = LVH + padB - (GY + GH); let ty2 = Math.min(cyMax, H.y - GY - 50); if (M.camInit) M.cam.y = ty2; M.cam.y += (ty2 - M.cam.y) * Math.min(1, dt * 4); M.cam.y = Math.min(M.cam.y, cyMax); M.cam.x = cx; M.camInit = false;
