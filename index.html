@@ -20057,7 +20057,7 @@ function engine(){
       const sx = M.cpTx >= 0 ? M.cpTx * TS + 6 : 2 * TS; let r = 0; const c = Math.floor(sx / TS); while (r < RH && solidT(c, r)) r++; while (r < RH && !solidT(c, r)) r++;
       M.H = { x: sx - 4, y: r * TS - 18, w: 8, h: 18, vx: 0, vy: 0, onG: true, face: 1, st: keepCp ? Math.max(1, SAVE.st) : Math.max(SAVE.st, 0), inv: 0, bike: false, dead: 0, coy: 0, jb: 0, dist: 0, skid: 0, ride: null, ice: 0, pose: 'stand', jumpHeld: false };
       if (keepCp && M.H.st < 1) M.H.st = 1;
-      M.cam.x = M.H.x - (GX + GW * 0.4); M.cam.y = 0; M.camInit = true; initWeather(); M.prev = {}; M.holdT = 0; M.keys = {};
+      M.cam.x = M.H.x - (GX + GW * 0.4); M.cam.y = 0; M.camInit = true; M.camTy = null; initWeather(); M.prev = {}; M.holdT = 0; M.keys = {};
     }
     function respawn() { const got = M.got.slice(), coins = M.coins, deaths = M.deaths; startLevel(M.li, true); M.got = got; M.coins = coins; M.deaths = deaths; M.ents.forEach(e => { if (e.t === 'star' && M.got[e.idx]) e.taken = 1; }); }
 
@@ -20228,10 +20228,15 @@ function engine(){
         if (H.x + 4 > gx + 21) finishLevel(); }
       if (M.clear) M.clear.t += dt;
       // camera
-      M.look = M.look == null ? 0 : M.look; const lt = H.face * Math.min(28, GW * 0.1); M.look += clamp(lt - M.look, -70 * dt, 70 * dt); const tx = H.x + 4 - (GX + GW * 0.5) + M.look; let cx = tx;
+      // camera, the SMW way: a dead zone the hero walks around in, and the view only rises when you land higher up
+      const hx = H.x + 4, zl = GX + GW * 0.36, zr = GX + GW * 0.5; let cx = M.cam.x;
+      if (M.camInit) cx = hx - (GX + GW * 0.4); else if (!H.dead) { if (hx - cx < zl) cx = hx - zl; else if (hx - cx > zr) cx = hx - zr; }
       let lo = 0, hi = L.W * TS - LW; if (M.arenaOn && !M.bossDown) { const ax0 = a.x0 * TS, ax1 = (a.x1 + 1) * TS; if (ax1 - ax0 <= GW) lo = hi = (ax0 + ax1) / 2 - GX - GW / 2; else { lo = ax0 - GX; hi = ax1 - GX - GW; } }
-      cx = clamp(cx, lo, Math.max(lo, hi)); if (M.camInit) { cx = clamp(tx, lo, Math.max(lo, hi)); }
-      const R = btnRects(), padB = R.touch ? R.bs + 10 : 6, cyMax = LVH + padB - (GY + GH); let ty2 = Math.min(cyMax, H.y - GY - 50); if (M.camInit) M.cam.y = ty2; M.cam.y += (ty2 - M.cam.y) * Math.min(1, dt * 4); M.cam.y = Math.min(M.cam.y, cyMax); M.cam.x = cx; M.camInit = false;
+      const want = clamp(cx, lo, Math.max(lo, hi)); M.cam.x = M.camInit || !M.arenaOn ? want : M.cam.x + clamp(want - M.cam.x, -220 * dt, 220 * dt);
+      const R = btnRects(), padB = R.touch ? R.bs + 10 : 6, cyMax = LVH + padB - (GY + GH), sy = H.y - M.cam.y;
+      if (M.camInit || M.camTy == null) M.camTy = Math.min(cyMax, H.y - GY - 50);
+      else if (!H.dead && (H.onG || sy < GY + 14 || sy + H.h > GY + GH - padB)) M.camTy = Math.min(cyMax, H.y - GY - 50);
+      if (M.camInit) M.cam.y = M.camTy; M.cam.y += (M.camTy - M.cam.y) * Math.min(1, dt * 3); M.cam.y = Math.min(M.cam.y, cyMax); M.camInit = false;
     }
     const tapeY = g => { const top = g.by - 100, bot = g.by - 8; return Math.round(top + (bot - top) * (0.5 + 0.5 * Math.sin(M.t * 2.1))); };
     function finishLevel() { const lv = LEVELS[M.li]; M.clear = { t: 0, first: !SAVE.clr[lv.id] }; SAVE.clr[lv.id] = 1; const s = starsOf(lv.id).slice(); M.got.forEach((v, i) => { if (v) s[i] = 1; }); SAVE.stars[lv.id] = s; SAVE.st = Math.max(1, M.H.st); SAVE.ni = M.li + 1; if (M.li === LEVELS.length - 1 && !SAVE.end) M.clear.ending = 1; save(); JING('win'); M.clear.newOpen = M.clear.first && M.li < LEVELS.length - 1; }
